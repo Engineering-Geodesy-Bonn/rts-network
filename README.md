@@ -28,3 +28,7 @@ docker-compose up -d
 ```
 
 This will build the Docker images for the API and dashboard and start the containers. The API will be available at `http://localhost:8000` and the dashboard at `http://localhost:8050`.
+
+## License
+
+The license of each component is specified in the respective folders. The RTS API and the RTS Dashboard are licensed under the GPLv3 license. The RTS Worker is licensed under the MIT license. The licenses are included in the respective folders.
