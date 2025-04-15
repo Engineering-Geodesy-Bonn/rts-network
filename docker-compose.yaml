@@ -1,0 +1,13 @@
+services:
+  api:
+    build:
+      context: ./rts-api
+    ports:
+      - "8000:8000"
+    restart: always
+  dashboard:
+    build:
+      context: ./rts-dashboard
+    ports:
+      - "8050:8050"
+    restart: always

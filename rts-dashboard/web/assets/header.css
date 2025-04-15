@@ -1,0 +1,42 @@
+.header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background-color: white;
+    border-bottom: 1px solid #e8e8e8;
+    z-index: 1000;
+}
+
+.app-name {
+    font-size: 20px;
+    font-weight: 400;
+    text-decoration: none;
+    color: black;
+}
+
+.left-section {
+    margin-left: 24px;
+}
+
+.right-section {
+    margin-right: 24px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+.api-connection {
+    margin-right: 10px;
+}
+
+.api-status {
+    height: 15px;
+}

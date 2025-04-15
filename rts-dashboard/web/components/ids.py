@@ -1,0 +1,131 @@
+RTS_NAME_INPUT = "rts-name-input"
+RTS_PORT_INPUT = "rts-port-input"
+RTS_BAUDRATE_INPUT = "rts-baudrate-input"
+RTS_TIMEOUT_INPUT = "rts-timeout-input"
+RTS_PARITY_INPUT = "rts-parity-input"
+RTS_STOPBITS_INPUT = "rts-stopbits-input"
+RTS_BYTESIZE_INPUT = "rts-bytesize-input"
+ADD_RTS_BUTTON = "create-rts-button"
+OPEN_CREATE_RTS_MODAL_BUTTON = "create-rts-modal-button"
+OPEN_UPDATE_RTS_MODAL_BUTTON = "rts-modal-button"
+DEVICE_DROPDOWN = "device-dropdown"
+
+CLOSE_RTS_MODAL_BUTTON = "close-rts-modal-button"
+CREATE_RTS_MODAL = "rts-modal"
+
+DEVICE_LIST = "device-list"
+RTS_LIST = "rts-list"
+JOB_LIST = "job-list"
+
+INVALID_RTS_INPUT_ALERT = "invalid-rts-input-alert"
+INVALID_SETTINGS_INPUT_ALERT = "invalid-settings-input-alert"
+INVALID_SCAN_INPUT_ALERT = "invalid-scan-input-alert"
+
+START_ALL_BUTTON = "start-all-button"
+STOP_ALL_RTS_BUTTON = "stop-all-button"
+MEASURE_ALL_RTS_BUTTON = "measure-all-rts-button"
+
+SETTINGS_MODAL = "settings-modal"
+SETTINGS_MODAL_BODY = "settings-modal-body"
+APPLY_API_SETTINGS_MODAL_BUTTON = "apply-settings-modal-button"
+
+SETTINGS_FORM = "settings-form"
+
+RTS_MEASUREMENT_MODE = "rts-measurement-mode"
+RTS_INCLINATION_MODE = "rts-inclination-mode"
+RTS_EDM_MODE = "rts-edm-mode"
+RTS_PRISM_TYPE = "rts-prism-type"
+RTS_FINE_ADJUST_HORIZONTAL_SEARCH_RANGE = "rts-fine-adjust-horizontal-search-range"
+RTS_FINE_ADJUST_VERTICAL_SEARCH_RANGE = "rts-fine-adjust-vertical-search-range"
+RTS_POWER_SEARCH_RANGE = "rts-power-search-range"
+RTS_POWER_SEARCH_ENABLED = "rts-power-search-enabled"
+
+JOB_DOWNLOAD = "log-download"
+LOG_DROPDOWN = "log-dropdown"
+DOWNLOAD_LOG = "download-log"
+DELETE_LOG = "delete-log"
+CLOSE_LOG_MODAL_BUTTON = "close-log-modal-button"
+LOG_MODAL = "log-modal"
+
+CURRENT_TARGET_POSITION = "current-target-position"
+CURRENT_TARGET_RTS = "current-target-rts"
+
+API_HOST_INPUT = "api-host-input"
+API_PORT_INPUT = "api-port-input"
+TEST_API_CONNECTION_BUTTON = "test-connection-button"
+API_STORE = "api-store"
+API_CONNECTION_STATUS_ICON = "api-connection-status-icon"
+
+TABS = "tabs"
+SETTINGS_TAB = "settings-tab"
+DEVICE_TAB = "device-tab"
+RTS_TAB = "rts-tab"
+JOBS_TAB = "jobs-tab"
+PLOT_TAB = "plot-tab"
+ALIGNMENT_TAB = "alignment-tab"
+SETTINGS_TAB = "settings-tab"
+TAB_CONTENT = "tab-content"
+INTERNAL_DELAY_TAB = "internal-delay-tab"
+
+RTS_LIST_TRIGGER = "rts-list-trigger"
+JOB_LIST_TRIGGER = "job-list-trigger"
+
+GLOBAL_RTS_LIST_TRIGGER = "global-rts-list-trigger"
+GLOBAL_JOB_LIST_TRIGGER = "global-job-list-trigger"
+
+JOB_LIST_INTERVAL = "job-list-interval"
+
+OPEN_RTS_SETTINGS_MODAL_BUTTON = "open-rts-settings-modal-button"
+APPLY_RTS_SETTINGS_MODAL_BUTTON = "apply-rts-settings-modal-button"
+CLOSE_RTS_SETTINGS_MODAL_BUTTON = "close-settings-modal-button"
+
+REMOVE_RTS_BUTTON = "remove-rts-button"
+START_RTS_JOB_BUTTON = "rts-start-job-button"
+STOP_RTS_JOB_BUTTON = "rts-stop-job-button"
+
+RTS_TRACKING_STATUS_LABEL = "rts-tracking-status-label"
+RTS_TRACKING_STATUS_ICON = "rts-tracking-status-icon"
+RTS_TRACKING_STATUS_INTERVAL = "rts-tracking-status-interval"
+
+RTS_DUMMY_OUTPUT = "rts-dummy-output"
+JOB_DUMMY_OUTPUT = "job-dummy-output"
+
+DELETE_JOB_BUTTON = "delete-job-button"
+DOWNLOAD_JOB_BUTTON = "download-job-button"
+JOB_DELETE_CONFIRM = "job-delete-confirm"
+POSITION_PLOT = "position-plot"
+POSITION_PLOT_INTERVAL = "position-plot-interval"
+STOP_ALL_JOBS_BUTTON = "stop-all-jobs-button"
+
+PLOT_JOB_DROPDOWN = "plot-job-dropdown"
+REFRESH_PLOT_BUTTON = "refresh-plot-button"
+ALERT = "alert"
+API_HEADER_STATUS_ICON = "api-status"
+API_CONNECTION_STATUS_INTERVAL = "api-connection-status-interval"
+APPLY_DELAY_BUTTON = "apply-delay-button"
+
+ALIGN_RTS_BUTTON = "align-rts-button"
+ALIGN_REFERENCE_JOB_DROPDOWN = "align-reference-job-dropdown"
+ALIGN_EVALUATED_JOB_DROPDOWN = "align-evaluated-job-dropdown"
+ALIGN_PLOT = "alignment-plot"
+ALIGN_REFRESH_BUTTON = "align-refresh-button"
+
+DEVICE_LIST_INTERVAL = "device-list-interval"
+STOP_JOB_BUTTON = "stop-job-button"
+AUTO_REFRESH_PLOT_SWITCH = "auto-refresh-plot-switch"
+
+RTS_INTERNAL_DELAY_INPUT = "rts-internal-delay"
+RTS_EXTERNAL_DELAY_INPUT = "rts-external-delay"
+RTS_DISTANCE_STD_DEV_INPUT = "rts-distance-std-dev"
+RTS_DISTANCE_PPM_INPUT = "rts-distance-ppm"
+RTS_ANGLE_STD_DEV_INPUT = "rts-angle-std-dev"
+
+RTS_STATION_X_INPUT = "rts-station-x"
+RTS_STATION_Y_INPUT = "rts-station-y"
+RTS_STATION_Z_INPUT = "rts-station-z"
+RTS_ORIENTATION_INPUT = "rts-orientation"
+
+COMPUTE_INTERNAL_DELAY_BUTTON = "compute-internal-delay-button"
+INTERNAL_DELAY_DROPDOWN = "internal-delay-dropdown"
+INTERNAL_DELAY_PLOT = "internal-delay-plot"
+SHOW_RAW_MEASUREMENTS_SWITCH = "show-raw-measurements-switch"

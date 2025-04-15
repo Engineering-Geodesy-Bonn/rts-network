@@ -1,0 +1,12 @@
+[submodule "rts-api"]
+	path = rts-api
+	url = https://github.com/Engineering-Geodesy-Bonn/rts-api
+[submodule "rts-dashboard"]
+	path = rts-dashboard
+	url = https://github.com/Engineering-Geodesy-Bonn/rts-dashboard
+[submodule "rts-tools"]
+	path = rts-tools
+	url = https://github.com/Engineering-Geodesy-Bonn/rts-tools
+[submodule "rts-worker"]
+	path = rts-worker
+	url = https://github.com/Engineering-Geodesy-Bonn/rts-worker

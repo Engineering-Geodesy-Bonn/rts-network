@@ -1,0 +1,154 @@
+.list-item-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border: 1px solid rgb(204, 204, 204);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background-color: white;
+}
+
+
+.item-right-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item-left-section {
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+}
+
+.item-middle-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: left;
+}
+
+
+.item-icon {
+    width: 50px;
+    margin-right: 20px;
+}
+
+.item-detail {
+    font-size: 14px;
+    color: rgb(129, 129, 129);
+    font-weight: 300;
+}
+
+.item-id {
+    font-size: 10px;
+    color: rgb(129, 129, 129);
+    font-weight: 300;
+}
+
+.item-name {
+    font-size: 20px;
+    color: black;
+    font-weight: 400;
+}
+
+.job-name {
+    font-size: 16px;
+    color: black;
+    font-weight: 400;
+}
+
+.job-detail {
+    font-size: 12px;
+    color: rgb(129, 129, 129);
+    font-weight: 300;
+}
+
+.job-date {
+    font-size: 14px;
+    color: black;
+    font-weight: 300;
+}
+
+.item-name-container {
+    width: 200px;
+}
+
+.item-status-label {
+    font-size: 16px;
+    color: black;
+    font-weight: 300;
+    margin-right: 20px;
+}
+
+.item-status-icon {
+    height: 15px;
+}
+
+.item-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 150px;
+}
+
+.item-action-button {
+    height: 30px;
+    width: 125px;
+    border: 1px solid rgb(204, 204, 204);
+    background-color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.15s;
+    font-size: 15px;
+    font-weight: 300;
+}
+
+.item-action-button:hover {
+    background-color: rgb(240, 240, 240);
+}
+
+.item-status-row,
+.item-position-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item-status-row {
+    width: 200px;
+}
+
+.item-position-row {
+    width: 350px;
+}
+
+
+.item-divider {
+    border-left: 1px solid #b1b1b1;
+    height: 100px;
+    position: relative;
+}
+
+@media only screen and (max-width: 1250px) {
+
+    .item-divider {
+        display: none;
+    }
+
+    .item-status-row {
+        display: none;
+    }
+}
+
+@media only screen and (max-width: 975px) {
+
+    .item-position-row {
+        display: none;
+    }
+}

@@ -1,0 +1,73 @@
+p {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    font-weight: 300;
+}
+
+body {
+    background-color: rgb(245, 245, 245);
+    position: absolute;
+    top: 65px;
+    left: 24px;
+    right: 24px;
+    bottom: 0px;
+    margin: 24px auto;
+    width: 80%;
+    min-width: 450px;
+}
+
+.button {
+    height: 36px;
+    padding: 0px 10px;
+    border: 1px solid rgb(204, 204, 204);
+    background-color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.15s;
+    font-weight: 300;
+    font-size: 16px;
+}
+
+.button:hover {
+    background-color: rgb(240, 240, 240);
+}
+
+.tab {
+    padding: 20px;
+}
+
+#log-footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
+.modal-footer-buttons {
+    display: flex;
+    justify-content: right;
+    flex-direction: row;
+    width: 100%;
+    margin: 0px;
+}
+
+
+.section-header {
+    font-size: 32px;
+    color: black;
+    font-weight: 300;
+    margin-right: 20px;
+}
+
+.tab-header-group {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.tab-divider {
+    border-bottom: 1px solid rgb(204, 204, 204);
+    margin-top: 40px;
+    margin-bottom: 40px;
+}

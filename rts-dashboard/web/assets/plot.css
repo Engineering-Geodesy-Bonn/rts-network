@@ -1,0 +1,26 @@
+.plot-label {
+    font-size: 32px;
+    color: black;
+    font-weight: 300;
+    margin-right: 20px;
+}
+
+.tab-header-group-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.auto-refresh-label {
+    font-size: 16px;
+    color: black;
+    font-weight: 300;
+    margin-right: 10px;
+}
+
+.auto-refresh-switch {
+    font-size: 16px;
+    color: black;
+    font-weight: 300;
+    margin-right: 20px;
+}
