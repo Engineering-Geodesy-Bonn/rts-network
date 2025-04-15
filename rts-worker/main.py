@@ -11,7 +11,7 @@ task_mapping = {
     RTSJobType.TEST_CONNECTION: tasks.test_rts,
     RTSJobType.TRACK_PRISM: tasks.track_prism,
     RTSJobType.TURN_TO_TARGET: tasks.turn_to_target,
-    RTSJobType.ADD_STATIC_MEASUREMENT: tasks.add_single_measurement_dummy,
+    RTSJobType.ADD_STATIC_MEASUREMENT: tasks.add_single_measurement,
 }
 
 
