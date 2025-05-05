@@ -1,6 +1,6 @@
 import serial
-from dtos import RTSResponse
-from pygeocom import PyGeoCom
+from rtsworker.dtos import RTSResponse
+from rtsworker.pygeocom import PyGeoCom
 
 
 class RTSSerialConnection:
