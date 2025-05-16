@@ -43,7 +43,7 @@ def render(api_store: dict) -> html.Div:
                         children=[
                             html.Div("Auto-refresh", className="auto-refresh-label"),
                             daq.BooleanSwitch(
-                                on=True,
+                                on=False,
                                 color="#00cc96",
                                 id=ids.AUTO_REFRESH_PLOT_SWITCH,
                                 className="auto-refresh-switch",
