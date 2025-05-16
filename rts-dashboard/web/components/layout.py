@@ -10,7 +10,7 @@ def create_layout() -> html.Div:
         children=[
             dcc.Store(id=ids.GLOBAL_RTS_LIST_TRIGGER),
             dcc.Store(id=ids.GLOBAL_JOB_LIST_TRIGGER),
-            dcc.Store(id=ids.API_STORE, data={"host": "127.0.0.1", "port": 8000}, storage_type="local"),
+            dcc.Store(id=ids.API_STORE, data={"host": "192.168.0.102", "port": 8000}, storage_type="local"),
             create_header(),
             create_content(),
             create_footer(),

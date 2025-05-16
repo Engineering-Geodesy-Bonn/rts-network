@@ -1,4 +1,4 @@
 test
 .venv
 logs/
-database.db
+# database.db

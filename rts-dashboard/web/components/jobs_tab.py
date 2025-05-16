@@ -27,7 +27,7 @@ def render_job_list(api_store: dict) -> list[html.Div]:
 
     for job in job_list:
 
-        if job.job_type == RTSJobType.ADD_STATIC_MEASUREMENT.value or job.job_type == RTSJobType.CHANGE_FACE:
+        if (job.job_type == RTSJobType.ADD_STATIC_MEASUREMENT.value) or (job.job_type == RTSJobType.CHANGE_FACE):
             continue
 
         try:

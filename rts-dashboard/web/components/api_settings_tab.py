@@ -16,7 +16,7 @@ def render(api_store: dict) -> html.Div:
                     dbc.Label("API IP"),
                     dbc.Input(
                         type="text",
-                        placeholder="127.0.0.1",
+                        placeholder="192.168.0.102",
                         id=ids.API_HOST_INPUT,
                         value=api_store["host"],
                     ),
