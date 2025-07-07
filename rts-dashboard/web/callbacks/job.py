@@ -80,6 +80,22 @@ def download_job(n_clicks: int, api_store: dict):
     return {"content": download_response.text, "filename": filename}
 
 
+
+@callback(
+    Output({"type": ids.MEAS_DOWNLOAD, "job_id": MATCH}, "data"),
+    Input({"type": ids.DOWNLOAD_RAW_MEASUREMENTS_BUTTON, "job_id": MATCH}, "n_clicks"),
+    State(ids.API_STORE, "data"),
+    prevent_initial_call=True,
+)
+def download_raw_measurements(n_clicks: int, api_store: dict):
+    if n_clicks is None:
+        return
+
+    job_id = ctx.triggered_id["job_id"]
+    download_response: Response = api.download_measurements(api_store, int(job_id))
+    filename = download_response.headers["content-disposition"].split("attachment; filename=")[1]
+    return {"content": download_response.text, "filename": filename}
+
 @callback(
     Output(ids.JOB_LIST, "children", allow_duplicate=True),
     Input(ids.JOB_LIST_INTERVAL, "n_intervals"),

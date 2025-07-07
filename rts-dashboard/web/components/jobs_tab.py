@@ -52,6 +52,7 @@ def render_job(job: RTSJobResponse, rts: RTSResponse | None) -> html.Div:
                     ),
                     dcc.Store(id={"type": ids.JOB_LIST_TRIGGER, "job_id": job.job_id}),
                     dcc.Download(id={"type": ids.JOB_DOWNLOAD, "job_id": job.job_id}),
+                    dcc.Download(id={"type": ids.MEAS_DOWNLOAD, "job_id": job.job_id}),
                     dcc.ConfirmDialog(
                         id={"type": ids.JOB_DELETE_CONFIRM, "job_id": job.job_id},
                         message="Are you sure you want to delete this job?",
@@ -87,20 +88,26 @@ def render_job_actions(job: RTSJobResponse) -> html.Div:
                     dbc.Button(
                         "Stop",
                         id={"type": ids.STOP_JOB_BUTTON, "job_id": job.job_id},
-                        style={"width": "100px"},
+                        style={"width": "250px"},
                         disabled=(job.job_status != "running"),
                     ),
                     dbc.Button(
-                        "Download",
+                        "Download Trajectory",
                         id={"type": ids.DOWNLOAD_JOB_BUTTON, "job_id": job.job_id},
-                        style={"width": "100px"},
+                        style={"width": "250px"},
+                        disabled=(RTSJobType(job.job_type) not in downloadable_types),
+                    ),
+                    dbc.Button(
+                        "Download Raw Measurements",
+                        id={"type": ids.DOWNLOAD_RAW_MEASUREMENTS_BUTTON, "job_id": job.job_id},
+                        style={"width": "250px"},
                         disabled=(RTSJobType(job.job_type) not in downloadable_types),
                     ),
                     dbc.Button(
                         "Delete",
                         id={"type": ids.DELETE_JOB_BUTTON, "job_id": job.job_id},
                         color="danger",
-                        style={"width": "100px"},
+                        style={"width": "250px"},
                     ),
                 ],
                 vertical=True,
