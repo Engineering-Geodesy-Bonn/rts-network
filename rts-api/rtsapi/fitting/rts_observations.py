@@ -1,7 +1,6 @@
 import copy
 import logging
 from dataclasses import dataclass
-
 import numpy as np
 from scipy.sparse import dia_matrix, spdiags
 from rtsapi.dtos import MeasurementResponse
@@ -28,7 +27,12 @@ class RTSStation:
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
+    epsg: int = 0
     orientation: float = 0.0
+
+    @property
+    def pointset(self) -> tpy.PointSet:
+        return tpy.PointSet(xyz=np.array([[self.x, self.y, self.z]]), epsg=self.epsg)
 
 
 class RTSObservations:
@@ -101,24 +105,35 @@ class RTSObservations:
         return spdiags(vvec, 0, len(vvec), len(vvec))
 
     @property
-    def x(self) -> np.ndarray:
-        return self.station.x + self.distances * np.sin(self.v_angles) * np.sin(
-            self.h_angles + self.station.orientation
-        )
+    def local_x(self) -> np.ndarray:
+        return self.distances * np.sin(self.v_angles) * np.sin(self.h_angles + self.station.orientation)
 
     @property
-    def y(self) -> np.ndarray:
-        return self.station.y + self.distances * np.sin(self.v_angles) * np.cos(
-            self.h_angles + self.station.orientation
-        )
+    def local_y(self) -> np.ndarray:
+        return self.distances * np.sin(self.v_angles) * np.cos(self.h_angles + self.station.orientation)
 
     @property
-    def z(self) -> np.ndarray:
-        return self.station.z + self.distances * np.cos(self.v_angles)
+    def local_z(self) -> np.ndarray:
+        return self.distances * np.cos(self.v_angles)
+
+    @property
+    def local_xyz(self) -> np.ndarray:
+        return np.c_[self.local_x, self.local_y, self.local_z]
 
     @property
     def xyz(self) -> np.ndarray:
-        return np.c_[self.x, self.y, self.z]
+        """
+        Returns the absolute position of the targets in the station's coordinate system.
+
+        The station's coordinates are transformed to local coordinate system tangent to
+        the ellipsoid at the station's position. Then, the local xyz coordinates from the
+        measurements are added to the station's local coordinates. Using the local
+        transformer, the local coordinates are transformed back to the station's EPSG coordinate system.
+        """
+        local_station = self.station.pointset.to_local(inplace=False)
+        local_xyz = local_station.xyz + self.local_xyz
+        xyz_pointset = tpy.PointSet(xyz=local_xyz, epsg=0, local_transformer=local_station.local_transformer)
+        return xyz_pointset.to_epsg(self.station.epsg).xyz
 
     @property
     def delta_time(self) -> np.ndarray:
@@ -139,7 +154,7 @@ class RTSObservations:
         return self.rts_dhv.shape[0]
 
     def export_to_trajectory(self) -> tpy.Trajectory:
-        pos = tpy.PointSet(xyz=self.xyz)
+        pos = tpy.PointSet(xyz=self.xyz, epsg=self.station.epsg)
         return tpy.Trajectory(tstamps=self.sensor_timestamps, pos=pos)
 
     def sync_sensor_time(self, baudrate: int, external_delay: float = 0.0) -> list[MeasurementResponse]:

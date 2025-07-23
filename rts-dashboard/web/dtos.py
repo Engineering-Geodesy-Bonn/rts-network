@@ -245,6 +245,7 @@ class UpdateRTSRequest(BaseModel):
     station_x: float = 0.0
     station_y: float = 0.0
     station_z: float = 0.0
+    station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
 
     @property
@@ -265,6 +266,7 @@ class UpdateRTSRequest(BaseModel):
             self.station_x,
             self.station_y,
             self.station_z,
+            self.station_epsg,
             self.orientation * 200 / np.pi,
         )
 
@@ -291,6 +293,7 @@ class RTSResponse(BaseModel):
     station_x: float = 0.0
     station_y: float = 0.0
     station_z: float = 0.0
+    station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
 
     model_config = ConfigDict(from_attributes=True)
@@ -313,6 +316,7 @@ class RTSResponse(BaseModel):
             self.station_x,
             self.station_y,
             self.station_z,
+            self.station_epsg,
             self.orientation * 200 / np.pi,
         )
 

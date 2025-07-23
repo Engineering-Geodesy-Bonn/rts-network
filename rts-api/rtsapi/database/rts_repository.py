@@ -69,13 +69,14 @@ class RTSRepository:
         )
 
     def set_station(
-        self, rts_id: int, station_x: float, station_y: float, station_z: float, orientation: float
+        self, rts_id: int, station_x: float, station_y: float, station_z: float, station_epsg: int, orientation: float
     ) -> None:
         self.db.query(RTS).filter(RTS.id == rts_id).update(
             {
                 RTS.station_x: station_x,
                 RTS.station_y: station_y,
                 RTS.station_z: station_z,
+                RTS.station_epsg: station_epsg,
                 RTS.orientation: orientation,
             }
         )

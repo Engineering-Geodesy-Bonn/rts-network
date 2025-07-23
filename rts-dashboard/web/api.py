@@ -11,7 +11,7 @@ CONNECT_TIMEOUT = 0.5
 READ_TIMEOUT = 30
 
 
-def get_api_host(api_store: dict) -> dict:
+def get_api_host(api_store: dict) -> str:
     return f"http://{api_store['host']}:{api_store['port']}"
 
 

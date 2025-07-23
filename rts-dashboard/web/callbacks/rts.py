@@ -43,6 +43,7 @@ STATUS_ICONS = {
     Output({"type": ids.RTS_STATION_X_INPUT, "rts_id": MATCH}, "value"),
     Output({"type": ids.RTS_STATION_Y_INPUT, "rts_id": MATCH}, "value"),
     Output({"type": ids.RTS_STATION_Z_INPUT, "rts_id": MATCH}, "value"),
+    Output({"type": ids.RTS_STATION_EPSG_INPUT, "rts_id": MATCH}, "value"),
     Output({"type": ids.RTS_ORIENTATION_INPUT, "rts_id": MATCH}, "value"),
     Input({"type": ids.OPEN_RTS_SETTINGS_MODAL_BUTTON, "rts_id": MATCH}, "n_clicks"),
     State({"type": ids.SETTINGS_MODAL, "rts_id": MATCH}, "is_open"),
@@ -112,6 +113,7 @@ def close_rts_settings_modal(_):
     State({"type": ids.RTS_STATION_X_INPUT, "rts_id": MATCH}, "value"),
     State({"type": ids.RTS_STATION_Y_INPUT, "rts_id": MATCH}, "value"),
     State({"type": ids.RTS_STATION_Z_INPUT, "rts_id": MATCH}, "value"),
+    State({"type": ids.RTS_STATION_EPSG_INPUT, "rts_id": MATCH}, "value"),
     State({"type": ids.RTS_ORIENTATION_INPUT, "rts_id": MATCH}, "value"),
     State({"type": ids.SETTINGS_MODAL, "rts_id": MATCH}, "is_open"),
     State(ids.API_STORE, "data"),
@@ -142,6 +144,7 @@ def update_rts_settings(
     rts_station_x: float,
     rts_station_y: float,
     rts_station_z: float,
+    rts_station_epsg: int,
     rts_orientation: float,
     is_open: bool,
     api_store: dict,
@@ -184,6 +187,7 @@ def update_rts_settings(
             station_x=rts_station_x,
             station_y=rts_station_y,
             station_z=rts_station_z,
+            station_epsg=rts_station_epsg,
             orientation=float(rts_orientation) * np.pi / 200,
         )
         api.update_rts(api_store, rts_id=rts_id, update_rts_request=update_rts_request)
@@ -256,6 +260,7 @@ def remove_rts(_, api_store: dict):
     State(ids.RTS_STATION_X_INPUT, "value"),
     State(ids.RTS_STATION_Y_INPUT, "value"),
     State(ids.RTS_STATION_Z_INPUT, "value"),
+    State(ids.RTS_STATION_EPSG_INPUT, "value"),
     State(ids.RTS_ORIENTATION_INPUT, "value"),
     State(ids.CREATE_RTS_MODAL, "is_open"),
     State(ids.API_STORE, "data"),
@@ -279,6 +284,7 @@ def create_rts_action(
     rts_station_x: float,
     rts_station_y: float,
     rts_station_z: float,
+    rts_station_epsg: int,
     rts_orientation: float,
     modal_is_open: bool,
     api_store: dict,
@@ -308,6 +314,7 @@ def create_rts_action(
             station_x=rts_station_x,
             station_y=rts_station_y,
             station_z=rts_station_z,
+            station_epsg=rts_station_epsg,
             orientation=float(rts_orientation) * np.pi / 200,
         )
         api.create_rts(api_store, create_device_request)

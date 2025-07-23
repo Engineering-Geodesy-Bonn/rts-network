@@ -59,7 +59,9 @@ class MeasurementService:
         rts_variance_config = RTSVarianceConfig(
             distance=rts.distance_std_dev**2, ppm=rts.distance_ppm, angle=rts.angle_std_dev**2
         )
-        rts_station = RTSStation(x=rts.station_x, y=rts.station_y, z=rts.station_z, orientation=rts.orientation)
+        rts_station = RTSStation(
+            x=rts.station_x, y=rts.station_y, z=rts.station_z, epsg=rts.station_epsg, orientation=rts.orientation
+        )
         measurements = [
             MeasurementMapper.to_dto(measurement)
             for measurement in self.measurement_repository.get_measurements(job_id)
@@ -178,6 +180,7 @@ class MeasurementService:
             reference_station.get("station_x", 0.0),
             reference_station.get("station_y", 0.0),
             reference_station.get("station_z", 0.0),
+            reference_station.get("station_epsg", 0),
             reference_station.get("orientation", 0.0),
         )
 

@@ -69,7 +69,7 @@ async def get_rts_job_status(
 ) -> RTSJobStatusResponse:
     client_ip = request.client.host
     device_service.upsert_device(client_ip)
-    return rts_job_service.get_rts_job_status(client_ip, job_id)
+    return rts_job_service.get_rts_job_status(job_id)
 
 
 @router.put("/jobs/{job_id}")

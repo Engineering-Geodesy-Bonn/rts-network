@@ -3,7 +3,7 @@ from typing import Tuple
 from dash import Input, Output, callback
 
 from web.components import ids
-from web.utils import validate_ip_address, validate_port
+from web.utils import validate_port
 
 
 @callback(
@@ -23,11 +23,10 @@ def update_api_ip_form(text: str) -> Tuple[bool, bool]:
         Tuple[bool, bool]: A tuple of two boolean values. The first value indicates if the
         input is valid, the second value indicates if the input is invalid.
     """
-    if not text:
+    if not text or text == "" or text is None:
         return False, False
 
-    valid = validate_ip_address(text)
-    return valid, not valid
+    return True, False
 
 
 @callback(

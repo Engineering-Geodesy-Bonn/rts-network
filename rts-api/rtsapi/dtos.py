@@ -148,6 +148,7 @@ class UpdateRTSRequest(BaseModel):
     station_x: float = 0.0
     station_y: float = 0.0
     station_z: float = 0.0
+    station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
     distance_std_dev: float = 0.001
     angle_std_dev: float = 0.0003 * np.pi / 200
@@ -173,6 +174,7 @@ class RTSResponse(BaseModel):
     station_x: float = 0.0
     station_y: float = 0.0
     station_z: float = 0.0
+    station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
     distance_std_dev: float = 0.001
     angle_std_dev: float = 0.0003 * np.pi / 200
@@ -191,6 +193,7 @@ class TargetPosition(BaseModel):
     x: float
     y: float
     z: float
+    epsg: int
     timestamp: float
     rts_id: int | None
 

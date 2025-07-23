@@ -1,11 +1,11 @@
 services:
-  api:
+  rtsapi:
     build:
       context: ./rts-api
     ports:
       - "8000:8000"
     restart: always
-  dashboard:
+  rtsdashboard:
     build:
       context: ./rts-dashboard
     ports:

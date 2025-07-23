@@ -13,14 +13,14 @@ def render(api_store: dict) -> html.Div:
             ),
             html.Div(
                 [
-                    dbc.Label("API IP"),
+                    dbc.Label("API IP / Host"),
                     dbc.Input(
                         type="text",
-                        placeholder="192.168.0.101",
+                        placeholder="rtsapi",
                         id=ids.API_HOST_INPUT,
                         value=api_store["host"],
                     ),
-                    dbc.FormText("The IP of the API server."),
+                    dbc.FormText("The IP or host of the API server."),
                 ]
             ),
             html.Br(),

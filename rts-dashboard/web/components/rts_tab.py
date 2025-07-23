@@ -229,6 +229,18 @@ def render_rts_form(api_store: dict) -> html.Div:
                     ),
                     html.Div(
                         [
+                            dbc.Label("Station EPSG"),
+                            dbc.Input(
+                                type="number",
+                                id=ids.RTS_STATION_EPSG_INPUT,
+                                value="0",
+                                placeholder="Enter station epsg code",
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    html.Div(
+                        [
                             dbc.Label("Station Orientation [gon]"),
                             dbc.Input(
                                 type="number",
@@ -723,6 +735,18 @@ def render_rts_settings_form(rts_id: int) -> html.Div:
                                 id={"type": ids.RTS_STATION_Z_INPUT, "rts_id": rts_id},
                                 value="0.0",
                                 placeholder="Enter station z coordinate",
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    html.Div(
+                        [
+                            dbc.Label("Station EPSG"),
+                            dbc.Input(
+                                type="number",
+                                id={"type": ids.RTS_STATION_EPSG_INPUT, "rts_id": rts_id},
+                                value="0",
+                                placeholder="Enter station epsg code",
                             ),
                         ],
                         className="mb-3",

@@ -39,7 +39,7 @@ class RTSJobService:
 
         return RTSJobMapper.to_dto(db_rts_job)
 
-    def get_rts_job_status(self, client_ip: str, job_id: int) -> dtos.RTSJobStatusResponse:
+    def get_rts_job_status(self, job_id: int) -> dtos.RTSJobStatusResponse:
         db_rts_job = self.rts_job_repository.get_rts_job(job_id)
         return dtos.RTSJobStatusResponse(job_status=dtos.RTSJobStatus(db_rts_job.status))
 

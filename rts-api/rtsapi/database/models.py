@@ -24,6 +24,7 @@ class RTS(Base):
     station_x: Mapped[float]
     station_y: Mapped[float]
     station_z: Mapped[float]
+    station_epsg: Mapped[int]
     orientation: Mapped[float]
 
     distance_std_dev: Mapped[float]

@@ -125,6 +125,7 @@ RTS_ANGLE_STD_DEV_INPUT = "rts-angle-std-dev"
 RTS_STATION_X_INPUT = "rts-station-x"
 RTS_STATION_Y_INPUT = "rts-station-y"
 RTS_STATION_Z_INPUT = "rts-station-z"
+RTS_STATION_EPSG_INPUT = "rts-station-epsg"
 RTS_ORIENTATION_INPUT = "rts-orientation"
 
 COMPUTE_INTERNAL_DELAY_BUTTON = "compute-internal-delay-button"

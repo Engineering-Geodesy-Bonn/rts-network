@@ -10,7 +10,7 @@ def create_layout() -> html.Div:
         children=[
             dcc.Store(id=ids.GLOBAL_RTS_LIST_TRIGGER),
             dcc.Store(id=ids.GLOBAL_JOB_LIST_TRIGGER),
-            dcc.Store(id=ids.API_STORE, data={"host": "192.168.0.101", "port": 8000}, storage_type="local"),
+            dcc.Store(id=ids.API_STORE, data={"host": "rtsapi", "port": 8000}, storage_type="local"),
             create_header(),
             create_content(),
             create_footer(),
@@ -93,7 +93,7 @@ def create_content() -> html.Div:
                     dbc.Tab(label="Alignment", tab_id=ids.ALIGNMENT_TAB),
                     dbc.Tab(label="Internal Delay", tab_id=ids.INTERNAL_DELAY_TAB),
                     dbc.Tab(label="Devices", tab_id=ids.DEVICE_TAB),
-                    dbc.Tab(label="Settings", tab_id=ids.SETTINGS_TAB),
+                    dbc.Tab(label="API Settings", tab_id=ids.SETTINGS_TAB),
                 ],
                 id=ids.TABS,
                 active_tab=ids.RTS_TAB,
