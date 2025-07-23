@@ -75,7 +75,7 @@ class MeasurementService:
         rts_observations.apply_intrinsic_delay(rts.internal_delay)
         return rts_observations
 
-    def download_measurements(self, job_id: int, filename: str = None, raw: bool = True) -> PlainTextResponse:
+    def download_measurements(self, job_id: int, filename: str = None, raw: bool = False) -> PlainTextResponse:
         if not filename:
             job = self.rts_job_repository.get_rts_job(job_id)
             filename = (
