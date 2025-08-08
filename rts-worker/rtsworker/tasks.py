@@ -16,7 +16,7 @@ from rtsworker.dtos import (
     TargetPosition,
     TrackingSettings,
 )
-from rtsworker.pygeocom import Station, TMCInclinationMode
+from rtsworker.pygeocom import Station, TMCInclinationMode, TMCMeasurementMode
 from rtsworker.rts import RTSSerialConnection
 
 SLEEP_TIME = 0.0001
@@ -105,7 +105,7 @@ def track_prism(job: RTSJobResponse) -> None:
         last_alarm = 0
 
         while get_job_status(job.job_id) == RTSJobStatus.RUNNING:
-            response = rts_serial.get_full_measurement(TMCInclinationMode.AUTOMATIC, 300)
+            response = rts_serial.get_full_measurement(TMCInclinationMode.AUTOMATIC, 1000)
 
             if response.distance == 0:
                 no_distance_count += 1
@@ -114,6 +114,10 @@ def track_prism(job: RTSJobResponse) -> None:
                     rts_serial.beep_alarm_normal()
                     last_alarm = time.time()
                     print("Triggering alarm")
+                    rts_serial.do_measure(
+                        TMCMeasurementMode(tracking_settings.tmc_measurement_mode),
+                        TMCInclinationMode(tracking_settings.tmc_inclination_mode),
+                    )
             else:
                 new_measurement = AddMeasurementRequest(
                     rts_job_id=job.job_id,
