@@ -26,8 +26,11 @@ class RTSRepository:
         self.db.refresh(rts)
         return rts
 
-    def get_rts(self, rts_id: int) -> RTS:
-        db_rts = self.db.query(RTS).filter(RTS.id == rts_id, RTS.deleted == False).first()
+    def get_rts(self, rts_id: int, deleted_ok: bool = False) -> RTS:
+        if deleted_ok:
+            db_rts = self.db.query(RTS).filter(RTS.id == rts_id).first()
+        else:
+            db_rts = self.db.query(RTS).filter(RTS.id == rts_id, RTS.deleted == False).first()
 
         if db_rts is None:
             raise RTSNotFoundException(rts_id)

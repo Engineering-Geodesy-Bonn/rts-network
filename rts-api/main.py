@@ -21,7 +21,7 @@ app.include_router(device.router)
 app.include_router(root.router)
 app.include_router(rts.router)
 
-# app.middleware("http")(catch_exceptions_middleware)
+app.middleware("http")(catch_exceptions_middleware)
 
 
 def main():

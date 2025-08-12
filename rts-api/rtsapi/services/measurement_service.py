@@ -52,7 +52,7 @@ class MeasurementService:
         job = self.rts_job_repository.get_rts_job(job_id)
 
         try:
-            rts = self.rts_repository.get_rts(job.rts_id)
+            rts = self.rts_repository.get_rts(job.rts_id, deleted_ok=True)
         except RTSNotFoundException:
             rts = RTSResponse(id=0, device_id=0)
 
@@ -70,7 +70,10 @@ class MeasurementService:
 
     def get_corrected_rts_observations(self, job_id: int) -> RTSObservations:
         job = self.rts_job_repository.get_rts_job(job_id)
-        rts = self.rts_repository.get_rts(job.rts_id)
+        try:
+            rts = self.rts_repository.get_rts(job.rts_id, deleted_ok=True)
+        except RTSNotFoundException:
+            rts = RTSResponse(id=0, device_id=0)
 
         rts_observations = self.get_rts_observations(job_id)
         rts_observations.sync_sensor_time(baudrate=rts.baudrate, external_delay=rts.external_delay)
@@ -142,7 +145,12 @@ class MeasurementService:
 
         # eval job is the corrected one except for the time shift
         eval_obs = self.get_rts_observations(job_id)
-        eval_job_rts = self.rts_repository.get_rts(eval_job.rts_id)
+
+        try:
+            eval_job_rts = self.rts_repository.get_rts(eval_job.rts_id, deleted_ok=True)
+        except RTSNotFoundException:
+            eval_job_rts = RTSResponse(id=0, device_id=0)
+
         eval_obs.sync_sensor_time(baudrate=eval_job_rts.baudrate, external_delay=0.0)
         eval_obs.apply_intrinsic_delay(eval_job_rts.internal_delay)
         traj_eval = eval_obs.export_to_trajectory()
