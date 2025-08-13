@@ -130,9 +130,11 @@ class RTSObservations:
         measurements are added to the station's local coordinates. Using the local
         transformer, the local coordinates are transformed back to the station's EPSG coordinate system.
         """
+        if self.station.pointset.local_transformer is None:
+            return tpy.PointSet(xyz=self.station.pointset.xyz + self.local_xyz, epsg=self.station.epsg).xyz
+
         utm_station = self.station.pointset.to_epsg(25832, inplace=False)
-        utm_xyz = utm_station.xyz + self.local_xyz
-        xyz_pointset = tpy.PointSet(xyz=utm_xyz, epsg=25832)
+        xyz_pointset = tpy.PointSet(xyz=utm_station.xyz + self.local_xyz, epsg=25832)
         return xyz_pointset.to_epsg(self.station.epsg).xyz
 
     @property
