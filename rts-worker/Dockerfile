@@ -1,6 +1,4 @@
-FROM python:3.13.1-slim-bookworm
-RUN apt-get update && apt-get install -y build-essential 
-WORKDIR /app.
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm
 COPY . .
-RUN pip install .
-CMD ["python", "main.py"]
+RUN uv sync
+CMD ["uv", "run", "main.py"]

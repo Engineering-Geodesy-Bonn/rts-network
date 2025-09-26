@@ -1,5 +1,7 @@
 from enum import Enum
 
+import numpy as np
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -25,6 +27,7 @@ class MeasurementResponse(BaseModel):
     horizontal_angle: float
     vertical_angle: float
     rts_job_id: int
+    rts_id: int | None
 
 
 class RTSJobType(Enum):
@@ -33,6 +36,7 @@ class RTSJobType(Enum):
     CHANGE_FACE = "change_face"
     DUMMY_TRACKING = "dummy_tracking"
     TURN_TO_TARGET = "turn_to_target"
+    STATIC_MEASUREMENT = "static_measurement"
     ADD_STATIC_MEASUREMENT = "add_static_measurement"
 
 
@@ -62,14 +66,15 @@ class RTSResponse(BaseModel):
     parity: str = "N"
     stopbits: int = 1
     bytesize: int = 8
-    delay: float = 0.0
+    external_delay: float = 0.0
     internal_delay: float = 0.0
     station_x: float = 0.0
     station_y: float = 0.0
     station_z: float = 0.0
+    station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
     distance_std_dev: float = 0.001
-    angle_std_dev: float = 4.7123e-06
+    angle_std_dev: float = 0.0003 * np.pi / 200
     distance_ppm: float = 1.0
 
     model_config = ConfigDict(from_attributes=True)
