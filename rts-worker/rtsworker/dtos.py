@@ -1,7 +1,4 @@
 from enum import Enum
-
-import numpy as np
-
 from pydantic import BaseModel, ConfigDict
 
 
@@ -74,7 +71,7 @@ class RTSResponse(BaseModel):
     station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
     distance_std_dev: float = 0.001
-    angle_std_dev: float = 0.0003 * np.pi / 200
+    angle_std_dev: float = 0.0003 * 3.14 / 200
     distance_ppm: float = 1.0
 
     model_config = ConfigDict(from_attributes=True)
