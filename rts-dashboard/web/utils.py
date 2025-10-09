@@ -342,7 +342,7 @@ def create_internal_delay_plot(eval_job: RTSJobResponse, api_store: dict, show_r
             marker=dict(
                 color=difference_norms,
                 colorscale="Viridis",
-                colorbar=dict(title="Difference Norm [mm]", titleside="right"),
+                colorbar=dict(title=dict(text="Difference [mm]", side="right")),
             ),
         ),
         row=1,

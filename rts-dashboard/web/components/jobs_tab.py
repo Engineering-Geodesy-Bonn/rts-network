@@ -18,14 +18,22 @@ JOB_NAME_MAPPING = {
 }
 
 
-def render_job_list(api_store: dict) -> list[html.Div]:
-    list_children = []
+def render_job_list(api_store: dict) -> dbc.Accordion:
     job_list = api.get_all_rts_jobs(api_store)
 
     if not job_list:
-        list_children.append(html.P("No jobs found", className="empty-list-message"))
+        return dbc.Accordion(dbc.AccordionItem("No jobs found"))
+
+    acoordion_items: dict[str, list[html.Div]] = {}
 
     for job in job_list:
+
+        job_date = datetime.fromtimestamp(job.created_at).strftime("%Y-%m-%d")
+
+        if job_date not in acoordion_items:
+            acoordion_items[job_date] = []
+
+        current_item_list: list[html.Div] = acoordion_items[job_date]
 
         if (job.job_type == RTSJobType.ADD_STATIC_MEASUREMENT.value) or (job.job_type == RTSJobType.CHANGE_FACE.value):
             continue
@@ -34,9 +42,12 @@ def render_job_list(api_store: dict) -> list[html.Div]:
             rts = api.get_rts(api_store, job.rts_id)
         except Exception:
             rts = None
-        list_children.append(render_job(job, rts))
 
-    return dbc.ListGroup(children=list_children, id=ids.JOB_LIST)
+        current_item_list.append(render_job(job, rts))
+
+    accordion_items = [dbc.AccordionItem(children=items, title=date) for date, items in acoordion_items.items()]
+
+    return dbc.Accordion(children=accordion_items, always_open=True, start_collapsed=True)
 
 
 def render_job(job: RTSJobResponse, rts: RTSResponse | None) -> html.Div:

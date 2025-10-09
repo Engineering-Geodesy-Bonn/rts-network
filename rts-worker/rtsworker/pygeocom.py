@@ -123,6 +123,7 @@ class ReturnCode(Enum):
     GRC_NA = GRC_TPS + 27  # Not available
     GRC_OVERFLOW = GRC_TPS + 28  # Overflow error
     GRC_STOPPED = GRC_TPS + 29  # System or subsystem has been stopped
+    UNKNOWN = GRC_TPS + 30  # Unknown error result unspecified.
 
     GRC_COM_ERO = GRC_COM + 0  #  Initiate Extended Runtime Operation (ERO).
     GRC_COM_CANT_ENCODE = GRC_COM + 1  #  Cannot encode arguments in client.

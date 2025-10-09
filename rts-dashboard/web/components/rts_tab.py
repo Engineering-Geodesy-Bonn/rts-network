@@ -395,14 +395,14 @@ def render_rts_actions(rts_id: int) -> html.Div:
                                 "Remove",
                                 id={"type": ids.REMOVE_RTS_BUTTON, "rts_id": rts_id},
                             ),
-                            # dbc.DropdownMenuItem(
-                            #     "Dummy Tracking",
-                            #     id={
-                            #         "type": ids.START_RTS_JOB_BUTTON,
-                            #         "rts_id": rts_id,
-                            #         "job_type": RTSJobType.DUMMY_TRACKING.value,
-                            #     },
-                            # ),
+                            dbc.DropdownMenuItem(
+                                "Dummy Tracking",
+                                id={
+                                    "type": ids.START_RTS_JOB_BUTTON,
+                                    "rts_id": rts_id,
+                                    "job_type": RTSJobType.DUMMY_TRACKING.value,
+                                },
+                            ),
                         ],
                         label="Actions",
                         group=True,

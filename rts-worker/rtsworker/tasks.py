@@ -79,7 +79,7 @@ def dummy_tracking(job: RTSJobResponse):
         add_measurement = AddMeasurementRequest(
             rts_job_id=job.job_id,
             controller_timestamp=timestamp,
-            sensor_timestamp=timestamp,
+            sensor_timestamp=timestamp * 1000,
             distance=distance,
             horizontal_angle=horizontal_angle,
             vertical_angle=vertical_angle,
@@ -142,9 +142,11 @@ def track_prism(job: RTSJobResponse) -> None:
 
 def add_single_measurement(job: RTSJobResponse) -> None:
     rts = get_rts(job.rts_id)
+    tracking_settings_response = get_tracking_settings(job.rts_id)
+    tracking_settings = TrackingSettings.from_response(tracking_settings_response)
     with RTSSerialConnection(rts) as rts_serial:
         rts_serial.stop_tracking()
-        rts_serial.prepare_static_measurement()
+        rts_serial.prepare_static_measurement(tracking_settings)
         response = rts_serial.get_full_measurement(TMCInclinationMode.AUTOMATIC, 300)
         new_measurement = AddMeasurementRequest(
             rts_job_id=job.job_id,

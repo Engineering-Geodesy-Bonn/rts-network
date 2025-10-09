@@ -20,6 +20,8 @@ class MeasurementRepository:
         query = self.db.query(Measurement)
         if job_id:
             query = query.filter(Measurement.rts_job_id == job_id)
+
+        query = query.order_by(Measurement.controller_timestamp.asc())
         return query.all()
 
     def delete_measurements(self, job_id: int) -> None:

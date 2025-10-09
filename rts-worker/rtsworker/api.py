@@ -20,6 +20,7 @@ TIMEOUT = 5
 
 def fetch_new_job() -> RTSJobResponse:
     response = requests.get(f"{API_URL}/jobs/fetch", timeout=TIMEOUT)
+    print(f"Fetching job at {API_URL}/jobs/fetch")
 
     if not response.ok or response.status_code == 204:
         return None

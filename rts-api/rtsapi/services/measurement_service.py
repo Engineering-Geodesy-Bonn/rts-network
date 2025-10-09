@@ -129,14 +129,16 @@ class MeasurementService:
         reference_job = self.rts_job_repository.get_rts_job(reference_job_id)
         reference_station = self.rts_repository.get_station(reference_job.rts_id)
         self.rts_repository.set_station(
-            rts_id=reference_job.rts_id, station_x=0, station_y=0, station_z=0, orientation=0
+            rts_id=reference_job.rts_id, station_x=0, station_y=0, station_z=0, station_epsg=0, orientation=0
         )
 
         eval_job = self.rts_job_repository.get_rts_job(job_id)
-        self.rts_repository.set_station(rts_id=eval_job.rts_id, station_x=0, station_y=0, station_z=0, orientation=0)
+        self.rts_repository.set_station(
+            rts_id=eval_job.rts_id, station_x=0, station_y=0, station_z=0, station_epsg=0, orientation=0
+        )
 
         alignment_settings = tpy.AlignmentSettings(
-            estimation_settings=tpy.AlignmentEstimationSettings(rot_x=False, rot_y=False, time_shift=True),
+            estimation_settings=tpy.AlignmentEstimationSettings(rotation_x=False, rotation_y=False, time_shift=True),
             stochastics=tpy.AlignmentStochastics(variance_estimation=True),
         )
 
