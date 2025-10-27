@@ -42,6 +42,10 @@ class RTSJobResponse(BaseModel):
     job_type: RTSJobType
     job_status: RTSJobStatus
     created_at: float
+    finished_at: float | None
+    duration: float | None
+    num_measurements: int | None
+    datarate: float | None
     payload: dict = {}
 
 
@@ -187,6 +191,8 @@ class RTSStatus(BaseModel):
     job_id: int | None
     busy: bool = False
     last_measurement: MeasurementResponse | None = None
+    num_measurements: int = 0
+    datarate: float = 0.0
 
 
 class TargetPosition(BaseModel):

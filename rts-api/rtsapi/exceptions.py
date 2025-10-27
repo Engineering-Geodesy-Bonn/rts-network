@@ -33,3 +33,8 @@ class DeviceNotFoundException(Exception):
 class NoOverlapException(Exception):
     def __init__(self):
         super().__init__("Both RTS measurements must have overlapping timestamps")
+
+
+class NoMeasurementsAvailableException(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)

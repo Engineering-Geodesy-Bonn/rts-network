@@ -49,6 +49,10 @@ class RTSJob(Base):
     status: Mapped[str]
     job_type: Mapped[str]
     created_at: Mapped[float]
+    finished_at: Mapped[float | None]
+    duration: Mapped[float | None]
+    datarate: Mapped[float | None]
+    num_measurements: Mapped[int | None]
     payload: Mapped[dict] = mapped_column(JSON)
 
     rts_id: Mapped[int | None] = mapped_column(ForeignKey("rts.id"))

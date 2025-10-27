@@ -5,7 +5,7 @@ from dash import dcc, html
 
 from web import api
 from web.components import ids
-from web.dtos import RTSJobResponse, RTSJobType, RTSResponse
+from web.dtos import RTSJobResponse, RTSJobStatus, RTSJobType, RTSResponse
 
 JOB_NAME_MAPPING = {
     "dummy_tracking": "Dummy Tracking",
@@ -35,7 +35,7 @@ def render_job_list(api_store: dict) -> dbc.Accordion:
 
         current_item_list: list[html.Div] = acoordion_items[job_date]
 
-        if (job.job_type == RTSJobType.ADD_STATIC_MEASUREMENT.value) or (job.job_type == RTSJobType.CHANGE_FACE.value):
+        if (job.job_type == RTSJobType.ADD_STATIC_MEASUREMENT) or (job.job_type == RTSJobType.CHANGE_FACE):
             continue
 
         try:
@@ -47,10 +47,12 @@ def render_job_list(api_store: dict) -> dbc.Accordion:
 
     accordion_items = [dbc.AccordionItem(children=items, title=date) for date, items in acoordion_items.items()]
 
-    return dbc.Accordion(children=accordion_items, always_open=True, start_collapsed=True)
+    return dbc.Accordion(children=accordion_items, always_open=True, id=ids.JOB_LIST)
 
 
 def render_job(job: RTSJobResponse, rts: RTSResponse | None) -> html.Div:
+    minutes = int(job.duration // 60) if job.duration else 0
+    seconds = int(job.duration % 60) if job.duration else 0
     return html.Div(
         className="list-item-container",
         children=[
@@ -71,17 +73,43 @@ def render_job(job: RTSJobResponse, rts: RTSResponse | None) -> html.Div:
                     html.Div(
                         children=[
                             html.P(
-                                f"{JOB_NAME_MAPPING.get(job.job_type, "Unknown")} ({job.job_status})",
-                                className="job-name",
+                                f"{JOB_NAME_MAPPING.get(job.job_type.value, "Unknown")} ({job.job_status.value})",
+                                className="item-name",
+                                style={"gridColumn": "1 / -1"},
                             ),
-                            html.P(
-                                f"Created: {datetime.fromtimestamp(job.created_at).strftime('%Y-%m-%d %H:%M:%S')}",
-                                className="job-date",
+                            html.Span("Created:", className="item-detail"),
+                            html.Span(
+                                f"{datetime.fromtimestamp(job.created_at).strftime('%Y-%m-%d %H:%M:%S')}",
+                                className="item-detail",
                             ),
-                            html.P(f"RTS: {rts.name if rts is not None else "-"}", className="job-detail"),
-                            html.P(f"Job ID: {job.job_id}", className="job-detail"),
+                            html.Span("Finished:", className="item-detail"),
+                            html.Span(
+                                f"{datetime.fromtimestamp(job.finished_at).strftime('%Y-%m-%d %H:%M:%S') if job.finished_at else '-'}",
+                                className="item-detail",
+                            ),
+                            html.Span("Duration:", className="item-detail"),
+                            html.Span(
+                                f"{minutes:02d}:{seconds:02d}" if (minutes != 0 or seconds != 0) else "-",
+                                className="item-detail",
+                            ),
+                            html.Span("# Measurements:", className="item-detail"),
+                            html.Span(
+                                f"{job.num_measurements}" if job.num_measurements else "-", className="item-detail"
+                            ),
+                            html.Span("Data Rate:", className="item-detail"),
+                            html.Span(f"{job.datarate:.2f} Hz" if job.datarate else "- Hz", className="item-detail"),
+                            html.Span("RTS:", className="item-detail"),
+                            html.Span(f"{rts.name if rts is not None else "-"}", className="item-detail"),
+                            html.Span("Job ID:", className="item-detail"),
+                            html.Span(f"{job.job_id}", className="item-detail"),
                         ],
                         className="item-name-container",
+                        style={
+                            "display": "grid",
+                            "gridTemplateColumns": "auto 1fr",
+                            "gap": "0px 10px",
+                            "alignItems": "center",
+                        },
                     ),
                 ],
             ),
@@ -100,19 +128,19 @@ def render_job_actions(job: RTSJobResponse) -> html.Div:
                         "Stop",
                         id={"type": ids.STOP_JOB_BUTTON, "job_id": job.job_id},
                         style={"width": "250px"},
-                        disabled=(job.job_status != "running"),
+                        disabled=(job.job_status != RTSJobStatus.RUNNING),
                     ),
                     dbc.Button(
                         "Download Trajectory",
                         id={"type": ids.DOWNLOAD_JOB_BUTTON, "job_id": job.job_id},
                         style={"width": "250px"},
-                        disabled=(RTSJobType(job.job_type) not in downloadable_types),
+                        disabled=(job.job_type not in downloadable_types),
                     ),
                     dbc.Button(
                         "Download Raw Measurements",
                         id={"type": ids.DOWNLOAD_RAW_MEASUREMENTS_BUTTON, "job_id": job.job_id},
                         style={"width": "250px"},
-                        disabled=(RTSJobType(job.job_type) not in downloadable_types),
+                        disabled=(job.job_type not in downloadable_types),
                     ),
                     dbc.Button(
                         "Delete",
@@ -143,11 +171,6 @@ def render(api_store) -> html.Div:
                 ],
             ),
             render_job_list(api_store),
-            dcc.Interval(
-                id=ids.JOB_LIST_INTERVAL,
-                interval=1000,
-                n_intervals=0,
-            ),
             html.Div(id=ids.JOB_DUMMY_OUTPUT),
         ],
         className="tab",

@@ -8,7 +8,7 @@ from rtsapi.database.measurement_repository import MeasurementRepository
 from rtsapi.database.rts_job_repository import RTSJobRepository
 from rtsapi.database.rts_repository import RTSRepository
 from rtsapi.dtos import AddMeasurementRequest, AlignmentResponse, MeasurementResponse, RTSResponse
-from rtsapi.exceptions import RTSNotFoundException
+from rtsapi.exceptions import NoMeasurementsAvailableException, RTSNotFoundException
 from rtsapi.fitting.rts_observations import RTSObservations, RTSStation, RTSVarianceConfig
 from rtsapi.fitting.sphere_fit import SphereFit
 from rtsapi.mappers import MeasurementMapper
@@ -40,6 +40,10 @@ class MeasurementService:
         added_measurement = self.measurement_repository.add_measurement(db_measurement)
         return MeasurementMapper.to_dto(added_measurement)
 
+    def add_measurement_from_ws(self, measurement_dict: dict) -> None:
+        measurement = AddMeasurementRequest(**measurement_dict)
+        self.add_measurement(measurement)
+
     def get_raw_measurements(self, job_id: int = None) -> list[MeasurementResponse]:
         rts_obs = self.get_rts_observations(job_id)
         return rts_obs.to_measurement_response()
@@ -66,6 +70,9 @@ class MeasurementService:
             MeasurementMapper.to_dto(measurement)
             for measurement in self.measurement_repository.get_measurements(job_id)
         ]
+        if not measurements:
+            raise NoMeasurementsAvailableException(f"No measurements found for job ID {job_id}")
+
         return RTSObservations(measurements=measurements, variances=rts_variance_config, station=rts_station)
 
     def get_corrected_rts_observations(self, job_id: int) -> RTSObservations:

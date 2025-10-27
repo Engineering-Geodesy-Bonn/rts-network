@@ -71,9 +71,14 @@ class RTSService:
         last_measurement_response = (
             dtos.MeasurementResponse.model_validate(last_measurement) if last_measurement is not None else None
         )
-        return dtos.RTSStatus(job_id=rts_job_id, busy=rts_busy, last_measurement=last_measurement_response)
-
-    def update_internal_delay(self, rts_id: int, internal_delay: int) -> dtos.RTSResponse:
-        current_internal_delay = self.rts_repository.get_internal_delay(rts_id)
-        self.rts_repository.update_internal_delay(rts_id, current_internal_delay + internal_delay)
-        return self.get_rts(rts_id)
+        num_measurements = (
+            self.measurement_repository.get_number_of_measurements_for_job(rts_job_id) if rts_job_id else 0
+        )
+        datarate = self.measurement_repository.get_datarate_for_job(rts_job_id) if rts_job_id else 0.0
+        return dtos.RTSStatus(
+            job_id=rts_job_id,
+            busy=rts_busy,
+            last_measurement=last_measurement_response,
+            num_measurements=num_measurements,
+            datarate=datarate,
+        )

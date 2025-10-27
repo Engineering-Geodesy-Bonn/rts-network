@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from rtsapi.dtos import DeviceResponse
 from rtsapi.services.device_service import DeviceService
@@ -14,3 +14,11 @@ def get_devices(device_service: DeviceService = Depends(DeviceService)) -> list[
 @router.get("/devices/{device_id}")
 def get_device(device_id: int, device_service: DeviceService = Depends(DeviceService)) -> DeviceResponse:
     return device_service.get_device(device_id)
+
+
+@router.post("/devices/register")
+async def get_rts_job_status(
+    request: Request, device_service: DeviceService = Depends(DeviceService)
+) -> DeviceResponse:
+    client_ip = request.client.host
+    return device_service.upsert_device(client_ip)

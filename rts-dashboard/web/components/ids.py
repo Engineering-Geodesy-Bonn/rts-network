@@ -132,3 +132,8 @@ COMPUTE_INTERNAL_DELAY_BUTTON = "compute-internal-delay-button"
 INTERNAL_DELAY_DROPDOWN = "internal-delay-dropdown"
 INTERNAL_DELAY_PLOT = "internal-delay-plot"
 SHOW_RAW_MEASUREMENTS_SWITCH = "show-raw-measurements-switch"
+
+RTS_NUM_MEASUREMENTS_LABEL = "rts-num-measurements-label"
+RTS_NUM_MEASUREMENTS_VALUE = "rts-num-measurements-value"
+RTS_MEASUREMENT_FREQUENCY_LABEL = "rts-measurement-frequency-label"
+RTS_MEASUREMENT_FREQUENCY_VALUE = "rts-measurement-frequency-value"

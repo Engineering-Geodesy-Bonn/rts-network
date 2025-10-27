@@ -101,6 +101,10 @@ class RTSJobMapper:
             job_status=dtos.RTSJobStatus(rts_job.status),
             created_at=rts_job.created_at,
             payload=rts_job.payload,
+            finished_at=rts_job.finished_at,
+            duration=rts_job.duration,
+            datarate=rts_job.datarate,
+            num_measurements=rts_job.num_measurements,
         )
 
     @staticmethod

@@ -329,13 +329,43 @@ def render_rts(rts: RTSResponse, device_response: DeviceResponse) -> html.Div:
                                 src="/assets/status-error.svg",
                                 id={"type": ids.RTS_TRACKING_STATUS_ICON, "rts_id": rts.id},
                             ),
-                            dcc.Interval(
-                                id={"type": ids.RTS_TRACKING_STATUS_INTERVAL, "rts_id": rts.id},
-                                interval=500,
-                                n_intervals=0,
+                        ],
+                        className="item-status-row",
+                    ),
+                    html.Div(
+                        [
+                            html.P(
+                                "# Measurements",
+                                className="item-status-label",
+                                id={"type": ids.RTS_NUM_MEASUREMENTS_LABEL, "rts_id": rts.id},
+                            ),
+                            html.P(
+                                0,
+                                className="item-status-value",
+                                id={"type": ids.RTS_NUM_MEASUREMENTS_VALUE, "rts_id": rts.id},
                             ),
                         ],
                         className="item-status-row",
+                    ),
+                    html.Div(
+                        [
+                            html.P(
+                                "Data Rate (Hz)",
+                                className="item-status-label",
+                                id={"type": ids.RTS_MEASUREMENT_FREQUENCY_LABEL, "rts_id": rts.id},
+                            ),
+                            html.P(
+                                0,
+                                className="item-status-value",
+                                id={"type": ids.RTS_MEASUREMENT_FREQUENCY_VALUE, "rts_id": rts.id},
+                            ),
+                        ],
+                        className="item-status-row",
+                    ),
+                    dcc.Interval(
+                        id={"type": ids.RTS_TRACKING_STATUS_INTERVAL, "rts_id": rts.id},
+                        interval=500,
+                        n_intervals=0,
                     ),
                 ],
             ),
@@ -350,23 +380,31 @@ def render_rts_actions(rts_id: int) -> html.Div:
             dbc.ButtonGroup(
                 [
                     dbc.Button(
+                        "Start Tracking",
+                        id={
+                            "type": ids.START_RTS_JOB_BUTTON,
+                            "rts_id": rts_id,
+                            "job_type": RTSJobType.TRACK_PRISM.value,
+                        },
+                        color="primary",
+                    ),
+                    dbc.Button(
+                        "Stop Tracking",
+                        id={"type": ids.STOP_RTS_JOB_BUTTON, "rts_id": rts_id},
+                        color="danger",
+                    ),
+                ],
+                style={"margin-right": "10px"},
+                vertical=True,
+            ),
+            dbc.ButtonGroup(
+                [
+                    dbc.Button(
                         "Settings",
                         id={"type": ids.OPEN_RTS_SETTINGS_MODAL_BUTTON, "rts_id": rts_id},
                     ),
                     dbc.DropdownMenu(
                         [
-                            dbc.DropdownMenuItem(
-                                "Start Tracking",
-                                id={
-                                    "type": ids.START_RTS_JOB_BUTTON,
-                                    "rts_id": rts_id,
-                                    "job_type": RTSJobType.TRACK_PRISM.value,
-                                },
-                            ),
-                            dbc.DropdownMenuItem(
-                                "Stop Tracking",
-                                id={"type": ids.STOP_RTS_JOB_BUTTON, "rts_id": rts_id},
-                            ),
                             dbc.DropdownMenuItem(
                                 "Change Face",
                                 id={
@@ -394,14 +432,6 @@ def render_rts_actions(rts_id: int) -> html.Div:
                             dbc.DropdownMenuItem(
                                 "Remove",
                                 id={"type": ids.REMOVE_RTS_BUTTON, "rts_id": rts_id},
-                            ),
-                            dbc.DropdownMenuItem(
-                                "Dummy Tracking",
-                                id={
-                                    "type": ids.START_RTS_JOB_BUTTON,
-                                    "rts_id": rts_id,
-                                    "job_type": RTSJobType.DUMMY_TRACKING.value,
-                                },
                             ),
                         ],
                         label="Actions",

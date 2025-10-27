@@ -1,5 +1,15 @@
 from enum import Enum
+import math
 from pydantic import BaseModel, ConfigDict
+
+
+class CreateDeviceRequest(BaseModel):
+    ip: str
+    last_seen: float
+
+
+class DeviceResponse(CreateDeviceRequest):
+    id: int
 
 
 class AddMeasurementRequest(BaseModel):
@@ -53,6 +63,30 @@ class RTSJobResponse(BaseModel):
     payload: dict = {}
 
 
+class UpdateRTSRequest(BaseModel):
+    name: str = "RTS"
+    baudrate: int = 115200
+    port: str = "/dev/ttyUSB0"
+    timeout: int = 30
+    parity: str = "N"
+    stopbits: int = 1
+    bytesize: int = 8
+    external_delay: float = 0.0
+    internal_delay: float = 0.0
+    station_x: float = 0.0
+    station_y: float = 0.0
+    station_z: float = 0.0
+    station_epsg: int = 0  # local ellipsoidal as default
+    orientation: float = 0.0
+    distance_std_dev: float = 0.001
+    angle_std_dev: float = 0.0003 * math.pi / 200
+    distance_ppm: float = 1.0
+
+
+class CreateRTSRequest(UpdateRTSRequest):
+    device_id: int
+
+
 class RTSResponse(BaseModel):
     id: int
     device_id: int
@@ -71,7 +105,7 @@ class RTSResponse(BaseModel):
     station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
     distance_std_dev: float = 0.001
-    angle_std_dev: float = 0.0003 * 3.14 / 200
+    angle_std_dev: float = 0.0003 * math.pi / 200
     distance_ppm: float = 1.0
 
     model_config = ConfigDict(from_attributes=True)

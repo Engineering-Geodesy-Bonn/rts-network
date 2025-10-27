@@ -38,3 +38,23 @@ class MeasurementRepository:
             .order_by(Measurement.controller_timestamp.desc())
             .first()
         )
+
+    def get_number_of_measurements_for_job(self, job_id: int) -> int:
+        return self.db.query(Measurement).filter(Measurement.rts_job_id == job_id).count()
+
+    def get_datarate_for_job(self, job_id: int) -> float:
+        measurements = (
+            self.db.query(Measurement)
+            .filter(Measurement.rts_job_id == job_id)
+            .order_by(Measurement.controller_timestamp.asc())
+            .limit(100)
+            .all()
+        )
+        if len(measurements) < 2:
+            return 0.0
+
+        time_span = measurements[-1].controller_timestamp - measurements[0].controller_timestamp
+        if time_span <= 0:
+            return 0.0
+
+        return len(measurements) / time_span

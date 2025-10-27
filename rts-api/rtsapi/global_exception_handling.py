@@ -4,18 +4,23 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from rtsapi.exceptions import (DeviceNotFoundException, NoOverlapException,
-                               RTSJobNotFoundException,
-                               RTSJobStatusChangeException,
-                               RTSNotFoundException,
-                               RTSPortAlreadyExistsException,
-                               TrackingSettingsNotFoundException)
+from rtsapi.exceptions import (
+    DeviceNotFoundException,
+    NoMeasurementsAvailableException,
+    NoOverlapException,
+    RTSJobNotFoundException,
+    RTSJobStatusChangeException,
+    RTSNotFoundException,
+    RTSPortAlreadyExistsException,
+    TrackingSettingsNotFoundException,
+)
 
 logger = logging.getLogger("root")
 
 EXCEPTION_MAPPING = {
     RTSNotFoundException: 404,
     RTSJobNotFoundException: 404,
+    NoMeasurementsAvailableException: 404,
     RTSPortAlreadyExistsException: 409,
     TrackingSettingsNotFoundException: 404,
     RTSJobStatusChangeException: 409,

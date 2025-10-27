@@ -75,7 +75,7 @@
 }
 
 .item-name-container {
-    width: 200px;
+    width: 300px;
 }
 
 .item-status-label {
@@ -83,6 +83,12 @@
     color: black;
     font-weight: 300;
     margin-right: 20px;
+}
+
+.item-status-value {
+    font-size: 16px;
+    color: black;
+    font-weight: 300;
 }
 
 .item-status-icon {

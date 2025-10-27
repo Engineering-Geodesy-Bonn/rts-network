@@ -1,3 +1,5 @@
+import queue
+import threading
 import time
 import math
 from rtsworker.api import (
@@ -8,6 +10,7 @@ from rtsworker.api import (
     post_measurement,
     post_static_measurement,
     update_job_status,
+    websocket_sender,
 )
 from rtsworker.dtos import (
     AddMeasurementRequest,
@@ -19,9 +22,10 @@ from rtsworker.dtos import (
 from rtsworker.pygeocom import Station, TMCInclinationMode, TMCMeasurementMode
 from rtsworker.rts import RTSSerialConnection
 
-SLEEP_TIME = 0.0001
+SLEEP_TIME = 0.001
 ALARM_THRESHOLD = 10
 ALARM_EVERY_N_SECONDS = 6
+JOB_CHECK_INTERVAL = 1.0
 
 
 def angles_from_position(station: Station, target: TargetPosition) -> tuple[float, float]:
@@ -93,51 +97,89 @@ def dummy_tracking(job: RTSJobResponse):
 
 
 def track_prism(job: RTSJobResponse) -> None:
+    measurement_queue = queue.Queue()
+    shutdown_event = threading.Event()
+
+    sender_thread = threading.Thread(
+        target=websocket_sender,
+        args=(job.job_id, measurement_queue, shutdown_event),
+        daemon=True,
+    )
+    sender_thread.start()
+
     rts = get_rts(job.rts_id)
     tracking_settings_response = get_tracking_settings(job.rts_id)
     tracking_settings = TrackingSettings.from_response(tracking_settings_response)
-    with RTSSerialConnection(rts) as rts_serial:
-        rts_serial.stop_tracking()
-        rts_serial.start_tracking(tracking_settings)
-        print("Starting measurement")
-        cnt = 1
-        no_distance_count = 0
-        last_alarm = 0
 
-        while get_job_status(job.job_id) == RTSJobStatus.RUNNING:
-            response = rts_serial.get_full_measurement(TMCInclinationMode.AUTOMATIC, 1000)
+    try:
+        with RTSSerialConnection(rts) as rts_serial:
+            rts_serial.stop_tracking()
+            rts_serial.start_tracking(tracking_settings)
+            print("Starting measurement loop...")
+            cnt = 1
+            no_distance_count = 0
+            last_alarm = 0
 
-            if response.distance == 0:
-                no_distance_count += 1
-                print("No distance measurement available (%i)", no_distance_count)
-                if no_distance_count > ALARM_THRESHOLD and (time.time() - last_alarm) > ALARM_EVERY_N_SECONDS:
-                    rts_serial.beep_alarm_normal()
-                    last_alarm = time.time()
-                    print("Triggering alarm")
-                    rts_serial.do_measure(
-                        TMCMeasurementMode(tracking_settings.tmc_measurement_mode),
-                        TMCInclinationMode(tracking_settings.tmc_inclination_mode),
+            last_job_status_time = time.time()
+            job_status = get_job_status(job.job_id)
+
+            while job_status == RTSJobStatus.RUNNING:
+                if time.time() - last_job_status_time > JOB_CHECK_INTERVAL:
+                    job_status = get_job_status(job.job_id)
+                    last_job_status_time = time.time()
+
+                response = rts_serial.get_full_measurement(TMCInclinationMode.AUTOMATIC, 1000)
+
+                if response.distance == 0:
+                    no_distance_count += 1
+                    print(f"No distance measurement available ({no_distance_count})")
+                    if no_distance_count > ALARM_THRESHOLD and (time.time() - last_alarm) > ALARM_EVERY_N_SECONDS:
+                        rts_serial.beep_alarm_normal()
+                        last_alarm = time.time()
+                        print("Triggering alarm")
+                        rts_serial.do_measure(
+                            TMCMeasurementMode(tracking_settings.tmc_measurement_mode),
+                            TMCInclinationMode(tracking_settings.tmc_inclination_mode),
+                        )
+                else:
+                    new_measurement = AddMeasurementRequest(
+                        rts_job_id=job.job_id,
+                        controller_timestamp=response.resp_time + rts.external_delay,
+                        sensor_timestamp=response.time,
+                        horizontal_angle=response.h_angle,
+                        vertical_angle=response.v_angle,
+                        distance=response.distance,
+                        response_length=response.resp_len,
+                        geocom_return_code=response.geocom_return_code,
+                        rpc_return_code=response.rpc_return_code,
                     )
-            else:
-                new_measurement = AddMeasurementRequest(
-                    rts_job_id=job.job_id,
-                    controller_timestamp=response.resp_time + rts.external_delay,
-                    sensor_timestamp=response.time,
-                    horizontal_angle=response.h_angle,
-                    vertical_angle=response.v_angle,
-                    distance=response.distance,
-                    response_length=response.resp_len,
-                    geocom_return_code=response.geocom_return_code,
-                    rpc_return_code=response.rpc_return_code,
-                )
-                post_measurement(new_measurement)
 
-                no_distance_count = 0
-                cnt += 1
+                    measurement_queue.put(new_measurement.model_dump())
+                    no_distance_count = 0
+                    cnt += 1
 
-            time.sleep(SLEEP_TIME)
+                time.sleep(SLEEP_TIME)
 
-        rts_serial.stop_tracking()
+            rts_serial.stop_tracking()
+            print("Tracking loop finished.")
+
+    except Exception as e:
+        print(f"CRITICAL ERROR in measurement loop: {e}")
+        print("This may be caused by a Pydantic version mismatch (e.g., using .model_dump() on V1).")
+    finally:
+        print("Signaling sender thread to shut down...")
+        shutdown_event.set()
+
+        # Wait for the queue to be empty
+        if not measurement_queue.empty():
+            print(f"Waiting for measurement queue to drain ({measurement_queue.qsize()} items left)...")
+            measurement_queue.join()
+
+        sender_thread.join(timeout=10.0)  # Wait for thread to exit
+        if sender_thread.is_alive():
+            print("Warning: Sender thread did not shut down cleanly.")
+        else:
+            print("Sender thread shut down. Exiting.")
 
 
 def add_single_measurement(job: RTSJobResponse) -> None:

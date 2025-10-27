@@ -62,19 +62,15 @@ def eval_job_dhv(t_ref: np.ndarray, measurements: list[MeasurementResponse]) -> 
 
 
 def compute_x_from_measurement(measurement: MeasurementResponse) -> float:
-    return measurement.station_x + (
-        measurement.distance * math.sin(measurement.vertical_angle) * math.sin(measurement.horizontal_angle)
-    )
+    return measurement.distance * math.sin(measurement.vertical_angle) * math.sin(measurement.horizontal_angle)
 
 
 def compute_y_from_measurement(measurement: MeasurementResponse) -> float:
-    return measurement.station_y + (
-        measurement.distance * math.sin(measurement.vertical_angle) * math.cos(measurement.horizontal_angle)
-    )
+    return measurement.distance * math.sin(measurement.vertical_angle) * math.cos(measurement.horizontal_angle)
 
 
 def compute_z_from_measurement(measurement: MeasurementResponse) -> float:
-    return measurement.station_z + measurement.distance * math.cos(measurement.vertical_angle)
+    return measurement.distance * math.cos(measurement.vertical_angle)
 
 
 def compute_speed(xyz: np.ndarray, tstamps: np.ndarray) -> np.ndarray:

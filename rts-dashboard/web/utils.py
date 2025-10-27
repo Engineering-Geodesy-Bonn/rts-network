@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 from requests import HTTPError
 
 from web import api
-from web.dtos import DeviceResponse, MeasurementResponse, RTSJobResponse, RTSResponse
+from web.dtos import DeviceResponse, MeasurementResponse, RTSJobResponse, RTSJobType, RTSResponse
 
 logger = logging.getLogger("root")
 
@@ -50,12 +50,11 @@ def job_id_from_dropdown_text(dropdown_text: str) -> int:
 def job_list_to_dropdown_items(api_store: dict) -> list[str]:
     job_list = api.get_all_rts_jobs(api_store)
     dropdown_items = []
-
     for job in job_list:
-        if job.job_type not in ["dummy_tracking", "track_prism", "static_measurement"]:
+        if job.job_type not in [RTSJobType.TRACK_PRISM, RTSJobType.DUMMY_TRACKING, RTSJobType.STATIC_MEASUREMENT]:
             continue
 
-        job_type = job.job_type.replace("_", " ").title()
+        job_type = job.job_type.value.replace("_", " ").title()
 
         if job.rts_id is None:
             rts_name = "Unknown RTS"
@@ -66,9 +65,7 @@ def job_list_to_dropdown_items(api_store: dict) -> list[str]:
                 rts = None
             rts_name = rts.name if rts is not None else "Unknown RTS"
 
-        job_name = (
-            f"Job #{job.job_id} - {job_type} - {rts_name if rts is not None else 'Unknown RTS'} - {job.job_status}"
-        )
+        job_name = f"Job #{job.job_id} - {job_type} - {rts_name if rts is not None else 'Unknown RTS'} - {job.job_status.value}"
         dropdown_items.append(job_name)
 
     return dropdown_items

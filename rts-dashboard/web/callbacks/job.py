@@ -1,8 +1,7 @@
 import logging
 
-from dash import ALL, MATCH, Input, Output, State, callback, ctx, html
+from dash import ALL, MATCH, Input, Output, State, callback, ctx, no_update
 from requests import Response
-
 from web import api
 from web.components import ids
 from web.components.jobs_tab import render_job_list
@@ -15,12 +14,11 @@ logger = logging.getLogger("root")
     Output(ids.JOB_LIST, "children", allow_duplicate=True),
     Input({"type": ids.JOB_LIST_TRIGGER, "job_id": ALL}, "data"),
     State(ids.API_STORE, "data"),
-    State(ids.JOB_LIST, "children"),
     prevent_initial_call=True,
 )
-def update_job_list(trigger, api_store: dict, current_children: list[html.Div]):
-    if trigger == False:
-        return current_children
+def update_job_list(trigger, api_store: dict):
+    if not any(trigger):
+        return no_update
 
     return render_job_list(api_store)
 
@@ -58,10 +56,11 @@ def show_deletion_dialog(n_clicks: int):
 )
 def remove_job(n_clicks: int, api_store: dict):
     if not n_clicks:
-        return
+        return False
 
     job_id = ctx.triggered_id["job_id"]
     api.delete_rts_job(api_store, int(job_id))
+    return True
 
 
 @callback(
@@ -80,7 +79,6 @@ def download_job(n_clicks: int, api_store: dict):
     return {"content": download_response.text, "filename": filename}
 
 
-
 @callback(
     Output({"type": ids.MEAS_DOWNLOAD, "job_id": MATCH}, "data"),
     Input({"type": ids.DOWNLOAD_RAW_MEASUREMENTS_BUTTON, "job_id": MATCH}, "n_clicks"),
@@ -95,6 +93,7 @@ def download_raw_measurements(n_clicks: int, api_store: dict):
     download_response: Response = api.download_measurements(api_store, int(job_id))
     filename = download_response.headers["content-disposition"].split("attachment; filename=")[1]
     return {"content": download_response.text, "filename": filename}
+
 
 @callback(
     Output(ids.JOB_LIST, "children", allow_duplicate=True),
@@ -119,7 +118,7 @@ def stop_all(n_clicks: int, api_store: dict):
     rts_jobs = api.get_all_rts_jobs(api_store)
     for job in rts_jobs:
         try:
-            if job.job_status == RTSJobStatus.FINISHED.value or job.job_status == RTSJobStatus.FAILED.value:
+            if job.job_status == RTSJobStatus.FINISHED or job.job_status == RTSJobStatus.FAILED:
                 continue
 
             logger.info(f"Stopping job {job.job_id}")
@@ -136,12 +135,15 @@ def stop_all(n_clicks: int, api_store: dict):
 )
 def stop_single_job(n_clicks: int, api_store: dict):
     if not n_clicks:
-        return
+        return False
 
     job_id = ctx.triggered_id["job_id"]
     job = api.get_rts_job(api_store, int(job_id))
-    if job.job_status == RTSJobStatus.FINISHED.value or job.job_status == RTSJobStatus.FAILED.value:
-        return
+    logger.info(job.job_status)
+    if job.job_status == RTSJobStatus.FINISHED or job.job_status == RTSJobStatus.FAILED:
+        return False
 
     logger.info(f"Stopping job {job.job_id}")
     api.update_rts_job_status(api_store, job.job_id, job_status=RTSJobStatus.FINISHED.value)
+
+    return True

@@ -439,15 +439,17 @@ def stop_all(n_clicks: int, api_store: dict):
 
 @callback(
     Output({"type": ids.RTS_TRACKING_STATUS_ICON, "rts_id": MATCH}, "src", allow_duplicate=True),
+    Output({"type": ids.RTS_NUM_MEASUREMENTS_VALUE, "rts_id": MATCH}, "children"),
+    Output({"type": ids.RTS_MEASUREMENT_FREQUENCY_VALUE, "rts_id": MATCH}, "children"),
     Input({"type": ids.RTS_TRACKING_STATUS_INTERVAL, "rts_id": MATCH}, "n_intervals"),
     State(ids.API_STORE, "data"),
     prevent_initial_call=True,
 )
-def update_tracking_status_icon(_, api_store: dict):
+def update_tracking_status(_, api_store: dict):
     try:
         rts_id = ctx.triggered_id["rts_id"]
         status = api.get_rts_status(api_store, rts_id)
-        return STATUS_ICONS[status.busy]
+        return STATUS_ICONS[status.busy], status.num_measurements, f"{status.datarate:.2f} Hz"
     except Exception as e:
         logger.error(e)
-        return STATUS_ICONS[False]
+        return STATUS_ICONS[False], 0, "0.00 Hz"

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 
 from rtsapi.dtos import AddMeasurementRequest, AlignmentResponse, InternalDelayResponse, MeasurementResponse
@@ -12,6 +12,36 @@ async def add_measurement(
     measurement: AddMeasurementRequest, measurement_service: MeasurementService = Depends(MeasurementService)
 ) -> MeasurementResponse:
     return measurement_service.add_measurement(measurement)
+
+
+@router.websocket("/ws/measurements/{job_id}")
+async def websocket_measurement_endpoint(
+    websocket: WebSocket, job_id: str, measurement_service: MeasurementService = Depends(MeasurementService)
+):
+    await websocket.accept()
+    print(f"WebSocket connection accepted for job: {job_id}")
+    try:
+        while True:
+            data = await websocket.receive_json()
+
+            if isinstance(data, list):
+                print(f"[WS] Received batch of {len(data)} measurements for job {job_id}")
+                for item in data:
+                    measurement_service.add_measurement_from_ws(item)
+            elif isinstance(data, dict):
+                measurement_service.add_measurement_from_ws(data)
+            else:
+                print(f"[WS] Received unexpected data format: {type(data)}")
+
+            # Optionally, send an ACK back
+            # await websocket.send_json({"status": "received", "count": 1})
+
+    except WebSocketDisconnect:
+        print(f"WebSocket client disconnected for job: {job_id}")
+    except Exception as e:
+        print(f"WebSocket error for job {job_id}: {e}")
+    finally:
+        print(f"Closing WebSocket connection for job {job_id}")
 
 
 @router.post("/measurements/static")

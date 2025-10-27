@@ -39,7 +39,7 @@ def update_position_plot_auto(_: int, auto_refresh: bool, selected_job_str_list:
     Input(ids.REFRESH_PLOT_BUTTON, "n_clicks"),
     State(ids.PLOT_JOB_DROPDOWN, "value"),
     State(ids.API_STORE, "data"),
-    prevent_initial_call=True,
+    prevent_initial_call="initial_duplicate",
 )
 def update_position_plot_manual(_: int, selected_job_str_list: list[str], api_store: dict):
     return dropdown_options_to_trajectory_plot(selected_job_str_list, api_store)

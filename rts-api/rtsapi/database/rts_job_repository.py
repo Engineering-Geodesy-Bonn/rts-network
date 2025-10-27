@@ -70,6 +70,16 @@ class RTSJobRepository:
         if not self.verify_status_change(RTSJobStatus(job.status), status):
             raise RTSJobStatusChangeException(job_id, RTSJobStatus(job.status), status)
 
+        if status == RTSJobStatus.FINISHED:
+            measurements = job.measurements
+            job.finished_at = time.time()
+            job.duration = (
+                measurements[-1].controller_timestamp - measurements[0].controller_timestamp if measurements else 0.0
+            )
+            num_measurements = len(measurements)
+            job.num_measurements = num_measurements
+            job.datarate = num_measurements / job.duration if job.duration > 0 else 0.0
+
         job.status = status.value
         self.db.commit()
         self.db.refresh(job)
