@@ -31,8 +31,11 @@ class Worker:
         self.initialize()
 
     def initialize(self):
-        device_response = api.self_register()
-        self.scan_serial_ports(device_response)
+        try:
+            device_response = api.self_register()
+            self.scan_serial_ports(device_response)
+        except Exception as e:
+            logger.error(f"Initialization failed: {e}")
 
     def scan_serial_ports(self, device_response: DeviceResponse):
         if os.name == "nt":
