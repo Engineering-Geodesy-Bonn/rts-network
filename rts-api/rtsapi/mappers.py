@@ -23,7 +23,6 @@ class MeasurementMapper:
     @staticmethod
     def to_dto(measurement: Measurement) -> dtos.MeasurementResponse:
         return dtos.MeasurementResponse(
-            id=measurement.id,
             rts_id=measurement.rts_id,
             rts_job_id=measurement.rts_job_id,
             controller_timestamp=measurement.controller_timestamp,

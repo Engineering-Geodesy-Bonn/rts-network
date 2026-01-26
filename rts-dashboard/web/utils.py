@@ -112,10 +112,253 @@ def validate_port(port_number: int) -> bool:
 
 
 def dropdown_options_to_trajectory_plot(selected_job_str_list: list[str], api_store: dict) -> go.Figure:
+    if not selected_job_str_list:
+        return go.Figure(layout=go.Layout(title="No jobs selected"))
+
     job_ids = [job_id_from_dropdown_text(job_str) for job_str in selected_job_str_list]
-    rts_jobs = api.get_all_rts_jobs(api_store)
-    selected_jobs = [job for job in rts_jobs if job.job_id in job_ids]
-    return create_trajectory_plot(selected_jobs, api_store)
+    return create_trajectory_plot_efficient(job_ids, api_store)
+
+
+def create_trajectory_plot_efficient(job_ids: list[int], api_store: dict) -> go.Figure:
+    """Create trajectory plot using the efficient plot-data endpoint."""
+    if not job_ids:
+        return go.Figure(layout=go.Layout(title="No jobs selected"))
+
+    try:
+        plot_data = api.get_plot_data(api_store, job_ids)
+    except Exception as e:
+        logger.error(f"Failed to get plot data: {e}")
+        return go.Figure(layout=go.Layout(title="Failed to load plot data"))
+
+    if not plot_data.jobs:
+        return go.Figure(layout=go.Layout(title="No data available"))
+
+    fig = make_subplots(
+        rows=3,
+        cols=2,
+        specs=[
+            [{}, {"rowspan": 3}],
+            [{}, None],
+            [{}, None],
+        ],
+        shared_xaxes=True,
+    )
+
+    for job_data in plot_data.jobs:
+        if not job_data.points:
+            continue
+
+        timestamps = [datetime.fromtimestamp(p.timestamp) for p in job_data.points]
+        x_values = [p.x for p in job_data.points]
+        y_values = [p.y for p in job_data.points]
+        z_values = [p.z for p in job_data.points]
+
+        fig.add_trace(
+            go.Scatter(
+                x=timestamps,
+                y=x_values,
+                name=job_data.rts_name,
+                mode="lines+markers",
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=timestamps,
+                y=y_values,
+                name=job_data.rts_name,
+                mode="lines+markers",
+                showlegend=False,
+            ),
+            row=2,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=timestamps,
+                y=z_values,
+                name=job_data.rts_name,
+                mode="lines+markers",
+                showlegend=False,
+            ),
+            row=3,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=x_values,
+                y=y_values,
+                name=job_data.rts_name,
+                mode="markers",
+                showlegend=True,
+            ),
+            row=1,
+            col=2,
+        )
+
+    fig.update_yaxes(title_text="X [m]", row=1, col=1)
+    fig.update_yaxes(title_text="Y [m]", row=2, col=1)
+    fig.update_xaxes(title_text="Date & Time", row=3, col=1)
+    fig.update_yaxes(title_text="Z [m]", row=3, col=1)
+    fig.update_xaxes(title_text="X [m]", row=1, col=2)
+    fig.update_yaxes(
+        scaleanchor="x",
+        scaleratio=1,
+        title_text="Y [m]",
+        row=1,
+        col=2,
+    )
+    fig.update_layout(
+        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+    )
+    return fig
+
+
+def merge_plot_data(cached_data: dict, new_data: dict) -> dict:
+    """Merge new plot data with cached data.
+
+    Appends new points to existing jobs and handles new jobs.
+    Also updates job status from the new data.
+
+    Args:
+        cached_data: Previously cached plot data dictionary
+        new_data: New incremental plot data dictionary
+
+    Returns:
+        Merged plot data dictionary with all points
+    """
+    if not cached_data:
+        return new_data
+
+    if not new_data or not new_data.get("jobs"):
+        return cached_data
+
+    # Create a lookup of cached jobs by job_id
+    cached_jobs_by_id = {job["job_id"]: job for job in cached_data.get("jobs", [])}
+
+    for new_job in new_data.get("jobs", []):
+        job_id = new_job["job_id"]
+
+        if job_id in cached_jobs_by_id:
+            # Existing job: append new points and update status
+            cached_job = cached_jobs_by_id[job_id]
+            cached_job["points"].extend(new_job.get("points", []))
+            # Update job status (it may have changed from running to finished)
+            cached_job["job_status"] = new_job["job_status"]
+        else:
+            # New job: add it to cached data
+            cached_jobs_by_id[job_id] = new_job
+
+    return {"jobs": list(cached_jobs_by_id.values())}
+
+
+def create_trajectory_plot_from_cached_data(cached_data: dict) -> go.Figure:
+    """Create trajectory plot from cached dictionary data.
+
+    This is similar to create_trajectory_plot_efficient but works with
+    dictionary data from the store instead of DTO objects.
+
+    Args:
+        cached_data: Dictionary containing plot data with 'jobs' key
+
+    Returns:
+        Plotly figure with trajectory plot
+    """
+    if not cached_data or not cached_data.get("jobs"):
+        return go.Figure(layout=go.Layout(title="No data available"))
+
+    fig = make_subplots(
+        rows=3,
+        cols=2,
+        specs=[
+            [{}, {"rowspan": 3}],
+            [{}, None],
+            [{}, None],
+        ],
+        shared_xaxes=True,
+    )
+
+    for job_data in cached_data["jobs"]:
+        points = job_data.get("points", [])
+        if not points:
+            continue
+
+        rts_name = job_data.get("rts_name", "Unknown RTS")
+
+        timestamps = [datetime.fromtimestamp(p["timestamp"]) for p in points]
+        x_values = [p["x"] for p in points]
+        y_values = [p["y"] for p in points]
+        z_values = [p["z"] for p in points]
+
+        fig.add_trace(
+            go.Scatter(
+                x=timestamps,
+                y=x_values,
+                name=rts_name,
+                mode="lines+markers",
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=timestamps,
+                y=y_values,
+                name=rts_name,
+                mode="lines+markers",
+                showlegend=False,
+            ),
+            row=2,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=timestamps,
+                y=z_values,
+                name=rts_name,
+                mode="lines+markers",
+                showlegend=False,
+            ),
+            row=3,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=x_values,
+                y=y_values,
+                name=rts_name,
+                mode="markers",
+                showlegend=True,
+            ),
+            row=1,
+            col=2,
+        )
+
+    fig.update_yaxes(title_text="X [m]", row=1, col=1)
+    fig.update_yaxes(title_text="Y [m]", row=2, col=1)
+    fig.update_xaxes(title_text="Date & Time", row=3, col=1)
+    fig.update_yaxes(title_text="Z [m]", row=3, col=1)
+    fig.update_xaxes(title_text="X [m]", row=1, col=2)
+    fig.update_yaxes(
+        scaleanchor="x",
+        scaleratio=1,
+        title_text="Y [m]",
+        row=1,
+        col=2,
+    )
+    fig.update_layout(
+        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+    )
+    return fig
 
 
 def create_trajectory_plot(selected_jobs: list[RTSJobResponse], api_store: dict) -> go.Figure:

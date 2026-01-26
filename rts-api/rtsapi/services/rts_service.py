@@ -51,10 +51,6 @@ class RTSService:
         db_settings = self.tracking_settings_repository.get_tracking_settings(rts_id)
         return TrackingSettingsMapper.to_dto(db_settings)
 
-    def get_tracking_settings(self, rts_id: int) -> dtos.TrackingSettingsResponse:
-        db_settings = self.tracking_settings_repository.get_tracking_settings(rts_id)
-        return TrackingSettingsMapper.to_dto(db_settings)
-
     def update_tracking_settings(
         self, rts_id: int, update_tracking_settings_request: dtos.UpdateTrackingSettingsRequest
     ) -> dtos.TrackingSettingsResponse:

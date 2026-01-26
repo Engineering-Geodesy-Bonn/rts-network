@@ -40,6 +40,11 @@ async def fetch_rts_job(
     return fetchable_job
 
 
+@router.get("/jobs/status/running")
+async def get_running_rts_jobs(rts_job_service: RTSJobService = Depends(RTSJobService)) -> list[RTSJobResponse]:
+    return rts_job_service.get_running_rts_jobs()
+
+
 @router.get("/jobs/{job_id}")
 async def get_job(job_id: int, rts_job_service: RTSJobService = Depends(RTSJobService)) -> RTSJobResponse:
     return rts_job_service.get_rts_job(job_id)
@@ -53,11 +58,6 @@ async def delete_rts_job(job_id: int, rts_job_service: RTSJobService = Depends(R
 @router.get("/jobs")
 async def get_all_rts_jobs(rts_job_service: RTSJobService = Depends(RTSJobService)) -> list[RTSJobResponse]:
     return rts_job_service.get_all_rts_jobs()
-
-
-@router.get("/jobs/status/running")
-async def get_running_rts_jobs(rts_job_service: RTSJobService = Depends(RTSJobService)) -> list[RTSJobResponse]:
-    return rts_job_service.get_running_rts_jobs()
 
 
 @router.get("/jobs/{job_id}/status")

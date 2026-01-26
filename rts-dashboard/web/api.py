@@ -60,6 +60,24 @@ def add_measurement(api_store: dict, measurement_data: dtos.AddMeasurementReques
     return dtos.MeasurementResponse(**response.json())
 
 
+def get_plot_data(
+    api_store: dict, job_ids: List[int], since_timestamp: Optional[float] = None
+) -> dtos.PlotDataResponse:
+    """Get pre-computed XYZ plot data for multiple jobs efficiently.
+
+    Args:
+        api_store: API connection configuration
+        job_ids: List of job IDs to get plot data for
+        since_timestamp: Optional timestamp to only return measurements after this time.
+                        Used for incremental updates.
+    """
+    params = {"job_ids": job_ids}
+    if since_timestamp is not None:
+        params["since_timestamp"] = since_timestamp
+    response = make_request(api_store, "GET", "measurements/plot-data", params=params)
+    return dtos.PlotDataResponse(**response.json())
+
+
 def get_raw_measurements(api_store: dict, job_id: int) -> List[dtos.MeasurementResponse]:
     response = make_request(api_store, "GET", f"measurements/raw?job_id={job_id}")
     return [dtos.MeasurementResponse(**measurement) for measurement in response.json()]

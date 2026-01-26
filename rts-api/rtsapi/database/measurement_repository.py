@@ -16,10 +16,12 @@ class MeasurementRepository:
         self.db.refresh(measurement)
         return measurement
 
-    def get_measurements(self, job_id: int = None) -> list[Measurement]:
+    def get_measurements(self, job_id: int = None, since_timestamp: float = None) -> list[Measurement]:
         query = self.db.query(Measurement)
-        if job_id:
+        if job_id is not None:
             query = query.filter(Measurement.rts_job_id == job_id)
+        if since_timestamp is not None:
+            query = query.filter(Measurement.controller_timestamp > since_timestamp)
 
         query = query.order_by(Measurement.controller_timestamp.asc())
         return query.all()

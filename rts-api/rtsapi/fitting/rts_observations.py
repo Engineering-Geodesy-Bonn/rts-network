@@ -240,16 +240,16 @@ class RTSObservations:
     def to_measurement_response(self) -> list[MeasurementResponse]:
         return [
             MeasurementResponse(
-                controller_timestamp=self.controller_timestamps[i],
-                sensor_timestamp=self.sensor_timestamps[i],
-                response_length=self.response_lengths[i],
-                geocom_return_code=self.geo_com_return_codes[i],
-                rpc_return_code=self.rpc_return_codes[i],
-                distance=self.distances[i],
-                horizontal_angle=self.h_angles[i],
-                vertical_angle=self.v_angles[i],
-                rts_id=self.rts_ids[i],
-                rts_job_id=self.rts_job_ids[i],
+                controller_timestamp=float(self.controller_timestamps[i]),
+                sensor_timestamp=float(self.sensor_timestamps[i]),
+                response_length=int(self.response_lengths[i]),
+                geocom_return_code=int(self.geo_com_return_codes[i]),
+                rpc_return_code=int(self.rpc_return_codes[i]),
+                distance=float(self.distances[i]),
+                horizontal_angle=float(self.h_angles[i]),
+                vertical_angle=float(self.v_angles[i]),
+                rts_id=int(self.rts_ids[i]) if self.rts_ids[i] is not None else None,
+                rts_job_id=int(self.rts_job_ids[i]),
             )
             for i in range(len(self))
         ]

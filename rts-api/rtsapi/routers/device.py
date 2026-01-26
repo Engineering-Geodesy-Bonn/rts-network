@@ -17,8 +17,6 @@ def get_device(device_id: int, device_service: DeviceService = Depends(DeviceSer
 
 
 @router.post("/devices/register")
-async def get_rts_job_status(
-    request: Request, device_service: DeviceService = Depends(DeviceService)
-) -> DeviceResponse:
+async def register_device(request: Request, device_service: DeviceService = Depends(DeviceService)) -> DeviceResponse:
     client_ip = request.client.host
     return device_service.upsert_device(client_ip)

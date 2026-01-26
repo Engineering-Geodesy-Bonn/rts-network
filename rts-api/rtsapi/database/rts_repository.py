@@ -40,8 +40,9 @@ class RTSRepository:
     def get_all_rts(self) -> list[RTS]:
         return self.db.query(RTS).filter(RTS.deleted == False).all()
 
-    def update_rts(self, rts_id: int, rts: RTS) -> RTS:
-        self.db.query(RTS).filter(RTS.id == rts_id, RTS.deleted == False).update(rts.__dict__)
+    def update_rts(self, rts_id: int, rts) -> RTS:
+        update_data = {k: v for k, v in rts.__dict__.items() if not k.startswith("_")}
+        self.db.query(RTS).filter(RTS.id == rts_id, RTS.deleted == False).update(update_data)
         self.db.commit()
         updated_rts = self.db.query(RTS).filter(RTS.id == rts_id).first()
         return updated_rts

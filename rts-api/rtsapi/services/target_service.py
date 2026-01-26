@@ -4,6 +4,7 @@ from rtsapi import utils
 from rtsapi.database.measurement_repository import MeasurementRepository
 from rtsapi.database.rts_repository import RTSRepository
 from rtsapi.dtos import MeasurementResponse, TargetPosition
+from rtsapi.exceptions import NoMeasurementsAvailableException
 
 
 class TargetService:
@@ -16,7 +17,10 @@ class TargetService:
         self.rts_repository = rts_repository
 
     def get_latest_target_position(self) -> TargetPosition:
-        latest_measurement = MeasurementResponse.model_validate(self.measurement_repository.get_latest_measurement())
+        measurement = self.measurement_repository.get_latest_measurement()
+        if measurement is None:
+            raise NoMeasurementsAvailableException("No measurements available to determine target position")
+        latest_measurement = MeasurementResponse.model_validate(measurement)
         rts = self.rts_repository.get_rts(latest_measurement.rts_id)
         x = rts.station_x + utils.compute_x_from_measurement(latest_measurement)
         y = rts.station_y + utils.compute_y_from_measurement(latest_measurement)

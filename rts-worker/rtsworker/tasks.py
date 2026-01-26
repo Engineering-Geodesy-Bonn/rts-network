@@ -92,7 +92,7 @@ def dummy_tracking(job: RTSJobResponse):
             rpc_return_code=0,
         )
         post_measurement(add_measurement)
-        time.sleep(0.1)
+        time.sleep(0.01)
     print("Stopped logging")
 
 

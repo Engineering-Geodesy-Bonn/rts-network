@@ -77,6 +77,31 @@ class MeasurementResponse(BaseModel):
     rts_job_id: int
 
 
+class PlotDataPoint(BaseModel):
+    """Pre-computed XYZ coordinates for efficient plot rendering."""
+
+    timestamp: float
+    x: float
+    y: float
+    z: float
+
+
+class JobPlotData(BaseModel):
+    """Plot data for a single job with pre-computed coordinates."""
+
+    job_id: int
+    rts_id: int | None
+    rts_name: str
+    job_status: str
+    points: list[PlotDataPoint]
+
+
+class PlotDataResponse(BaseModel):
+    """Response containing plot data for multiple jobs."""
+
+    jobs: list[JobPlotData]
+
+
 class CreateTrackingSettingsRequest(BaseModel):
     tmc_measurement_mode: int = 1
     tmc_inclination_mode: int = 1

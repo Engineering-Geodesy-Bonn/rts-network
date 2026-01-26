@@ -332,11 +332,12 @@ def create_rts_action(
 )
 def start_rts_job(n_clicks: list, api_store: dict):
     if not any(n_clicks):
-        return
+        return None
 
     rts_id = ctx.triggered_id["rts_id"]
     job_type = ctx.triggered_id["job_type"]
     api.create_rts_job(api_store, CreateRTSJobRequest(rts_id=rts_id, job_type=job_type))
+    return None
 
 
 @callback(
@@ -347,15 +348,16 @@ def start_rts_job(n_clicks: list, api_store: dict):
 )
 def stop_rts_job(n_clicks: int, api_store: dict):
     if not n_clicks:
-        return
+        return None
 
     rts_id = ctx.triggered_id["rts_id"]
     rts_status = api.get_rts_status(api_store, rts_id)
 
     if not rts_status.busy:
-        return
+        return None
 
     api.update_rts_job_status(api_store, job_id=rts_status.job_id, job_status=RTSJobStatus.FINISHED.value)
+    return None
 
 
 @callback(
@@ -379,7 +381,7 @@ def toggle_create_rts_modal(n1, n2, is_open):
 )
 def start_all(n_clicks: int, api_store: dict):
     if not n_clicks:
-        return
+        return None
 
     rts_list = api.get_all_rts(api_store)
     for rts in rts_list:
@@ -389,6 +391,7 @@ def start_all(n_clicks: int, api_store: dict):
             continue
 
         api.create_rts_job(api_store, CreateRTSJobRequest(rts_id=rts.id, job_type=RTSJobType.TRACK_PRISM.value))
+    return None
 
 
 @callback(
@@ -399,7 +402,7 @@ def start_all(n_clicks: int, api_store: dict):
 )
 def measure_all(n_clicks: int, api_store: dict):
     if not n_clicks:
-        return
+        return None
 
     rts_list = api.get_all_rts(api_store)
     for rts in rts_list:
@@ -411,6 +414,7 @@ def measure_all(n_clicks: int, api_store: dict):
         api.create_rts_job(
             api_store, CreateRTSJobRequest(rts_id=rts.id, job_type=RTSJobType.ADD_STATIC_MEASUREMENT.value)
         )
+    return None
 
 
 @callback(
@@ -421,7 +425,7 @@ def measure_all(n_clicks: int, api_store: dict):
 )
 def stop_all(n_clicks: int, api_store: dict):
     if not n_clicks:
-        return
+        return None
 
     rts_list = api.get_all_rts(api_store)
     for rts in rts_list:
@@ -435,6 +439,7 @@ def stop_all(n_clicks: int, api_store: dict):
             api.update_rts_job_status(api_store, rts_status.job_id, job_status=RTSJobStatus.FINISHED.value)
         except Exception as e:
             logger.error(e)
+    return None
 
 
 @callback(

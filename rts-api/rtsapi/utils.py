@@ -137,7 +137,7 @@ def rotate_to_main_axis(xyz: np.ndarray) -> np.ndarray:
     in x direction
     """
     angle = line_angle(main_axis(xyz))
-    print(angle)
+    logger.debug(f"Rotation angle: {angle}")
     rot_m = rot_z(angle, dim=xyz.shape[1])
     xyz_rot = rot_m @ xyz.T
     return xyz_rot.T
@@ -155,7 +155,7 @@ def main_axis(xyz: np.ndarray) -> np.ndarray:
     return np.linalg.eigh(N)[1][:, -1]
 
 
-def rot_z(gamma: float, dim: int = 3) -> np.array:
+def rot_z(gamma: float, dim: int = 3) -> np.ndarray:
     if dim == 2:
         return np.array(
             [
@@ -172,7 +172,7 @@ def rot_z(gamma: float, dim: int = 3) -> np.array:
             ]
         )
     else:
-        print("rot_z: Unknown dimension!")
+        raise ValueError(f"rot_z: Unsupported dimension {dim}. Only 2 or 3 are supported.")
 
 
 def fit_line_3d(xyz: np.ndarray) -> np.ndarray:

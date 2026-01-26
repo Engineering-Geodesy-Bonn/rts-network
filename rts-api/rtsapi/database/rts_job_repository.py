@@ -1,3 +1,4 @@
+import logging
 import time
 from fastapi import Depends
 from sqlalchemy.orm import Query, Session
@@ -6,6 +7,8 @@ from rtsapi.database.models import RTS, Device, RTSJob
 from rtsapi.dependencies import get_db
 from rtsapi.dtos import RTSJobStatus, RTSJobType
 from rtsapi.exceptions import RTSJobNotFoundException, RTSJobStatusChangeException
+
+logger = logging.getLogger("root")
 
 
 class RTSJobRepository:
@@ -86,13 +89,13 @@ class RTSJobRepository:
         return job
 
     def delete_rts_job(self, job_id: int) -> None:
-        job = self.db.query(RTSJob).get(job_id)
+        job = self.db.query(RTSJob).filter(RTSJob.id == job_id).first()
 
         if job:
             self.db.delete(job)
             self.db.commit()
         else:
-            print(f"No RTSJob found with id {job_id}")
+            logger.warning(f"No RTSJob found with id {job_id}")
 
     def get_running_rts_job(self, rts_id: int) -> RTSJob:
         return (
@@ -106,8 +109,15 @@ class RTSJobRepository:
         return self.db.query(RTSJob).filter(RTSJob.status == RTSJobStatus.RUNNING.value).all()
 
     def verify_status_change(self, old_status: RTSJobStatus, new_status: RTSJobStatus) -> bool:
-        order = [RTSJobStatus.PENDING, RTSJobStatus.RUNNING, RTSJobStatus.FINISHED, RTSJobStatus.FAILED]
-        return order.index(old_status) < order.index(new_status)
+        # Define valid transitions: PENDING -> RUNNING -> FINISHED or FAILED
+        # FAILED can be reached from PENDING or RUNNING
+        valid_transitions = {
+            RTSJobStatus.PENDING: {RTSJobStatus.RUNNING, RTSJobStatus.FAILED},
+            RTSJobStatus.RUNNING: {RTSJobStatus.FINISHED, RTSJobStatus.FAILED},
+            RTSJobStatus.FINISHED: set(),  # Terminal state
+            RTSJobStatus.FAILED: set(),  # Terminal state
+        }
+        return new_status in valid_transitions.get(old_status, set())
 
     def filter_by_device_ip_query(self, device_ip: str) -> Query[RTSJob]:
         return (

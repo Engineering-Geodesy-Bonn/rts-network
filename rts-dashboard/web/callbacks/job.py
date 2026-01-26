@@ -113,7 +113,7 @@ def update_job_list_interval(_, api_store: dict):
 )
 def stop_all(n_clicks: int, api_store: dict):
     if not n_clicks:
-        return
+        return None
 
     rts_jobs = api.get_all_rts_jobs(api_store)
     for job in rts_jobs:
@@ -125,6 +125,7 @@ def stop_all(n_clicks: int, api_store: dict):
             api.update_rts_job_status(api_store, job.job_id, job_status=RTSJobStatus.FINISHED.value)
         except Exception as e:
             logger.error(e)
+    return None
 
 
 @callback(

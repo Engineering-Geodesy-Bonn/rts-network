@@ -35,6 +35,8 @@ def render(api_store: dict) -> html.Div:
     ]
     return html.Div(
         children=[
+            # Store for caching plot data (enables incremental updates)
+            dcc.Store(id=ids.PLOT_DATA_STORE, data=None),
             html.Div(
                 className="tab-header-group",
                 children=[
@@ -43,7 +45,7 @@ def render(api_store: dict) -> html.Div:
                         children=[
                             html.Div("Auto-refresh", className="auto-refresh-label"),
                             daq.BooleanSwitch(
-                                on=False,
+                                on=True,
                                 color="#00cc96",
                                 id=ids.AUTO_REFRESH_PLOT_SWITCH,
                                 className="auto-refresh-switch",
@@ -67,7 +69,7 @@ def render(api_store: dict) -> html.Div:
                 style={"width": "100%", "margin-bottom": "10px"},
             ),
             render_plot(),
-            dcc.Interval(ids.POSITION_PLOT_INTERVAL, interval=1000, n_intervals=0),
+            dcc.Interval(id=ids.POSITION_PLOT_INTERVAL, interval=1000, n_intervals=0),
         ],
         className="tab",
     )
