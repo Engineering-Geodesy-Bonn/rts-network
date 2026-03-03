@@ -1,12 +1,14 @@
 import logging
 import time
+
 from fastapi import Depends
 from sqlalchemy.orm import Query, Session
 
 from rtsapi.database.models import RTS, Device, RTSJob
 from rtsapi.dependencies import get_db
 from rtsapi.dtos import RTSJobStatus, RTSJobType
-from rtsapi.exceptions import RTSJobNotFoundException, RTSJobStatusChangeException
+from rtsapi.exceptions import (RTSJobNotFoundException,
+                               RTSJobStatusChangeException)
 
 logger = logging.getLogger("root")
 

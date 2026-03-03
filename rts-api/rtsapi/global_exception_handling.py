@@ -4,16 +4,13 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from rtsapi.exceptions import (
-    DeviceNotFoundException,
-    NoMeasurementsAvailableException,
-    NoOverlapException,
-    RTSJobNotFoundException,
-    RTSJobStatusChangeException,
-    RTSNotFoundException,
-    RTSPortAlreadyExistsException,
-    TrackingSettingsNotFoundException,
-)
+from rtsapi.exceptions import (DeviceNotFoundException,
+                               NoMeasurementsAvailableException,
+                               NoOverlapException, RTSJobNotFoundException,
+                               RTSJobStatusChangeException,
+                               RTSNotFoundException,
+                               RTSPortAlreadyExistsException, SessionNotFoundException,
+                               TrackingSettingsNotFoundException)
 
 logger = logging.getLogger("root")
 
@@ -28,6 +25,7 @@ EXCEPTION_MAPPING = {
     PermissionError: 500,
     NoOverlapException: 400,
     ValidationError: 400,
+    SessionNotFoundException: 404,
 }
 
 

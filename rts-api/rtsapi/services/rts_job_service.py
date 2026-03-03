@@ -1,10 +1,11 @@
 import logging
+
 from fastapi import Depends
 
+from rtsapi import dtos
 from rtsapi.database.measurement_repository import MeasurementRepository
 from rtsapi.database.rts_job_repository import RTSJobRepository
 from rtsapi.database.rts_repository import RTSRepository
-from rtsapi import dtos
 from rtsapi.mappers import RTSJobMapper
 
 logger = logging.getLogger("root")

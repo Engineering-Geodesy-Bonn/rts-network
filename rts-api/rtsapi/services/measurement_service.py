@@ -1,29 +1,18 @@
 import logging
-import math
 from datetime import datetime
-from typing import List
 
 from fastapi import Depends
 from fastapi.responses import PlainTextResponse
-import numpy as np
 
 from rtsapi.database.measurement_repository import MeasurementRepository
 from rtsapi.database.rts_job_repository import RTSJobRepository
 from rtsapi.database.rts_repository import RTSRepository
-from rtsapi.dtos import (
-    AddMeasurementRequest,
-    AlignmentResponse,
-    JobPlotData,
-    MeasurementResponse,
-    PlotDataPoint,
-    PlotDataResponse,
-    RTSResponse,
-)
-from rtsapi.exceptions import NoMeasurementsAvailableException, RTSNotFoundException
-from rtsapi.fitting.rts_observations import RTSObservations, RTSStation, RTSVarianceConfig
-from rtsapi.fitting.sphere_fit import SphereFit
+from rtsapi.dtos import AddMeasurementRequest, MeasurementResponse, RTSResponse
+from rtsapi.exceptions import (NoMeasurementsAvailableException,
+                               RTSNotFoundException)
 from rtsapi.mappers import MeasurementMapper
-import trajectopy as tpy
+from rtsapi.rts_observations import (RTSObservations, RTSStation,
+                                     RTSVarianceConfig)
 
 logger = logging.getLogger("root")
 
@@ -39,14 +28,6 @@ class MeasurementService:
         self.rts_job_repository = rts_job_repository
         self.rts_repository = rts_repository
 
-    def add_static_measurement(self, add_measurement_request: AddMeasurementRequest) -> MeasurementResponse:
-        add_measurement_job = self.rts_job_repository.get_rts_job(add_measurement_request.rts_job_id)
-        job = self.rts_job_repository.get_static_rts_job(add_measurement_job.rts_id)
-        add_measurement_request.rts_job_id = job.id
-        db_measurement = MeasurementMapper.to_db(job.rts_id, add_measurement_request)
-        added_measurement = self.measurement_repository.add_measurement(db_measurement)
-        return MeasurementMapper.to_dto(added_measurement)
-
     def add_measurement(self, add_measurement_request: AddMeasurementRequest) -> MeasurementResponse:
         job = self.rts_job_repository.get_rts_job(add_measurement_request.rts_job_id)
         db_measurement = MeasurementMapper.to_db(job.rts_id, add_measurement_request)
@@ -57,101 +38,14 @@ class MeasurementService:
         measurement = AddMeasurementRequest(**measurement_dict)
         self.add_measurement(measurement)
 
-    def get_plot_data(self, job_ids: List[int], since_timestamp: float | None = None) -> PlotDataResponse:
-        """Get pre-computed XYZ plot data for multiple jobs efficiently.
-
-        Args:
-            job_ids: List of job IDs to get plot data for
-            since_timestamp: Optional timestamp to only return measurements after this time.
-                           Used for incremental updates - only new measurements are returned.
-        """
-        jobs_data = []
-        # Cache RTS data to avoid repeated queries
-        rts_cache: dict[int, RTSResponse] = {}
-
-        for job_id in job_ids:
-            try:
-                job = self.rts_job_repository.get_rts_job(job_id)
-                measurements = self.measurement_repository.get_measurements(job_id, since_timestamp=since_timestamp)
-
-                if not measurements:
-                    # Still include the job with empty points for status updates
-                    if since_timestamp is None:
-                        continue
-                    # For incremental updates, always include job info for status sync
-                    rts_id = job.rts_id
-                    if rts_id is not None and rts_id not in rts_cache:
-                        try:
-                            rts = self.rts_repository.get_rts(rts_id, deleted_ok=True)
-                            rts_cache[rts_id] = rts
-                        except RTSNotFoundException:
-                            rts_cache[rts_id] = None
-                    rts = rts_cache.get(rts_id) if rts_id else None
-                    rts_name = rts.name if rts else "Unknown RTS"
-                    jobs_data.append(
-                        JobPlotData(
-                            job_id=job_id,
-                            rts_id=rts_id,
-                            rts_name=rts_name,
-                            job_status=job.status,
-                            points=[],
-                        )
-                    )
-                    continue
-
-                # Get RTS from cache or fetch
-                rts_id = job.rts_id
-                if rts_id is not None and rts_id not in rts_cache:
-                    try:
-                        rts = self.rts_repository.get_rts(rts_id, deleted_ok=True)
-                        rts_cache[rts_id] = rts
-                    except RTSNotFoundException:
-                        rts_cache[rts_id] = None
-
-                rts = rts_cache.get(rts_id) if rts_id else None
-                station_x = rts.station_x if rts else 0.0
-                station_y = rts.station_y if rts else 0.0
-                station_z = rts.station_z if rts else 0.0
-                orientation = rts.orientation if rts else 0.0
-                rts_name = rts.name if rts else "Unknown RTS"
-
-                points = []
-                for m in measurements:
-                    x = station_x + m.distance * math.sin(m.vertical_angle) * math.sin(
-                        m.horizontal_angle + orientation
-                    )
-                    y = station_y + m.distance * math.sin(m.vertical_angle) * math.cos(
-                        m.horizontal_angle + orientation
-                    )
-                    z = station_z + m.distance * math.cos(m.vertical_angle)
-                    points.append(
-                        PlotDataPoint(
-                            timestamp=m.controller_timestamp,
-                            x=x,
-                            y=y,
-                            z=z,
-                        )
-                    )
-
-                jobs_data.append(
-                    JobPlotData(
-                        job_id=job_id,
-                        rts_id=rts_id,
-                        rts_name=rts_name,
-                        job_status=job.status,
-                        points=points,
-                    )
-                )
-            except Exception as e:
-                logger.warning(f"Failed to get plot data for job {job_id}: {e}")
-                continue
-
-        return PlotDataResponse(jobs=jobs_data)
-
     def get_raw_measurements(self, job_id: int = None) -> list[MeasurementResponse]:
         rts_obs = self.get_rts_observations(job_id)
         return rts_obs.to_measurement_response()
-
+    
+    def get_latest_measurements(self) -> list[MeasurementResponse]:
+        latest_measurements = self.measurement_repository.get_latest_measurements()
+        return [MeasurementMapper.to_dto(m) for m in latest_measurements]
+        
     def get_corrected_measurements(self, job_id: int) -> list[MeasurementResponse]:
         corrected_rts_obs = self.get_corrected_rts_observations(job_id)
         return corrected_rts_obs.to_measurement_response()
@@ -168,7 +62,7 @@ class MeasurementService:
             distance=rts.distance_std_dev**2, ppm=rts.distance_ppm, angle=rts.angle_std_dev**2
         )
         rts_station = RTSStation(
-            x=rts.station_x, y=rts.station_y, z=rts.station_z, epsg=rts.station_epsg, orientation=rts.orientation
+            x=rts.station_x, y=rts.station_y, z=rts.station_z, orientation=rts.orientation
         )
         measurements = [
             MeasurementMapper.to_dto(measurement)
@@ -225,84 +119,4 @@ class MeasurementService:
             content=trajectory.to_string(), headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
 
-    def get_internal_delay(self, job_id: int) -> float:
-        rts_observations = self.get_rts_observations(job_id)
-        job = self.rts_job_repository.get_rts_job(job_id)
-        sphere_fit = SphereFit(rts_observations)
-        logger.info(f"Time Shift: {sphere_fit.estimated_parameters.time_shift * 1000:.3f} ms")
-        self.rts_repository.update_internal_delay(job.rts_id, sphere_fit.estimated_parameters.time_shift)
-        return sphere_fit.estimated_parameters.time_shift
 
-    def get_alignment(self, reference_job_id: int, job_id: int) -> AlignmentResponse:
-        """
-        Compute alignment in local coordinate system and then shift back to reference coordinate system
-        """
-        reference_job = self.rts_job_repository.get_rts_job(reference_job_id)
-        reference_station = self.rts_repository.get_station(reference_job.rts_id)
-        self.rts_repository.set_station(
-            rts_id=reference_job.rts_id, station_x=0, station_y=0, station_z=0, station_epsg=0, orientation=0
-        )
-
-        eval_job = self.rts_job_repository.get_rts_job(job_id)
-        self.rts_repository.set_station(
-            rts_id=eval_job.rts_id, station_x=0, station_y=0, station_z=0, station_epsg=0, orientation=0
-        )
-
-        alignment_settings = tpy.AlignmentSettings(
-            estimation_settings=tpy.AlignmentEstimationSettings(rotation_x=False, rotation_y=False, time_shift=True),
-            stochastics=tpy.AlignmentStochastics(variance_estimation=True),
-        )
-
-        # reference job is the corrected one
-        traj_ref = self.get_corrected_rts_observations(reference_job_id).export_to_trajectory()
-
-        # eval job is the corrected one except for the time shift
-        eval_obs = self.get_rts_observations(job_id)
-
-        try:
-            eval_job_rts = self.rts_repository.get_rts(eval_job.rts_id, deleted_ok=True)
-        except RTSNotFoundException:
-            eval_job_rts = RTSResponse(id=0, device_id=0)
-
-        eval_obs.sync_sensor_time(baudrate=eval_job_rts.baudrate, external_delay=0.0)
-        eval_obs.apply_intrinsic_delay(eval_job_rts.internal_delay)
-        traj_eval = eval_obs.export_to_trajectory()
-
-        alignment_result = tpy.estimate_alignment(
-            traj_from=traj_eval, traj_to=traj_ref, alignment_settings=alignment_settings
-        )
-
-        alignment_response = AlignmentResponse(
-            reference_job_id=reference_job_id,
-            job_id=job_id,
-            station_x=alignment_result.position_parameters.sim_trans_x.value,
-            station_y=alignment_result.position_parameters.sim_trans_y.value,
-            station_z=alignment_result.position_parameters.sim_trans_z.value,
-            orientation=alignment_result.position_parameters.sim_rot_z.value,
-            time_shift=alignment_result.position_parameters.time_shift.value,
-            station_x_std=np.sqrt(alignment_result.position_parameters.sim_trans_x.variance),
-            station_y_std=np.sqrt(alignment_result.position_parameters.sim_trans_y.variance),
-            station_z_std=np.sqrt(alignment_result.position_parameters.sim_trans_z.variance),
-            orientation_std=np.sqrt(alignment_result.position_parameters.sim_rot_z.variance),
-            time_shift_std=np.sqrt(alignment_result.position_parameters.time_shift.variance),
-        )
-
-        self.rts_repository.add_to_external_delay(eval_job.rts_id, alignment_response.time_shift)
-        self.rts_repository.move_station(
-            eval_job.rts_id,
-            reference_station.get("station_x", 0.0) + alignment_response.station_x,
-            reference_station.get("station_y", 0.0) + alignment_response.station_y,
-            reference_station.get("station_z", 0.0) + alignment_response.station_z,
-            reference_station.get("orientation", 0.0) + alignment_response.orientation,
-        )
-
-        self.rts_repository.set_station(
-            reference_job.rts_id,
-            reference_station.get("station_x", 0.0),
-            reference_station.get("station_y", 0.0),
-            reference_station.get("station_z", 0.0),
-            reference_station.get("station_epsg", 0),
-            reference_station.get("orientation", 0.0),
-        )
-
-        return alignment_response

@@ -1,8 +1,9 @@
-from enum import Enum
-from pydantic import BaseModel
-import requests
-import numpy as np
 import logging
+from enum import Enum
+
+import numpy as np
+import requests
+from pydantic import BaseModel
 
 from rtsapi.dtos import MeasurementResponse
 

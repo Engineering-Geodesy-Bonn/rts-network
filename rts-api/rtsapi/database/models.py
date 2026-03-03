@@ -1,9 +1,24 @@
+import uuid
 from typing import List
-from sqlalchemy import JSON, ForeignKey
+
+from sqlalchemy import JSON, ForeignKey, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from rtsapi.database import Base
 
+class Session(Base):
+    __tablename__ = "sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    name: Mapped[str]
+    created_at: Mapped[float]
+
+    # one session includes multiple RTS
+    rts: Mapped[List["RTS"]] = relationship(
+        back_populates="session",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )  # one-to-many parent
 
 class RTS(Base):
     __tablename__ = "rts"
@@ -24,7 +39,6 @@ class RTS(Base):
     station_x: Mapped[float]
     station_y: Mapped[float]
     station_z: Mapped[float]
-    station_epsg: Mapped[int]
     orientation: Mapped[float]
 
     distance_std_dev: Mapped[float]
@@ -33,12 +47,23 @@ class RTS(Base):
 
     deleted: Mapped[bool]
 
-    device_id: Mapped[int] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"))
+    session_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"), index=True)
+    session: Mapped["Session"] = relationship(back_populates="rts")  # one-to-many child
+
+    device_id: Mapped[int] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"), index=True)
     device: Mapped["Device"] = relationship(back_populates="rts")  # one-to-many child
 
-    jobs: Mapped[List["RTSJob"]] = relationship(back_populates="rts")  # one to many parent
+    jobs: Mapped[List["RTSJob"]] = relationship(
+        back_populates="rts",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )  # one to many parent
     settings: Mapped["TrackingSettings"] = relationship(
-        back_populates="rts", cascade="all, delete"
+        back_populates="rts",
+        cascade="all, delete-orphan",
+        uselist=False,
+        single_parent=True,
+        passive_deletes=True,
     )  # one-to-one parent
 
 
@@ -55,11 +80,11 @@ class RTSJob(Base):
     num_measurements: Mapped[int | None]
     payload: Mapped[dict] = mapped_column(JSON)
 
-    rts_id: Mapped[int | None] = mapped_column(ForeignKey("rts.id"))
+    rts_id: Mapped[int] = mapped_column(ForeignKey("rts.id", ondelete="CASCADE"), index=True)
     rts: Mapped["RTS"] = relationship(back_populates="jobs")  # one-to-many child
 
     measurements: Mapped[List["Measurement"]] = relationship(
-        back_populates="rts_job", cascade="all, delete"
+        back_populates="rts_job", cascade="all, delete-orphan", passive_deletes=True
     )  # one-to-many parent
 
 
@@ -75,9 +100,9 @@ class Measurement(Base):
     distance: Mapped[float]
     horizontal_angle: Mapped[float]
     vertical_angle: Mapped[float]
-    rts_id: Mapped[int | None] = mapped_column(ForeignKey("rts.id"))
+    rts_id: Mapped[int | None] = mapped_column(ForeignKey("rts.id", ondelete="CASCADE"), index=True)
 
-    rts_job_id: Mapped[int] = mapped_column(ForeignKey("rts_jobs.id", ondelete="CASCADE"))
+    rts_job_id: Mapped[int] = mapped_column(ForeignKey("rts_jobs.id", ondelete="CASCADE"), index=True)
     rts_job: Mapped["RTSJob"] = relationship(back_populates="measurements")  # one-to-many child
 
 
@@ -101,7 +126,7 @@ class TrackingSettings(Base):
     power_search_max_range: Mapped[int]
     power_search: Mapped[bool]
 
-    rts_id: Mapped[int] = mapped_column(ForeignKey("rts.id", ondelete="CASCADE"))
+    rts_id: Mapped[int] = mapped_column(ForeignKey("rts.id", ondelete="CASCADE"), unique=True, index=True)
     rts: Mapped["RTS"] = relationship(back_populates="settings")  # one-to-one child
 
 

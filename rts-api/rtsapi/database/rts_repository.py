@@ -1,9 +1,11 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from rtsapi.database.models import RTS
 from rtsapi.dependencies import get_db
-from rtsapi.exceptions import RTSNotFoundException, RTSPortAlreadyExistsException
+from rtsapi.exceptions import RTSNotFoundException
+                               
 
 
 class RTSRepository:
@@ -12,15 +14,6 @@ class RTSRepository:
         self.db = db
 
     def create_rts(self, rts: RTS) -> RTS:
-        same_port_rts = (
-            self.db.query(RTS)
-            .filter(RTS.port == rts.port, RTS.device_id == rts.device_id, RTS.deleted == False)
-            .first()
-        )
-
-        if same_port_rts:
-            raise RTSPortAlreadyExistsException(rts.port)
-
         self.db.add(rts)
         self.db.commit()
         self.db.refresh(rts)
@@ -39,6 +32,9 @@ class RTSRepository:
 
     def get_all_rts(self) -> list[RTS]:
         return self.db.query(RTS).filter(RTS.deleted == False).all()
+
+    def get_all_rts_for_session(self, session_id: UUID) -> list[RTS]:
+        return self.db.query(RTS).filter(RTS.session_id == session_id, RTS.deleted == False).all()
 
     def update_rts(self, rts_id: int, rts) -> RTS:
         update_data = {k: v for k, v in rts.__dict__.items() if not k.startswith("_")}
@@ -73,28 +69,16 @@ class RTSRepository:
         )
 
     def set_station(
-        self, rts_id: int, station_x: float, station_y: float, station_z: float, station_epsg: int, orientation: float
+        self, rts_id: int, station_x: float, station_y: float, station_z: float, orientation: float
     ) -> None:
         self.db.query(RTS).filter(RTS.id == rts_id).update(
             {
                 RTS.station_x: station_x,
                 RTS.station_y: station_y,
                 RTS.station_z: station_z,
-                RTS.station_epsg: station_epsg,
                 RTS.orientation: orientation,
             }
         )
         self.db.commit()
 
-    def move_station(
-        self, rts_id: int, station_x: float, station_y: float, station_z: float, orientation: float
-    ) -> None:
-        self.db.query(RTS).filter(RTS.id == rts_id).update(
-            {
-                RTS.station_x: RTS.station_x + station_x,
-                RTS.station_y: RTS.station_y + station_y,
-                RTS.station_z: RTS.station_z + station_z,
-                RTS.orientation: RTS.orientation - orientation,
-            }
-        )
-        self.db.commit()
+

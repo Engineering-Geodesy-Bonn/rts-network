@@ -1,11 +1,14 @@
 from fastapi import Depends
+from uuid import UUID
 
+from rtsapi import dtos
 from rtsapi.database.device_repository import DeviceRepository
 from rtsapi.database.measurement_repository import MeasurementRepository
 from rtsapi.database.rts_job_repository import RTSJobRepository
 from rtsapi.database.rts_repository import RTSRepository
-from rtsapi.database.tracking_settings_repository import TrackingSettingsRepository
-from rtsapi import dtos
+from rtsapi.database.session_repository import SessionRepository
+from rtsapi.database.tracking_settings_repository import \
+    TrackingSettingsRepository
 from rtsapi.mappers import RTSMapper, TrackingSettingsMapper
 
 
@@ -17,21 +20,28 @@ class RTSService:
         measurement_repository: MeasurementRepository = Depends(MeasurementRepository),
         tracking_settings_repository: TrackingSettingsRepository = Depends(TrackingSettingsRepository),
         device_repository: DeviceRepository = Depends(DeviceRepository),
+        session_repository: SessionRepository = Depends(SessionRepository),
     ) -> None:
         self.rts_repository = rts_repository
         self.rts_job_repository = rts_job_repository
         self.tracking_settings_repository = tracking_settings_repository
         self.measurement_repository = measurement_repository
         self.device_repository = device_repository
+        self.session_repository = session_repository
 
     def get_rts(self, rts_id: int) -> dtos.RTSResponse:
         db_rts = self.rts_repository.get_rts(rts_id)
         return RTSMapper.to_dto(db_rts)
 
-    def get_all_rts(self) -> list[dtos.RTSResponse]:
-        return [RTSMapper.to_dto(rts) for rts in self.rts_repository.get_all_rts()]
+    def get_all_rts(self, session_id: UUID | None = None) -> list[dtos.RTSResponse]:
+        if session_id is None:
+            rts_list = self.rts_repository.get_all_rts()
+        else:
+            rts_list = self.rts_repository.get_all_rts_for_session(session_id)
+        return [RTSMapper.to_dto(rts) for rts in rts_list]
 
     def create_rts(self, create_rts_request: dtos.CreateRTSRequest) -> dtos.RTSResponse:
+        self.session_repository.get_session(create_rts_request.session_id)
         self.device_repository.get_device(create_rts_request.device_id)
         db_rts = RTSMapper.to_db(create_rts_request)
         created_rts = self.rts_repository.create_rts(db_rts)

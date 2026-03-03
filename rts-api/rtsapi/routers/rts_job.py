@@ -2,13 +2,8 @@ from typing import List
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 
-from rtsapi.dtos import (
-    CreateRTSJobRequest,
-    RTSJobResponse,
-    RTSJobStatus,
-    RTSJobStatusResponse,
-    RTSJobType,
-)
+from rtsapi.dtos import (CreateRTSJobRequest, RTSJobResponse, RTSJobStatus,
+                         RTSJobStatusResponse, RTSJobType)
 from rtsapi.services.device_service import DeviceService
 from rtsapi.services.rts_job_service import RTSJobService
 

@@ -1,13 +1,64 @@
 import copy
 import logging
 from dataclasses import dataclass
+from typing import Tuple
+
 import numpy as np
-from scipy.sparse import dia_matrix, spdiags
-from rtsapi.dtos import MeasurementResponse
-from rtsapi.utils import fit_line_2d
 import trajectopy as tpy
+from scipy.sparse import dia_matrix, identity, spdiags
+
+from rtsapi.dtos import MeasurementResponse
 
 logger = logging.getLogger("root")
+
+
+def fit_line_2d(
+    x: np.ndarray, y: np.ndarray, weights: np.ndarray = np.array([])
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Fits a 2D line using least-squares
+    """
+    # design matrix
+    A = np.c_[x, np.ones((len(x), 1))]
+
+    if len(weights) == 0:
+        weights = np.ones(len(y))
+
+    sigma_ll = spdiags(weights, 0, len(weights), len(weights))
+
+    # solve normal equation
+    x_s, l_s, v = least_squares(design_matrix=A, observations=y, cov_matrix=sigma_ll)
+
+    return x_s, l_s, v
+
+
+def least_squares(
+    design_matrix: np.ndarray,
+    observations: np.ndarray,
+    cov_matrix: np.ndarray = np.array([]),
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Least Squares solver
+    """
+    observations = observations.reshape(
+        len(observations),
+    )
+    if cov_matrix.shape[0] == 0:
+        cov_matrix = identity(len(observations))
+    # solve normal equations
+    x_s = np.linalg.solve(
+        design_matrix.T @ cov_matrix @ design_matrix,
+        design_matrix.T @ cov_matrix @ observations,
+    )
+
+    # approximated observations
+    l_s = design_matrix @ x_s
+
+    # residuals
+    v = l_s - observations
+
+    return x_s, l_s, v
+
 
 
 @dataclass
@@ -24,15 +75,17 @@ class RTSVarianceConfig:
 
 @dataclass
 class RTSStation:
+    """
+    Local topocentric coordinates of the station.
+    """
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
-    epsg: int = 0
     orientation: float = 0.0
 
     @property
-    def pointset(self) -> tpy.PointSet:
-        return tpy.PointSet(xyz=np.array([[self.x, self.y, self.z]]), epsg=self.epsg)
+    def xyz(self) -> np.ndarray:
+        return np.array([self.x, self.y, self.z])
 
 
 class RTSObservations:
@@ -122,20 +175,7 @@ class RTSObservations:
 
     @property
     def xyz(self) -> np.ndarray:
-        """
-        Returns the absolute position of the targets in the station's coordinate system.
-
-        The station's coordinates are transformed to local coordinate system tangent to
-        the ellipsoid at the station's position. Then, the local xyz coordinates from the
-        measurements are added to the station's local coordinates. Using the local
-        transformer, the local coordinates are transformed back to the station's EPSG coordinate system.
-        """
-        if self.station.pointset.local_transformer is None:
-            return tpy.PointSet(xyz=self.station.pointset.xyz + self.local_xyz, epsg=self.station.epsg).xyz
-
-        utm_station = self.station.pointset.to_epsg(25832, inplace=False)
-        xyz_pointset = tpy.PointSet(xyz=utm_station.xyz + self.local_xyz, epsg=25832)
-        return xyz_pointset.to_epsg(self.station.epsg).xyz
+        return self.station.xyz + self.local_xyz
 
     @property
     def delta_time(self) -> np.ndarray:
@@ -156,8 +196,8 @@ class RTSObservations:
         return self.rts_dhv.shape[0]
 
     def export_to_trajectory(self) -> tpy.Trajectory:
-        pos = tpy.PointSet(xyz=self.xyz, epsg=self.station.epsg)
-        return tpy.Trajectory(tstamps=self.sensor_timestamps, pos=pos)
+        pos = tpy.Positions(xyz=self.xyz, epsg=0)
+        return tpy.Trajectory(timestamps=self.sensor_timestamps, positions=pos)
 
     def sync_sensor_time(self, baudrate: int, external_delay: float = 0.0) -> list[MeasurementResponse]:
         def compute_transmission_time(message_length: int, baudrate: int) -> float:

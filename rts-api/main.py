@@ -1,9 +1,11 @@
 import logging
+
 import uvicorn
 from fastapi import FastAPI
-from rtsapi.global_exception_handling import catch_exceptions_middleware
+
 from rtsapi.database import engine, models
-from rtsapi.routers import root, rts, measurement, rts_job, device, target
+from rtsapi.global_exception_handling import catch_exceptions_middleware
+from rtsapi.routers import device, measurement, root, rts, rts_job, session, target
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
@@ -20,6 +22,7 @@ app.include_router(target.router)
 app.include_router(device.router)
 app.include_router(root.router)
 app.include_router(rts.router)
+app.include_router(session.router)
 
 app.middleware("http")(catch_exceptions_middleware)
 

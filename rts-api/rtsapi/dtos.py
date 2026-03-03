@@ -1,4 +1,6 @@
+import math
 from enum import Enum
+from uuid import UUID
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -79,32 +81,17 @@ class MeasurementResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
-class PlotDataPoint(BaseModel):
-    """Pre-computed XYZ coordinates for efficient plot rendering."""
-
-    timestamp: float
-    x: float
-    y: float
-    z: float
-
-
-class JobPlotData(BaseModel):
-    """Plot data for a single job with pre-computed coordinates."""
-
-    job_id: int
-    rts_id: int | None
-    rts_name: str
-    job_status: str
-    points: list[PlotDataPoint]
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class PlotDataResponse(BaseModel):
-    """Response containing plot data for multiple jobs."""
-
-    jobs: list[JobPlotData]
+    @property
+    def x(self) -> float:
+        return  self.distance * math.sin(self.vertical_angle) * math.sin(self.horizontal_angle)
+    
+    @property
+    def y(self) -> float:
+        return self.distance * math.sin(self.vertical_angle) * math.cos(self.horizontal_angle)
+    
+    @property
+    def z(self) -> float:
+        return self.distance * math.cos(self.vertical_angle)
 
 
 class CreateTrackingSettingsRequest(BaseModel):
@@ -179,7 +166,6 @@ class UpdateRTSRequest(BaseModel):
     station_x: float = 0.0
     station_y: float = 0.0
     station_z: float = 0.0
-    station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
     distance_std_dev: float = 0.001
     angle_std_dev: float = 0.0003 * np.pi / 200
@@ -188,6 +174,7 @@ class UpdateRTSRequest(BaseModel):
 
 class CreateRTSRequest(UpdateRTSRequest):
     device_id: int
+    session_id: UUID
 
 
 class RTSResponse(BaseModel):
@@ -205,7 +192,6 @@ class RTSResponse(BaseModel):
     station_x: float = 0.0
     station_y: float = 0.0
     station_z: float = 0.0
-    station_epsg: int = 0  # local ellipsoidal as default
     orientation: float = 0.0
     distance_std_dev: float = 0.001
     angle_std_dev: float = 0.0003 * np.pi / 200
@@ -226,25 +212,13 @@ class TargetPosition(BaseModel):
     x: float
     y: float
     z: float
-    epsg: int
     timestamp: float
     rts_id: int | None
 
+class CreateSessionRequest(BaseModel):
+    name: str
 
-class AlignmentResponse(BaseModel):
-    reference_job_id: int
-    job_id: int
-    station_x: float
-    station_y: float
-    station_z: float
-    orientation: float
-    time_shift: float
-    station_x_std: float
-    station_y_std: float
-    station_z_std: float
-    orientation_std: float
-    time_shift_std: float
-
-
-class InternalDelayResponse(BaseModel):
-    internal_delay: float
+class SessionResponse(BaseModel):
+    id: UUID
+    name: str
+    created_at: float

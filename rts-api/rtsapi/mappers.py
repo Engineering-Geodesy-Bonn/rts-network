@@ -1,8 +1,30 @@
 import time
 
-from rtsapi.database.models import RTS, Device, Measurement, RTSJob, TrackingSettings
 from rtsapi import dtos
+from rtsapi.database import models
+from rtsapi.database.models import (RTS, Device, Measurement, RTSJob,
+                                    TrackingSettings)
 
+
+class SessionMapper:
+    @staticmethod
+    def to_dto(session: models.Session) -> dtos.SessionResponse:
+        return dtos.SessionResponse(
+            id=session.id,
+            name=session.name,
+            created_at=session.created_at,
+        )
+    
+    @staticmethod
+    def to_dtos(sessions: list[models.Session]) -> list[dtos.SessionResponse]:
+        return [SessionMapper.to_dto(session) for session in sessions]
+    
+    @staticmethod
+    def to_db(create_session_request: dtos.CreateSessionRequest) -> models.Session:
+        return models.Session(
+            name=create_session_request.name,
+            created_at=time.time(),
+        )
 
 class MeasurementMapper:
     @staticmethod
@@ -58,7 +80,6 @@ class RTSMapper:
             station_x=rts.station_x,
             station_y=rts.station_y,
             station_z=rts.station_z,
-            station_epsg=rts.station_epsg,
             orientation=rts.orientation,
             distance_std_dev=rts.distance_std_dev,
             angle_std_dev=rts.angle_std_dev,
@@ -68,6 +89,7 @@ class RTSMapper:
     @staticmethod
     def to_db(rts: dtos.CreateRTSRequest) -> RTS:
         return RTS(
+            session_id=rts.session_id,  
             device_id=rts.device_id,
             name=rts.name,
             baudrate=rts.baudrate,
@@ -81,7 +103,6 @@ class RTSMapper:
             station_x=rts.station_x,
             station_y=rts.station_y,
             station_z=rts.station_z,
-            station_epsg=rts.station_epsg,
             orientation=rts.orientation,
             distance_std_dev=rts.distance_std_dev,
             angle_std_dev=rts.angle_std_dev,

@@ -38,3 +38,7 @@ class NoOverlapException(Exception):
 class NoMeasurementsAvailableException(Exception):
     def __init__(self, message: str):
         super().__init__(message)
+
+class SessionNotFoundException(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)

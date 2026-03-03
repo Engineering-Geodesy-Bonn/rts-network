@@ -1,37 +1,14 @@
 import logging
-from typing import List
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 
-from rtsapi.dtos import (
-    AddMeasurementRequest,
-    AlignmentResponse,
-    InternalDelayResponse,
-    MeasurementResponse,
-    PlotDataResponse,
-)
+from rtsapi.dtos import AddMeasurementRequest, MeasurementResponse
 from rtsapi.services.measurement_service import MeasurementService
 
 logger = logging.getLogger("root")
 
 router = APIRouter(tags=["Measurements"])
-
-
-@router.get("/measurements/plot-data", response_model=PlotDataResponse)
-async def get_plot_data(
-    job_ids: List[int] = Query(..., description="List of job IDs to get plot data for"),
-    since_timestamp: float | None = Query(
-        None, description="Only return measurements after this timestamp (for incremental updates)"
-    ),
-    measurement_service: MeasurementService = Depends(MeasurementService),
-) -> PlotDataResponse:
-    """Get pre-computed XYZ plot data for multiple jobs efficiently.
-
-    Use since_timestamp for incremental updates to only fetch new measurements
-    since the last request, reducing data transfer significantly.
-    """
-    return measurement_service.get_plot_data(job_ids, since_timestamp=since_timestamp)
 
 
 @router.post("/measurements")
@@ -60,9 +37,6 @@ async def websocket_measurement_endpoint(
             else:
                 logger.warning(f"[WS] Received unexpected data format: {type(data)}")
 
-            # Optionally, send an ACK back
-            # await websocket.send_json({"status": "received", "count": 1})
-
     except WebSocketDisconnect:
         logger.info(f"WebSocket client disconnected for job: {job_id}")
     except Exception as e:
@@ -70,13 +44,11 @@ async def websocket_measurement_endpoint(
     finally:
         logger.debug(f"Closing WebSocket connection for job {job_id}")
 
-
-@router.post("/measurements/static")
-async def add_static_measurement(
-    measurement: AddMeasurementRequest, measurement_service: MeasurementService = Depends(MeasurementService)
-) -> MeasurementResponse:
-    return measurement_service.add_static_measurement(measurement)
-
+@router.get("/measurements/latest")
+async def get_latest_measurements(
+    measurement_service: MeasurementService = Depends(MeasurementService)
+) -> list[MeasurementResponse]:
+    return measurement_service.get_latest_measurements()
 
 @router.get("/measurements/raw")
 async def get_raw_rts_measurements(
@@ -105,16 +77,3 @@ async def export_to_trajectory(
 ) -> PlainTextResponse:
     return measurement_service.download_trajectory(job_id)
 
-
-@router.post("/measurements/analysis/align")
-async def alignment(
-    reference_job_id: int, job_id: int, measurement_service: MeasurementService = Depends(MeasurementService)
-) -> AlignmentResponse:
-    return measurement_service.get_alignment(reference_job_id, job_id)
-
-
-@router.post("/measurements/analysis/internal_delay", status_code=201)
-async def internal_delay(
-    job_id: int, measurement_service: MeasurementService = Depends(MeasurementService)
-) -> InternalDelayResponse:
-    return InternalDelayResponse(internal_delay=measurement_service.get_internal_delay(job_id))
