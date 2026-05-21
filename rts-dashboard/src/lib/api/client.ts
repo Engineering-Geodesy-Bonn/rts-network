@@ -120,6 +120,13 @@ export async function getCorrectedMeasurements(jobId: number): Promise<Measureme
     return request<MeasurementResponse[]>(`/measurements/corrected?job_id=${jobId}`);
 }
 
+export async function performStaticMeasurement(rtsId: number): Promise<MeasurementResponse> {
+    return request<MeasurementResponse>('/measurements/static', {
+        method: 'POST',
+        body: JSON.stringify({ rts_id: rtsId }),
+    });
+}
+
 // ── Measurement Downloads (CSV) ─────────────────────────────
 async function downloadFile(path: string, fallbackName: string): Promise<void> {
     const url = `${getBaseUrl()}${path}`;
@@ -160,7 +167,7 @@ export async function exportSession(sessionId: number): Promise<void> {
 
     for (const job of downloadableJobs) {
         await downloadRawMeasurements(job.job_id);
-        if (job.job_type === 'track_prism' || job.job_type === 'dummy_tracking') {
+        if (job.job_type === 'track_prism' || job.job_type === 'dummy_tracking' || job.job_type === 'static_measurement') {
             await downloadTrajectory(job.job_id);
         }
     }

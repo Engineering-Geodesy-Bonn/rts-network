@@ -7,8 +7,7 @@ from sqlalchemy.orm import Query, Session
 from rtsapi.database.models import RTS, Device, RTSJob
 from rtsapi.dependencies import get_db
 from rtsapi.dtos import RTSJobStatus, RTSJobType
-from rtsapi.exceptions import (RTSJobNotFoundException,
-                               RTSJobStatusChangeException)
+from rtsapi.exceptions import RTSJobNotFoundException, RTSJobStatusChangeException
 
 logger = logging.getLogger("root")
 
@@ -35,11 +34,12 @@ class RTSJobRepository:
             new_job = RTSJob(
                 rts_id=rts_id,
                 job_type=RTSJobType.STATIC_MEASUREMENT.value,
-                status=RTSJobStatus.FINISHED.value,
+                status=RTSJobStatus.RUNNING.value,
                 created_at=time.time(),
                 payload={},
             )
             rts_job = self.create_rts_job(new_job)
+            logger.info(f"Created new static RTSJob with id {rts_job.id} for RTS {rts_id}")
 
         return rts_job
 
@@ -65,6 +65,20 @@ class RTSJobRepository:
 
     def get_all_rts_jobs(self) -> list[RTSJob]:
         return self.db.query(RTSJob).order_by(RTSJob.created_at.desc()).all()
+
+    def refresh_rts_job_meta(self, job_id: int) -> RTSJob:
+        job = self.get_rts_job(job_id)
+        measurements = job.measurements
+        job.finished_at = time.time()
+        job.duration = (
+            measurements[-1].controller_timestamp - measurements[0].controller_timestamp if measurements else 0.0
+        )
+        num_measurements = len(measurements)
+        job.num_measurements = num_measurements
+        job.datarate = num_measurements / job.duration if job.duration > 0 else 0.0
+        self.db.commit()
+        self.db.refresh(job)
+        return job
 
     def update_rts_job_status(self, job_id: int, status: RTSJobStatus) -> RTSJob:
         job = self.db.query(RTSJob).filter(RTSJob.id == job_id).first()

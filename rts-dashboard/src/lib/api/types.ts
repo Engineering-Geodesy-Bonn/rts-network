@@ -133,7 +133,8 @@ export type RTSJobType =
     | 'change_face'
     | 'dummy_tracking'
     | 'turn_to_target'
-    | 'static_measurement';
+    | 'static_measurement'
+    | 'add_static_measurement';
 
 export interface RTSJobResponse {
     job_id: number;

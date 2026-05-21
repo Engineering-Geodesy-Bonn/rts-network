@@ -7,12 +7,10 @@ from fastapi.responses import PlainTextResponse
 from rtsapi.database.measurement_repository import MeasurementRepository
 from rtsapi.database.rts_job_repository import RTSJobRepository
 from rtsapi.database.rts_repository import RTSRepository
-from rtsapi.dtos import AddMeasurementRequest, MeasurementResponse, RTSResponse
-from rtsapi.exceptions import (NoMeasurementsAvailableException,
-                               RTSNotFoundException)
+from rtsapi.dtos import AddMeasurementRequest, MeasurementResponse, RTSJobStatus, RTSResponse
+from rtsapi.exceptions import NoMeasurementsAvailableException, RTSNotFoundException
 from rtsapi.mappers import MeasurementMapper
-from rtsapi.rts_observations import (RTSObservations, RTSStation,
-                                     RTSVarianceConfig)
+from rtsapi.rts_observations import RTSObservations, RTSStation, RTSVarianceConfig
 
 logger = logging.getLogger("root")
 
@@ -34,6 +32,15 @@ class MeasurementService:
         added_measurement = self.measurement_repository.add_measurement(db_measurement)
         return MeasurementMapper.to_dto(added_measurement)
 
+    def add_static_measurement(self, add_measurement_request: AddMeasurementRequest) -> MeasurementResponse:
+        request_job = self.rts_job_repository.get_rts_job(add_measurement_request.rts_job_id)
+        job = self.rts_job_repository.get_static_rts_job(request_job.rts_id)
+        db_measurement = MeasurementMapper.to_db(job.rts_id, add_measurement_request)
+        db_measurement.rts_job_id = job.id
+        added_measurement = self.measurement_repository.add_measurement(db_measurement)
+        self.rts_job_repository.refresh_rts_job_meta(job.id)
+        return MeasurementMapper.to_dto(added_measurement)
+
     def add_measurement_from_ws(self, measurement_dict: dict) -> None:
         measurement = AddMeasurementRequest(**measurement_dict)
         self.add_measurement(measurement)
@@ -41,11 +48,11 @@ class MeasurementService:
     def get_raw_measurements(self, job_id: int = None) -> list[MeasurementResponse]:
         rts_obs = self.get_rts_observations(job_id)
         return rts_obs.to_measurement_response()
-    
+
     def get_latest_measurements(self) -> list[MeasurementResponse]:
         latest_measurements = self.measurement_repository.get_latest_measurements()
         return [MeasurementMapper.to_dto(m) for m in latest_measurements]
-        
+
     def get_corrected_measurements(self, job_id: int) -> list[MeasurementResponse]:
         corrected_rts_obs = self.get_corrected_rts_observations(job_id)
         return corrected_rts_obs.to_measurement_response()
@@ -61,9 +68,7 @@ class MeasurementService:
         rts_variance_config = RTSVarianceConfig(
             distance=rts.distance_std_dev**2, ppm=rts.distance_ppm, angle=rts.angle_std_dev**2
         )
-        rts_station = RTSStation(
-            x=rts.station_x, y=rts.station_y, z=rts.station_z, orientation=rts.orientation
-        )
+        rts_station = RTSStation(x=rts.station_x, y=rts.station_y, z=rts.station_z, orientation=rts.orientation)
         measurements = [
             MeasurementMapper.to_dto(measurement)
             for measurement in self.measurement_repository.get_measurements(job_id)
@@ -118,5 +123,3 @@ class MeasurementService:
         return PlainTextResponse(
             content=trajectory.to_string(), headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
-
-

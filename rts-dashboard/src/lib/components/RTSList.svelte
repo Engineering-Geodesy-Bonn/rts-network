@@ -91,7 +91,9 @@
 
         // Resolve job types for busy RTS whose job_id is not yet cached
         const unknownJobIds = Object.values(newStatuses)
-            .filter((s) => s.busy && s.job_id != null && !(s.job_id in jobTypeMap))
+            .filter(
+                (s) => s.busy && s.job_id != null && !(s.job_id in jobTypeMap),
+            )
             .map((s) => s.job_id!);
         if (unknownJobIds.length > 0) {
             const jobResults = await Promise.allSettled(
@@ -224,8 +226,7 @@
             <p class="text-sm text-slate-400 mt-1">
                 {rtsList.length} station{rtsList.length !== 1 ? "s" : ""}
                 {#if busyCount > 0}
-                    &middot; <span class="text-green-400"
-                        >{busyCount} busy</span
+                    &middot; <span class="text-green-400">{busyCount} busy</span
                     >
                 {/if}
             </p>
@@ -314,8 +315,15 @@
             {#each rtsList as rts (rts.id)}
                 {@const status = statuses[rts.id]}
                 {@const busy = status?.busy ?? false}
-                {@const activeJobType = (busy && status?.job_id != null) ? (jobTypeMap[status.job_id] ?? null) : null}
-                {@const activeJobLabel = activeJobType ? (JOB_TYPE_NAMES[activeJobType] ?? activeJobType).toUpperCase() : 'BUSY'}
+                {@const activeJobType =
+                    busy && status?.job_id != null
+                        ? (jobTypeMap[status.job_id] ?? null)
+                        : null}
+                {@const activeJobLabel = activeJobType
+                    ? (
+                          JOB_TYPE_NAMES[activeJobType] ?? activeJobType
+                      ).toUpperCase()
+                    : "BUSY"}
                 <div
                     class="bg-slate-800 rounded-xl border transition-colors
                         {busy
@@ -451,6 +459,16 @@
                                         >
                                             🎯 Turn to Target
                                         </button>
+                                        <button
+                                            class="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
+                                            onclick={() =>
+                                                runAction(
+                                                    rts.id,
+                                                    "add_static_measurement",
+                                                )}
+                                        >
+                                            📏 Perform static measurement
+                                        </button>
                                         <div
                                             class="border-t border-slate-600 my-1"
                                         ></div>
@@ -563,7 +581,9 @@
                                         rx="1"
                                     />
                                 </svg>
-                                Stop {activeJobType ? JOB_TYPE_NAMES[activeJobType] ?? 'Job' : 'Job'}
+                                Stop {activeJobType
+                                    ? (JOB_TYPE_NAMES[activeJobType] ?? "Job")
+                                    : "Job"}
                             </button>
                         {:else}
                             <button

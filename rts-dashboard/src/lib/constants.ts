@@ -57,6 +57,7 @@ export const JOB_TYPE_NAMES: Record<string, string> = {
     dummy_tracking: 'Dummy Tracking',
     turn_to_target: 'Turn to Target',
     static_measurement: 'Static Measurement',
+    add_static_measurement: 'Static Measurement',
 };
 
 // ── Job Status Colors ───────────────────────────────────────

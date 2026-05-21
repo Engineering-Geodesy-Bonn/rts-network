@@ -18,6 +18,13 @@ async def add_measurement(
     return measurement_service.add_measurement(measurement)
 
 
+@router.post("/measurements/static")
+async def add_static_measurement(
+    measurement: AddMeasurementRequest, measurement_service: MeasurementService = Depends(MeasurementService)
+) -> MeasurementResponse:
+    return measurement_service.add_static_measurement(measurement)
+
+
 @router.websocket("/ws/measurements/{job_id}")
 async def websocket_measurement_endpoint(
     websocket: WebSocket, job_id: str, measurement_service: MeasurementService = Depends(MeasurementService)
@@ -44,11 +51,13 @@ async def websocket_measurement_endpoint(
     finally:
         logger.debug(f"Closing WebSocket connection for job {job_id}")
 
+
 @router.get("/measurements/latest")
 async def get_latest_measurements(
-    measurement_service: MeasurementService = Depends(MeasurementService)
+    measurement_service: MeasurementService = Depends(MeasurementService),
 ) -> list[MeasurementResponse]:
     return measurement_service.get_latest_measurements()
+
 
 @router.get("/measurements/raw")
 async def get_raw_rts_measurements(
@@ -76,4 +85,3 @@ async def export_to_trajectory(
     job_id: int, measurement_service: MeasurementService = Depends(MeasurementService)
 ) -> PlainTextResponse:
     return measurement_service.download_trajectory(job_id)
-

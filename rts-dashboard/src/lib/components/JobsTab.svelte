@@ -36,7 +36,11 @@
         session = s;
     });
 
-    const HIDDEN_TYPES = new Set(["change_face", "turn_to_target"]);
+    const HIDDEN_TYPES = new Set([
+        "change_face",
+        "turn_to_target",
+        "add_static_measurement",
+    ]);
     const DOWNLOADABLE_TYPES = new Set([
         "track_prism",
         "dummy_tracking",
@@ -159,7 +163,8 @@
             const trajectoryJobs = jobs.filter(
                 (j) =>
                     (j.job_type === "track_prism" ||
-                        j.job_type === "dummy_tracking") &&
+                        j.job_type === "dummy_tracking" ||
+                        j.job_type === "static_measurement") &&
                     (j.num_measurements ?? 0) > 0,
             );
             if (trajectoryJobs.length === 0) {
@@ -307,7 +312,8 @@
                             (job.num_measurements ?? 0) > 0}
                         {@const canTrajectory =
                             (job.job_type === "track_prism" ||
-                                job.job_type === "dummy_tracking") &&
+                                job.job_type === "dummy_tracking" ||
+                                job.job_type === "static_measurement") &&
                             (job.num_measurements ?? 0) > 0}
                         {@const isRunning =
                             job.job_status === "running" ||
