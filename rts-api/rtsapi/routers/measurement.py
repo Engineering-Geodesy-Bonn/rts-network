@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
@@ -23,6 +24,20 @@ async def add_static_measurement(
     measurement: AddMeasurementRequest, measurement_service: MeasurementService = Depends(MeasurementService)
 ) -> MeasurementResponse:
     return measurement_service.add_static_measurement(measurement)
+
+
+@router.websocket("/ws/measurements/stream")
+async def stream_latest_measurements(
+    websocket: WebSocket, measurement_service: MeasurementService = Depends(MeasurementService)
+):
+    await websocket.accept()
+    try:
+        while True:
+            latest = measurement_service.get_latest_measurements()
+            await websocket.send_json([m.model_dump() for m in latest])
+            await asyncio.sleep(0.001)
+    except WebSocketDisconnect:
+        pass
 
 
 @router.websocket("/ws/measurements/{job_id}")
