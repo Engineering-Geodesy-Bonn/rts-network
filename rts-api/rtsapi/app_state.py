@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from uuid import UUID
+
 from trajectory_sync import Synchronizer
+
 
 @dataclass
 class AppState:

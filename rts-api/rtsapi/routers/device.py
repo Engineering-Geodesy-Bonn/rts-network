@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Request
 from uuid import UUID
+
+from fastapi import APIRouter, Depends, Request
 
 from rtsapi.dtos import DeviceResponse
 from rtsapi.services.device_service import DeviceService
@@ -8,16 +9,22 @@ router = APIRouter(tags=["Devices"])
 
 
 @router.get("/devices")
-def get_devices(device_service: DeviceService = Depends(DeviceService)) -> list[DeviceResponse]:
+def get_devices(
+    device_service: DeviceService = Depends(DeviceService),
+) -> list[DeviceResponse]:
     return device_service.get_devices()
 
 
 @router.get("/devices/{device_id}")
-def get_device(device_id: UUID, device_service: DeviceService = Depends(DeviceService)) -> DeviceResponse:
+def get_device(
+    device_id: UUID, device_service: DeviceService = Depends(DeviceService)
+) -> DeviceResponse:
     return device_service.get_device(device_id)
 
 
 @router.post("/devices/register")
-async def register_device(request: Request, device_service: DeviceService = Depends(DeviceService)) -> DeviceResponse:
+async def register_device(
+    request: Request, device_service: DeviceService = Depends(DeviceService)
+) -> DeviceResponse:
     client_ip = request.client.host
     return device_service.upsert_device(client_ip)

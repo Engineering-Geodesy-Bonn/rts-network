@@ -1,4 +1,5 @@
 from fastapi import Depends
+
 from rtsapi.database.measurement_repository import MeasurementRepository
 from rtsapi.database.rts_repository import RTSRepository
 from rtsapi.dtos import MeasurementResponse, TargetPosition
@@ -17,7 +18,9 @@ class TargetService:
     def get_latest_target_position(self) -> TargetPosition:
         measurement = self.measurement_repository.get_latest_measurement()
         if measurement is None:
-            raise NoMeasurementsAvailableException("No measurements available to determine target position")
+            raise NoMeasurementsAvailableException(
+                "No measurements available to determine target position"
+            )
         latest_measurement = MeasurementResponse.model_validate(measurement)
         rts = self.rts_repository.get_rts(latest_measurement.rts_id)
         x = rts.station_x + latest_measurement.x

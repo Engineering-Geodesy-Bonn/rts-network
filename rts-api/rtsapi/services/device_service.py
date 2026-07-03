@@ -1,7 +1,7 @@
 import time
+from uuid import UUID
 
 from fastapi import Depends
-from uuid import UUID
 
 from rtsapi.database.device_repository import DeviceRepository
 from rtsapi.dtos import CreateDeviceRequest, DeviceResponse
@@ -9,7 +9,9 @@ from rtsapi.mappers import DeviceMapper
 
 
 class DeviceService:
-    def __init__(self, device_repository: DeviceRepository = Depends(DeviceRepository)) -> None:
+    def __init__(
+        self, device_repository: DeviceRepository = Depends(DeviceRepository)
+    ) -> None:
         self.device_repository = device_repository
 
     def add_device(self, create_device_request: CreateDeviceRequest) -> DeviceResponse:
@@ -17,7 +19,9 @@ class DeviceService:
         added_device = self.device_repository.add_device(db_device)
         return DeviceMapper.to_dto(added_device)
 
-    def update_device(self, device_id: UUID, create_device_request: CreateDeviceRequest) -> DeviceResponse:
+    def update_device(
+        self, device_id: UUID, create_device_request: CreateDeviceRequest
+    ) -> DeviceResponse:
         db_device = DeviceMapper.to_db(create_device_request)
         db_device.id = device_id
         updated_device = self.device_repository.update_device(db_device)
@@ -37,7 +41,9 @@ class DeviceService:
     def upsert_device(self, client_ip: str) -> DeviceResponse:
         device = self.device_repository.get_device_by_ip(client_ip)
         if device is None:
-            create_device_request = CreateDeviceRequest(ip=client_ip, last_seen=time.time())
+            create_device_request = CreateDeviceRequest(
+                ip=client_ip, last_seen=time.time()
+            )
             return self.add_device(create_device_request)
 
         self.device_repository.update_last_seen(device.id)

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from rtsapi.database import Base
 
+
 class Session(Base):
     __tablename__ = "sessions"
 
@@ -18,6 +19,7 @@ class Session(Base):
         back_populates="session",
         cascade="all, delete-orphan",
     )  # one-to-many parent
+
 
 class RTS(Base):
     __tablename__ = "rts"
@@ -46,10 +48,14 @@ class RTS(Base):
 
     deleted: Mapped[bool]
 
-    session_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("sessions.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("sessions.id", ondelete="CASCADE"), index=True
+    )
     session: Mapped["Session"] = relationship(back_populates="rts")  # one-to-many child
 
-    device_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("devices.id", ondelete="CASCADE"), index=True)
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("devices.id", ondelete="CASCADE"), index=True
+    )
     device: Mapped["Device"] = relationship(back_populates="rts")  # one-to-many child
 
     jobs: Mapped[List["RTSJob"]] = relationship(
@@ -77,7 +83,9 @@ class RTSJob(Base):
     num_measurements: Mapped[int | None]
     payload: Mapped[dict] = mapped_column(JSON)
 
-    rts_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rts.id", ondelete="CASCADE"), index=True)
+    rts_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("rts.id", ondelete="CASCADE"), index=True
+    )
     rts: Mapped["RTS"] = relationship(back_populates="jobs")  # one-to-many child
 
     measurements: Mapped[List["Measurement"]] = relationship(
@@ -97,10 +105,16 @@ class Measurement(Base):
     distance: Mapped[float]
     horizontal_angle: Mapped[float]
     vertical_angle: Mapped[float]
-    rts_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("rts.id", ondelete="CASCADE"), index=True)
+    rts_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("rts.id", ondelete="CASCADE"), index=True
+    )
 
-    rts_job_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rts_jobs.id", ondelete="CASCADE"), index=True)
-    rts_job: Mapped["RTSJob"] = relationship(back_populates="measurements")  # one-to-many child
+    rts_job_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("rts_jobs.id", ondelete="CASCADE"), index=True
+    )
+    rts_job: Mapped["RTSJob"] = relationship(
+        back_populates="measurements"
+    )  # one-to-many child
 
 
 class TrackingSettings(Base):
@@ -123,7 +137,9 @@ class TrackingSettings(Base):
     power_search_max_range: Mapped[int]
     power_search: Mapped[bool]
 
-    rts_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rts.id", ondelete="CASCADE"), unique=True, index=True)
+    rts_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("rts.id", ondelete="CASCADE"), unique=True, index=True
+    )
     rts: Mapped["RTS"] = relationship(back_populates="settings")  # one-to-one child
 
 
@@ -134,7 +150,10 @@ class Device(Base):
     ip: Mapped[str] = mapped_column(index=True)
     last_seen: Mapped[float | None]
 
-    rts: Mapped[List["RTS"]] = relationship(back_populates="device", cascade="all, delete")  # one-to-many parent
+    rts: Mapped[List["RTS"]] = relationship(
+        back_populates="device", cascade="all, delete"
+    )  # one-to-many parent
+
 
 class ExternalSensor(Base):
     __tablename__ = "external_sensors"
@@ -147,7 +166,7 @@ class ExternalSensor(Base):
     measurements: Mapped[List["ExternalSensorMeasurement"]] = relationship(
         back_populates="external_sensor", cascade="all, delete-orphan"
     )  # one-to-many parent
-    
+
 
 class ExternalSensorMeasurement(Base):
     __tablename__ = "external_sensor_measurements"
@@ -160,8 +179,12 @@ class ExternalSensorMeasurement(Base):
     velocity_x: Mapped[float]
     velocity_y: Mapped[float]
     velocity_z: Mapped[float]
-    
+
     epsg: Mapped[int] = mapped_column(default=0)
 
-    external_sensor_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("external_sensors.id", ondelete="CASCADE"), index=True)
-    external_sensor: Mapped["ExternalSensor"] = relationship(back_populates="measurements")  # one-to-many child
+    external_sensor_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("external_sensors.id", ondelete="CASCADE"), index=True
+    )
+    external_sensor: Mapped["ExternalSensor"] = relationship(
+        back_populates="measurements"
+    )  # one-to-many child

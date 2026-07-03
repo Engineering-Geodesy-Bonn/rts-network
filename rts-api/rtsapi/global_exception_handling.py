@@ -4,12 +4,14 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from rtsapi.exceptions import (DeviceNotFoundException, ExternalSensorNotFoundException,
+from rtsapi.exceptions import (DeviceNotFoundException,
+                               ExternalSensorNotFoundException,
                                NoMeasurementsAvailableException,
                                NoOverlapException, RTSJobNotFoundException,
                                RTSJobStatusChangeException,
                                RTSNotFoundException,
-                               RTSPortAlreadyExistsException, SessionNotFoundException,
+                               RTSPortAlreadyExistsException,
+                               SessionNotFoundException,
                                TrackingSettingsNotFoundException)
 
 logger = logging.getLogger("root")

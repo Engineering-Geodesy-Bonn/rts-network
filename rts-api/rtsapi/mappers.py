@@ -15,17 +15,18 @@ class SessionMapper:
             name=session.name,
             created_at=session.created_at,
         )
-    
+
     @staticmethod
     def to_dtos(sessions: list[models.Session]) -> list[dtos.SessionResponse]:
         return [SessionMapper.to_dto(session) for session in sessions]
-    
+
     @staticmethod
     def to_db(create_session_request: dtos.CreateSessionRequest) -> models.Session:
         return models.Session(
             name=create_session_request.name,
             created_at=time.time(),
         )
+
 
 class MeasurementMapper:
     @staticmethod
@@ -59,7 +60,9 @@ class MeasurementMapper:
         )
 
     @staticmethod
-    def to_measurement_dtos(measurements: list[Measurement]) -> list[dtos.MeasurementResponse]:
+    def to_measurement_dtos(
+        measurements: list[Measurement],
+    ) -> list[dtos.MeasurementResponse]:
         return [MeasurementMapper.to_dto(measurement) for measurement in measurements]
 
 
@@ -90,7 +93,7 @@ class RTSMapper:
     @staticmethod
     def to_db(rts: dtos.CreateRTSRequest) -> RTS:
         return RTS(
-            session_id=rts.session_id,  
+            session_id=rts.session_id,
             device_id=rts.device_id,
             name=rts.name,
             baudrate=rts.baudrate,
@@ -163,7 +166,9 @@ class TrackingSettingsMapper:
         )
 
     @staticmethod
-    def create_to_db(tracking_settings: dtos.CreateTrackingSettingsRequest) -> TrackingSettings:
+    def create_to_db(
+        tracking_settings: dtos.CreateTrackingSettingsRequest,
+    ) -> TrackingSettings:
         return TrackingSettings(
             tmc_measurement_mode=tracking_settings.tmc_measurement_mode,
             tmc_inclination_mode=tracking_settings.tmc_inclination_mode,
@@ -184,7 +189,9 @@ class TrackingSettingsMapper:
         )
 
     @staticmethod
-    def update_to_db(tracking_settings: dtos.UpdateTrackingSettingsRequest) -> TrackingSettings:
+    def update_to_db(
+        tracking_settings: dtos.UpdateTrackingSettingsRequest,
+    ) -> TrackingSettings:
         return TrackingSettings(
             tmc_measurement_mode=tracking_settings.tmc_measurement_mode,
             tmc_inclination_mode=tracking_settings.tmc_inclination_mode,
@@ -204,8 +211,13 @@ class TrackingSettingsMapper:
         )
 
     @staticmethod
-    def to_dtos(tracking_settings: list[TrackingSettings]) -> list[dtos.TrackingSettingsResponse]:
-        return [TrackingSettingsMapper.to_dto(tracking_setting) for tracking_setting in tracking_settings]
+    def to_dtos(
+        tracking_settings: list[TrackingSettings],
+    ) -> list[dtos.TrackingSettingsResponse]:
+        return [
+            TrackingSettingsMapper.to_dto(tracking_setting)
+            for tracking_setting in tracking_settings
+        ]
 
 
 class DeviceMapper:
@@ -215,7 +227,9 @@ class DeviceMapper:
 
     @staticmethod
     def to_dto(device: Device) -> dtos.DeviceResponse:
-        return dtos.DeviceResponse(id=device.id, ip=device.ip, last_seen=device.last_seen)
+        return dtos.DeviceResponse(
+            id=device.id, ip=device.ip, last_seen=device.last_seen
+        )
 
     @staticmethod
     def to_dtos(devices: list[Device]) -> list[dtos.DeviceResponse]:
@@ -233,12 +247,21 @@ class ExternalSensorMapper:
         )
 
     @staticmethod
-    def to_dtos(external_sensors: list[models.ExternalSensor]) -> list[dtos.ExternalSensorResponse]:
-        return [ExternalSensorMapper.to_dto(external_sensor) for external_sensor in external_sensors]
-    
+    def to_dtos(
+        external_sensors: list[models.ExternalSensor],
+    ) -> list[dtos.ExternalSensorResponse]:
+        return [
+            ExternalSensorMapper.to_dto(external_sensor)
+            for external_sensor in external_sensors
+        ]
+
+
 class ExternalSensorMeasurementMapper:
     @staticmethod
-    def to_db(external_sensor_id: UUID, external_sensor_measurement: dtos.AddExternalSensorMeasurementRequest) -> models.ExternalSensorMeasurement:
+    def to_db(
+        external_sensor_id: UUID,
+        external_sensor_measurement: dtos.AddExternalSensorMeasurementRequest,
+    ) -> models.ExternalSensorMeasurement:
         return models.ExternalSensorMeasurement(
             external_sensor_id=external_sensor_id,
             timestamp=external_sensor_measurement.t,
@@ -252,7 +275,9 @@ class ExternalSensorMeasurementMapper:
         )
 
     @staticmethod
-    def to_dto(external_sensor_measurement: models.ExternalSensorMeasurement) -> dtos.ExternalSensorMeasurementResponse:
+    def to_dto(
+        external_sensor_measurement: models.ExternalSensorMeasurement,
+    ) -> dtos.ExternalSensorMeasurementResponse:
         return dtos.ExternalSensorMeasurementResponse(
             id=external_sensor_measurement.id,
             x=external_sensor_measurement.position_x,
@@ -266,5 +291,10 @@ class ExternalSensorMeasurementMapper:
         )
 
     @staticmethod
-    def to_dtos(external_sensor_measurements: list[models.ExternalSensorMeasurement]) -> list[dtos.ExternalSensorMeasurementResponse]:
-        return [ExternalSensorMeasurementMapper.to_dto(external_sensor_measurement) for external_sensor_measurement in external_sensor_measurements]
+    def to_dtos(
+        external_sensor_measurements: list[models.ExternalSensorMeasurement],
+    ) -> list[dtos.ExternalSensorMeasurementResponse]:
+        return [
+            ExternalSensorMeasurementMapper.to_dto(external_sensor_measurement)
+            for external_sensor_measurement in external_sensor_measurements
+        ]

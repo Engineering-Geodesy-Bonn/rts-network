@@ -8,7 +8,8 @@ from sqlalchemy.orm import Query, Session
 from rtsapi.database.models import RTS, Device, RTSJob
 from rtsapi.dependencies import get_db
 from rtsapi.dtos import RTSJobStatus, RTSJobType
-from rtsapi.exceptions import RTSJobNotFoundException, RTSJobStatusChangeException
+from rtsapi.exceptions import (RTSJobNotFoundException,
+                               RTSJobStatusChangeException)
 
 logger = logging.getLogger("root")
 
@@ -27,7 +28,10 @@ class RTSJobRepository:
     def get_static_rts_job(self, rts_id: UUID) -> RTSJob:
         rts_job = (
             self.db.query(RTSJob)
-            .filter(RTSJob.rts_id == rts_id, RTSJob.job_type == RTSJobType.STATIC_MEASUREMENT.value)
+            .filter(
+                RTSJob.rts_id == rts_id,
+                RTSJob.job_type == RTSJobType.STATIC_MEASUREMENT.value,
+            )
             .first()
         )
 
@@ -40,7 +44,9 @@ class RTSJobRepository:
                 payload={},
             )
             rts_job = self.create_rts_job(new_job)
-            logger.info(f"Created new static RTSJob with id {rts_job.id} for RTS {rts_id}")
+            logger.info(
+                f"Created new static RTSJob with id {rts_job.id} for RTS {rts_id}"
+            )
 
         return rts_job
 
@@ -57,7 +63,9 @@ class RTSJobRepository:
         query = self.filter_by_device_ip_query(client_ip)
 
         if job_types:
-            query = query.filter(RTSJob.job_type.in_([job_type.value for job_type in job_types]))
+            query = query.filter(
+                RTSJob.job_type.in_([job_type.value for job_type in job_types])
+            )
 
         query = query.filter(RTSJob.status == RTSJobStatus.PENDING.value)
         query = query.order_by(RTSJob.created_at.asc())
@@ -72,7 +80,9 @@ class RTSJobRepository:
         measurements = job.measurements
         job.finished_at = time.time()
         job.duration = (
-            measurements[-1].controller_timestamp - measurements[0].controller_timestamp if measurements else 0.0
+            measurements[-1].controller_timestamp - measurements[0].controller_timestamp
+            if measurements
+            else 0.0
         )
         num_measurements = len(measurements)
         job.num_measurements = num_measurements
@@ -94,7 +104,10 @@ class RTSJobRepository:
             measurements = job.measurements
             job.finished_at = time.time()
             job.duration = (
-                measurements[-1].controller_timestamp - measurements[0].controller_timestamp if measurements else 0.0
+                measurements[-1].controller_timestamp
+                - measurements[0].controller_timestamp
+                if measurements
+                else 0.0
             )
             num_measurements = len(measurements)
             job.num_measurements = num_measurements
@@ -123,9 +136,15 @@ class RTSJobRepository:
         )
 
     def get_running_rts_jobs(self) -> list[RTSJob]:
-        return self.db.query(RTSJob).filter(RTSJob.status == RTSJobStatus.RUNNING.value).all()
+        return (
+            self.db.query(RTSJob)
+            .filter(RTSJob.status == RTSJobStatus.RUNNING.value)
+            .all()
+        )
 
-    def verify_status_change(self, old_status: RTSJobStatus, new_status: RTSJobStatus) -> bool:
+    def verify_status_change(
+        self, old_status: RTSJobStatus, new_status: RTSJobStatus
+    ) -> bool:
         # Define valid transitions: PENDING -> RUNNING -> FINISHED or FAILED
         # FAILED can be reached from PENDING or RUNNING
         valid_transitions = {

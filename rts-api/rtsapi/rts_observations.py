@@ -61,7 +61,6 @@ def least_squares(
     return x_s, l_s, v
 
 
-
 @dataclass
 class RTSVarianceConfig:
     distance: float
@@ -79,6 +78,7 @@ class RTSStation:
     """
     Local topocentric coordinates of the station.
     """
+
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
@@ -100,15 +100,27 @@ class RTSObservations:
         self.variances = variances
         self.station = station
         sensor_timestamps = np.array([m.sensor_timestamp / 1000 for m in measurements])
-        self.sensor_timestamps, index_unique = np.unique(sensor_timestamps, return_index=True)
-        unique_measurements: list[MeasurementResponse] = [measurements[i] for i in index_unique]
-        self.controller_timestamps = np.array([m.controller_timestamp for m in unique_measurements])
+        self.sensor_timestamps, index_unique = np.unique(
+            sensor_timestamps, return_index=True
+        )
+        unique_measurements: list[MeasurementResponse] = [
+            measurements[i] for i in index_unique
+        ]
+        self.controller_timestamps = np.array(
+            [m.controller_timestamp for m in unique_measurements]
+        )
         self.distances = np.array([m.distance for m in unique_measurements])
         self.h_angles = np.array([m.horizontal_angle for m in unique_measurements])
         self.v_angles = np.array([m.vertical_angle for m in unique_measurements])
-        self.response_lengths = np.array([m.response_length for m in unique_measurements])
-        self.geo_com_return_codes = np.array([m.geocom_return_code for m in unique_measurements])
-        self.rpc_return_codes = np.array([m.rpc_return_code for m in unique_measurements])
+        self.response_lengths = np.array(
+            [m.response_length for m in unique_measurements]
+        )
+        self.geo_com_return_codes = np.array(
+            [m.geocom_return_code for m in unique_measurements]
+        )
+        self.rpc_return_codes = np.array(
+            [m.rpc_return_code for m in unique_measurements]
+        )
         self.rts_ids = np.array([m.rts_id for m in unique_measurements])
         self.rts_job_ids = np.array([m.rts_job_id for m in unique_measurements])
         self.rts_dhv = np.c_[self.distances, self.h_angles, self.v_angles]
@@ -143,9 +155,15 @@ class RTSObservations:
 
     @property
     def variance_vector(self) -> np.ndarray:
-        distance_variances = self.variances.distance + np.power(self.variances.ppm * 1e-6 * self.distances, 2)
-        h_angle_variances = np.ones((len(self.h_angles),), dtype=float) * self.variances.angle
-        v_angle_variances = np.ones((len(self.v_angles),), dtype=float) * self.variances.angle
+        distance_variances = self.variances.distance + np.power(
+            self.variances.ppm * 1e-6 * self.distances, 2
+        )
+        h_angle_variances = (
+            np.ones((len(self.h_angles),), dtype=float) * self.variances.angle
+        )
+        v_angle_variances = (
+            np.ones((len(self.v_angles),), dtype=float) * self.variances.angle
+        )
 
         vvec = np.zeros((len(self.distances) * 3,))
         vvec[::3] = distance_variances
@@ -160,11 +178,19 @@ class RTSObservations:
 
     @property
     def local_x(self) -> np.ndarray:
-        return self.distances * np.sin(self.v_angles) * np.sin(self.h_angles + self.station.orientation)
+        return (
+            self.distances
+            * np.sin(self.v_angles)
+            * np.sin(self.h_angles + self.station.orientation)
+        )
 
     @property
     def local_y(self) -> np.ndarray:
-        return self.distances * np.sin(self.v_angles) * np.cos(self.h_angles + self.station.orientation)
+        return (
+            self.distances
+            * np.sin(self.v_angles)
+            * np.cos(self.h_angles + self.station.orientation)
+        )
 
     @property
     def local_z(self) -> np.ndarray:
@@ -200,14 +226,18 @@ class RTSObservations:
         pos = tpy.Positions(xyz=self.xyz, epsg=0)
         return tpy.Trajectory(timestamps=self.sensor_timestamps, positions=pos)
 
-    def sync_sensor_time(self, baudrate: int, external_delay: float = 0.0) -> list[MeasurementResponse]:
+    def sync_sensor_time(
+        self, baudrate: int, external_delay: float = 0.0
+    ) -> list[MeasurementResponse]:
         def compute_transmission_time(message_length: int, baudrate: int) -> float:
             bits_per_byte = 10  # 8 data bits + 1 start bit + 1 stop bit
             total_num_bits = bits_per_byte * message_length
             logger.debug(f"{total_num_bits=} at {baudrate=}")
             return total_num_bits / baudrate
 
-        transmission_delay = [compute_transmission_time(l, baudrate) for l in self.response_lengths]
+        transmission_delay = [
+            compute_transmission_time(l, baudrate) for l in self.response_lengths
+        ]
         self.controller_timestamps -= transmission_delay
 
         # difference between ts timestamps and pc timestamps
@@ -273,7 +303,9 @@ class RTSObservations:
             self.v_angles = raw_v + v_omega_before * intrinsic_delay
             v_omega_after = self.v_omega
 
-            d_omega = abs(h_omega_before - h_omega_after) + abs(v_omega_before - v_omega_after)
+            d_omega = abs(h_omega_before - h_omega_after) + abs(
+                v_omega_before - v_omega_after
+            )
             delta_omega = sum(d_omega[~np.isinf(d_omega) & ~np.isnan(d_omega)])
             cnt += 1
         logger.info("... finished after %i iterations!", cnt)

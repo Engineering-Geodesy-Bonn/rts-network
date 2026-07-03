@@ -30,9 +30,11 @@ class ExternalSensorRepository:
         external_sensor = self.get_external_sensor(sensor_id)
         self.db.delete(external_sensor)
         self.db.commit()
-        
+
     def get_external_sensor(self, sensor_id: UUID) -> ExternalSensor:
-        external_sensor = self.db.query(ExternalSensor).filter(ExternalSensor.id == sensor_id).first()
+        external_sensor = (
+            self.db.query(ExternalSensor).filter(ExternalSensor.id == sensor_id).first()
+        )
 
         if not external_sensor:
             raise ExternalSensorNotFoundException(sensor_id)
@@ -51,8 +53,10 @@ class ExternalSensorRepository:
         self.db.commit()
         self.db.refresh(external_sensor)
         return external_sensor
-    
-    def add_external_sensor_measurement(self, measurement: ExternalSensorMeasurement) -> ExternalSensorMeasurement:
+
+    def add_external_sensor_measurement(
+        self, measurement: ExternalSensorMeasurement
+    ) -> ExternalSensorMeasurement:
         self.db.add(measurement)
         self.db.commit()
         self.db.refresh(measurement)

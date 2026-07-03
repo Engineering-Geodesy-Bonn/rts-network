@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
 from uuid import UUID
+
+from fastapi import APIRouter, Depends
 
 from rtsapi.dtos import (CreateRTSRequest, RTSResponse,
                          TrackingSettingsResponse, UpdateRTSRequest,
@@ -10,7 +11,8 @@ router = APIRouter(tags=["RTS"])
 
 
 @router.get("/rts", response_model=list[RTSResponse])
-async def get_all_rts(session_id: UUID | None = None,
+async def get_all_rts(
+    session_id: UUID | None = None,
     rts_service: RTSService = Depends(RTSService),
 ) -> list[RTSResponse]:
     return rts_service.get_all_rts(session_id=session_id)
@@ -49,7 +51,9 @@ async def get_rts_status(rts_id: UUID, rts_service: RTSService = Depends(RTSServ
 
 
 @router.get("/rts/{rts_id}/tracking_settings", response_model=TrackingSettingsResponse)
-async def get_tracking_settings(rts_id: UUID, rts_service: RTSService = Depends(RTSService)):
+async def get_tracking_settings(
+    rts_id: UUID, rts_service: RTSService = Depends(RTSService)
+):
     return rts_service.get_tracking_settings(rts_id)
 
 

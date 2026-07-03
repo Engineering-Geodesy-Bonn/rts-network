@@ -1,7 +1,8 @@
+from uuid import UUID
+
 from fastapi import Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from rtsapi.database.models import Measurement
 from rtsapi.database.rts_job_repository import RTSJobRepository
@@ -10,7 +11,11 @@ from rtsapi.dependencies import get_db
 
 class MeasurementRepository:
 
-    def __init__(self, db: Session = Depends(get_db), rts_job_repository: RTSJobRepository = Depends(RTSJobRepository)):
+    def __init__(
+        self,
+        db: Session = Depends(get_db),
+        rts_job_repository: RTSJobRepository = Depends(RTSJobRepository),
+    ):
         self.db = db
         self.rts_job_repository = rts_job_repository
 
@@ -19,7 +24,7 @@ class MeasurementRepository:
         self.db.commit()
         self.db.refresh(measurement)
         return measurement
-    
+
     def get_latest_measurements(self) -> list[Measurement]:
         """Get the latest measurements for all running jobs"""
         running_jobs = self.rts_job_repository.get_running_rts_jobs()
@@ -28,7 +33,7 @@ class MeasurementRepository:
         subquery = (
             self.db.query(
                 Measurement.rts_job_id,
-                func.max(Measurement.controller_timestamp).label("max_timestamp")
+                func.max(Measurement.controller_timestamp).label("max_timestamp"),
             )
             .filter(Measurement.rts_job_id.in_(running_job_ids))
             .group_by(Measurement.rts_job_id)
@@ -37,15 +42,19 @@ class MeasurementRepository:
 
         latest_measurements = (
             self.db.query(Measurement)
-            .join(subquery, (Measurement.rts_job_id == subquery.c.rts_job_id) &
-                            (Measurement.controller_timestamp == subquery.c.max_timestamp))
+            .join(
+                subquery,
+                (Measurement.rts_job_id == subquery.c.rts_job_id)
+                & (Measurement.controller_timestamp == subquery.c.max_timestamp),
+            )
             .all()
         )
 
         return latest_measurements
 
-
-    def get_measurements(self, job_id: UUID = None, since_timestamp: float = None) -> list[Measurement]:
+    def get_measurements(
+        self, job_id: UUID = None, since_timestamp: float = None
+    ) -> list[Measurement]:
         query = self.db.query(Measurement)
         if job_id is not None:
             query = query.filter(Measurement.rts_job_id == job_id)
@@ -60,7 +69,11 @@ class MeasurementRepository:
         self.db.commit()
 
     def get_latest_measurement(self) -> Measurement:
-        return self.db.query(Measurement).order_by(Measurement.controller_timestamp.desc()).first()
+        return (
+            self.db.query(Measurement)
+            .order_by(Measurement.controller_timestamp.desc())
+            .first()
+        )
 
     def get_last_measurement_of_rts(self, rts_id: UUID) -> Measurement:
         return (
@@ -71,7 +84,9 @@ class MeasurementRepository:
         )
 
     def get_number_of_measurements_for_job(self, job_id: UUID) -> int:
-        return self.db.query(Measurement).filter(Measurement.rts_job_id == job_id).count()
+        return (
+            self.db.query(Measurement).filter(Measurement.rts_job_id == job_id).count()
+        )
 
     def get_datarate_for_job(self, job_id: UUID) -> float:
         measurements = (
@@ -84,7 +99,9 @@ class MeasurementRepository:
         if len(measurements) < 2:
             return 0.0
 
-        time_span = measurements[-1].controller_timestamp - measurements[0].controller_timestamp
+        time_span = (
+            measurements[-1].controller_timestamp - measurements[0].controller_timestamp
+        )
         if time_span <= 0:
             return 0.0
 

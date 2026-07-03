@@ -18,7 +18,9 @@ class RTSJobNotFoundException(Exception):
 
 class TrackingSettingsNotFoundException(Exception):
     def __init__(self, rts_id: UUID):
-        super().__init__(f"Not Found: Tracking settings for RTS with id {rts_id} do not exist")
+        super().__init__(
+            f"Not Found: Tracking settings for RTS with id {rts_id} do not exist"
+        )
 
 
 class RTSJobStatusChangeException(Exception):
@@ -27,9 +29,13 @@ class RTSJobStatusChangeException(Exception):
             f"Conflict: Cannot change status of RTS Job with id {job_id} from {current_status} to {new_status}"
         )
 
+
 class ExternalSensorNotFoundException(Exception):
     def __init__(self, sensor_id: UUID):
-        super().__init__(f"Not Found: External Sensor with id {sensor_id} does not exist")
+        super().__init__(
+            f"Not Found: External Sensor with id {sensor_id} does not exist"
+        )
+
 
 class DeviceNotFoundException(Exception):
     def __init__(self, device_id: UUID):
@@ -44,6 +50,7 @@ class NoOverlapException(Exception):
 class NoMeasurementsAvailableException(Exception):
     def __init__(self, message: str):
         super().__init__(message)
+
 
 class SessionNotFoundException(Exception):
     def __init__(self, message: str):

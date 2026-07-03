@@ -1,11 +1,11 @@
+from uuid import UUID
+
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from rtsapi.database.models import RTS
 from rtsapi.dependencies import get_db
 from rtsapi.exceptions import RTSNotFoundException
-                               
 
 
 class RTSRepository:
@@ -23,7 +23,11 @@ class RTSRepository:
         if deleted_ok:
             db_rts = self.db.query(RTS).filter(RTS.id == rts_id).first()
         else:
-            db_rts = self.db.query(RTS).filter(RTS.id == rts_id, RTS.deleted == False).first()
+            db_rts = (
+                self.db.query(RTS)
+                .filter(RTS.id == rts_id, RTS.deleted == False)
+                .first()
+            )
 
         if db_rts is None:
             raise RTSNotFoundException(rts_id)
@@ -34,11 +38,17 @@ class RTSRepository:
         return self.db.query(RTS).filter(RTS.deleted == False).all()
 
     def get_all_rts_for_session(self, session_id: UUID) -> list[RTS]:
-        return self.db.query(RTS).filter(RTS.session_id == session_id, RTS.deleted == False).all()
+        return (
+            self.db.query(RTS)
+            .filter(RTS.session_id == session_id, RTS.deleted == False)
+            .all()
+        )
 
     def update_rts(self, rts_id: UUID, rts) -> RTS:
         update_data = {k: v for k, v in rts.__dict__.items() if not k.startswith("_")}
-        self.db.query(RTS).filter(RTS.id == rts_id, RTS.deleted == False).update(update_data)
+        self.db.query(RTS).filter(RTS.id == rts_id, RTS.deleted == False).update(
+            update_data
+        )
         self.db.commit()
         updated_rts = self.db.query(RTS).filter(RTS.id == rts_id).first()
         return updated_rts
@@ -53,11 +63,15 @@ class RTSRepository:
         self.db.commit()
 
     def add_to_external_delay(self, rts_id: UUID, delay: float) -> None:
-        self.db.query(RTS).filter(RTS.id == rts_id).update({RTS.external_delay: RTS.external_delay + delay})
+        self.db.query(RTS).filter(RTS.id == rts_id).update(
+            {RTS.external_delay: RTS.external_delay + delay}
+        )
         self.db.commit()
 
     def update_internal_delay(self, rts_id: UUID, internal_delay: float) -> None:
-        self.db.query(RTS).filter(RTS.id == rts_id).update({RTS.internal_delay: internal_delay})
+        self.db.query(RTS).filter(RTS.id == rts_id).update(
+            {RTS.internal_delay: internal_delay}
+        )
         self.db.commit()
 
     def get_station(self, rts_id: UUID) -> dict:
@@ -69,7 +83,12 @@ class RTSRepository:
         )
 
     def set_station(
-        self, rts_id: UUID, station_x: float, station_y: float, station_z: float, orientation: float
+        self,
+        rts_id: UUID,
+        station_x: float,
+        station_y: float,
+        station_z: float,
+        orientation: float,
     ) -> None:
         self.db.query(RTS).filter(RTS.id == rts_id).update(
             {
@@ -80,5 +99,3 @@ class RTSRepository:
             }
         )
         self.db.commit()
-
-

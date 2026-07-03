@@ -7,5 +7,7 @@ router = APIRouter(tags=["Target"])
 
 
 @router.get("/target")
-async def get_target_position(target_service: TargetService = Depends(TargetService)) -> TargetPosition:
+async def get_target_position(
+    target_service: TargetService = Depends(TargetService),
+) -> TargetPosition:
     return target_service.get_latest_target_position()

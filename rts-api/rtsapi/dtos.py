@@ -83,12 +83,20 @@ class MeasurementResponse(BaseModel):
 
     @property
     def x(self) -> float:
-        return  self.distance * math.sin(self.vertical_angle) * math.sin(self.horizontal_angle)
-    
+        return (
+            self.distance
+            * math.sin(self.vertical_angle)
+            * math.sin(self.horizontal_angle)
+        )
+
     @property
     def y(self) -> float:
-        return self.distance * math.sin(self.vertical_angle) * math.cos(self.horizontal_angle)
-    
+        return (
+            self.distance
+            * math.sin(self.vertical_angle)
+            * math.cos(self.horizontal_angle)
+        )
+
     @property
     def z(self) -> float:
         return self.distance * math.cos(self.vertical_angle)
@@ -215,19 +223,23 @@ class TargetPosition(BaseModel):
     timestamp: float
     rts_id: UUID | None
 
+
 class CreateSessionRequest(BaseModel):
     name: str
+
 
 class SessionResponse(BaseModel):
     id: UUID
     name: str
     created_at: float
 
+
 class ExternalSensorResponse(BaseModel):
     id: UUID
     ip: str
     name: str
     last_seen: float
+
 
 class AddExternalSensorMeasurementRequest(BaseModel):
     t: float
@@ -239,14 +251,17 @@ class AddExternalSensorMeasurementRequest(BaseModel):
     vz: float
     epsg: int = 0
 
+
 class ExternalSensorMeasurementResponse(AddExternalSensorMeasurementRequest):
     id: int
+
 
 class SynchronizerStateResponse(BaseModel):
     delta_t: float
     bias: float
     sigma_delta_t: float
     sigma_bias: float
+
 
 class SensorRolesResponse(BaseModel):
     primary_sensor_id: UUID | None

@@ -15,7 +15,9 @@ class TrackingSettingsRepository:
     def __init__(self, db: Session = Depends(get_db)):
         self.db = db
 
-    def create_tracking_settings(self, tracking_settings: TrackingSettings) -> TrackingSettings:
+    def create_tracking_settings(
+        self, tracking_settings: TrackingSettings
+    ) -> TrackingSettings:
         self.db.query(TrackingSettings).filter_by(
             rts_id=tracking_settings.rts_id
         ).delete()  # delete existing tracking settings
@@ -30,7 +32,11 @@ class TrackingSettingsRepository:
         self.db.commit()
 
     def get_tracking_settings(self, rts_id: UUID) -> TrackingSettings:
-        tracking_settings = self.db.query(TrackingSettings).filter(TrackingSettings.rts_id == rts_id).first()
+        tracking_settings = (
+            self.db.query(TrackingSettings)
+            .filter(TrackingSettings.rts_id == rts_id)
+            .first()
+        )
 
         if tracking_settings is None:
             raise TrackingSettingsNotFoundException(rts_id)
@@ -40,11 +46,17 @@ class TrackingSettingsRepository:
     def get_all_tracking_settings(self) -> list[TrackingSettings]:
         return self.db.query(TrackingSettings).all()
 
-    def update_tracking_settings(self, rts_id: UUID, tracking_settings: TrackingSettings) -> TrackingSettings:
+    def update_tracking_settings(
+        self, rts_id: UUID, tracking_settings: TrackingSettings
+    ) -> TrackingSettings:
         new_tracking_setting_dict = {
-            key: value for key, value in tracking_settings.__dict__.items() if key.startswith("_") is False
+            key: value
+            for key, value in tracking_settings.__dict__.items()
+            if key.startswith("_") is False
         }
-        self.db.query(TrackingSettings).filter_by(rts_id=rts_id).update(new_tracking_setting_dict)
+        self.db.query(TrackingSettings).filter_by(rts_id=rts_id).update(
+            new_tracking_setting_dict
+        )
         self.db.commit()
         logger.info("Updated tracking settings for RTS with id: %s", rts_id)
         return self.get_tracking_settings(rts_id)

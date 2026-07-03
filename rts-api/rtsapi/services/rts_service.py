@@ -1,5 +1,6 @@
-from fastapi import Depends
 from uuid import UUID
+
+from fastapi import Depends
 
 from rtsapi import dtos
 from rtsapi.database.device_repository import DeviceRepository
@@ -18,7 +19,9 @@ class RTSService:
         rts_repository: RTSRepository = Depends(RTSRepository),
         rts_job_repository: RTSJobRepository = Depends(RTSJobRepository),
         measurement_repository: MeasurementRepository = Depends(MeasurementRepository),
-        tracking_settings_repository: TrackingSettingsRepository = Depends(TrackingSettingsRepository),
+        tracking_settings_repository: TrackingSettingsRepository = Depends(
+            TrackingSettingsRepository
+        ),
         device_repository: DeviceRepository = Depends(DeviceRepository),
         session_repository: SessionRepository = Depends(SessionRepository),
     ) -> None:
@@ -51,7 +54,9 @@ class RTSService:
         self.tracking_settings_repository.create_tracking_settings(tracking_settings)
         return dtos.RTSResponse.model_validate(created_rts)
 
-    def update_rts(self, rts_id: UUID, update_rts_request: dtos.UpdateRTSRequest) -> dtos.RTSResponse:
+    def update_rts(
+        self, rts_id: UUID, update_rts_request: dtos.UpdateRTSRequest
+    ) -> dtos.RTSResponse:
         return self.rts_repository.update_rts(rts_id, update_rts_request)
 
     def delete_rts(self, rts_id: UUID) -> None:
@@ -62,10 +67,16 @@ class RTSService:
         return TrackingSettingsMapper.to_dto(db_settings)
 
     def update_tracking_settings(
-        self, rts_id: UUID, update_tracking_settings_request: dtos.UpdateTrackingSettingsRequest
+        self,
+        rts_id: UUID,
+        update_tracking_settings_request: dtos.UpdateTrackingSettingsRequest,
     ) -> dtos.TrackingSettingsResponse:
-        db_settings = TrackingSettingsMapper.update_to_db(update_tracking_settings_request)
-        updated_settings = self.tracking_settings_repository.update_tracking_settings(rts_id, db_settings)
+        db_settings = TrackingSettingsMapper.update_to_db(
+            update_tracking_settings_request
+        )
+        updated_settings = self.tracking_settings_repository.update_tracking_settings(
+            rts_id, db_settings
+        )
         return TrackingSettingsMapper.to_dto(updated_settings)
 
     def get_rts_status(self, rts_id: UUID) -> dtos.RTSStatus:
@@ -73,14 +84,24 @@ class RTSService:
         rts_job = self.rts_job_repository.get_running_rts_job(rts_id)
         rts_job_id = rts_job.id if rts_job is not None else None
         rts_busy = rts_job is not None
-        last_measurement = self.measurement_repository.get_last_measurement_of_rts(rts_id)
+        last_measurement = self.measurement_repository.get_last_measurement_of_rts(
+            rts_id
+        )
         last_measurement_response = (
-            dtos.MeasurementResponse.model_validate(last_measurement) if last_measurement is not None else None
+            dtos.MeasurementResponse.model_validate(last_measurement)
+            if last_measurement is not None
+            else None
         )
         num_measurements = (
-            self.measurement_repository.get_number_of_measurements_for_job(rts_job_id) if rts_job_id else 0
+            self.measurement_repository.get_number_of_measurements_for_job(rts_job_id)
+            if rts_job_id
+            else 0
         )
-        datarate = self.measurement_repository.get_datarate_for_job(rts_job_id) if rts_job_id else 0.0
+        datarate = (
+            self.measurement_repository.get_datarate_for_job(rts_job_id)
+            if rts_job_id
+            else 0.0
+        )
         return dtos.RTSStatus(
             job_id=rts_job_id,
             busy=rts_busy,
