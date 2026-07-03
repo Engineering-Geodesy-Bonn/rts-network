@@ -54,19 +54,34 @@
     >([]);
     let chartFields = $state<string[]>([]);
     let stateFields = $derived(chartFields.filter((f) => !isStdField(f)));
-    let stdFields = $derived(chartFields.filter((f) => isStdField(f)));
 
-    let stateCanvas: HTMLCanvasElement;
-    let stdCanvas: HTMLCanvasElement;
-    let stateChart: Chart | null = null;
-    let stdChart: Chart | null = null;
+    const chartMap = new Map<string, Chart>();
 
     let pollTimerId: ReturnType<typeof setInterval> | null = null;
     let tickTimerId: ReturnType<typeof setInterval> | null = null;
 
     // ── Helpers ───────────────────────────────────────────────
     function isStdField(f: string): boolean {
-        return f.endsWith("_std") || f.endsWith("_std_dev");
+        return (
+            f.startsWith("sigma_") ||
+            f.endsWith("_std") ||
+            f.endsWith("_std_dev")
+        );
+    }
+
+    function sigmaBase(f: string): string {
+        if (f.startsWith("sigma_")) return f.slice(6);
+        if (f.endsWith("_std_dev")) return f.slice(0, -8);
+        if (f.endsWith("_std")) return f.slice(0, -4);
+        return f;
+    }
+
+    function chartColorBand(i: number): string {
+        const hex = COLORS[i % COLORS.length];
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r},${g},${b},0.15)`;
     }
 
     function extId(s: ExternalSensorResponse): string {
@@ -230,7 +245,17 @@
             maintainAspectRatio: false,
             animation: { duration: 0 } as const,
             interaction: { mode: "index" as const, intersect: false },
-            plugins: { legend: legendStyle, tooltip: tooltipStyle },
+            plugins: {
+                legend: {
+                    labels: {
+                        ...legendStyle.labels,
+                        filter: (item: any) =>
+                            !item.text.endsWith(" −σ") &&
+                            !item.text.endsWith(" +σ"),
+                    },
+                },
+                tooltip: tooltipStyle,
+            },
             scales: {
                 x: {
                     ticks: { ...tickStyle, maxTicksLimit: 8 },
@@ -250,65 +275,87 @@
         };
     }
 
-    function buildCharts() {
-        if (stateCanvas) {
-            stateChart?.destroy();
-            stateChart = new Chart(stateCanvas, {
-                type: "line",
-                data: { labels: [], datasets: [] },
-                options: makeChartOpts("Value"),
-            });
-        }
-        if (stdCanvas) {
-            stdChart?.destroy();
-            stdChart = new Chart(stdCanvas, {
-                type: "line",
-                data: { labels: [], datasets: [] },
-                options: makeChartOpts("Std Dev"),
-            });
-        }
+    // ── Chart actions & helpers ──────────────────────────────
+    function fieldChart(canvas: HTMLCanvasElement, field: string) {
+        chartMap.get(field)?.destroy();
+        const i = stateFields.indexOf(field);
+        const ci = i >= 0 ? i : 0;
+        const chart = new Chart(canvas, {
+            type: "line",
+            data: { labels: [], datasets: [] },
+            options: makeChartOpts(field),
+        });
+        chartMap.set(field, chart);
+        rebuildFieldChart(field, chart, ci);
+        return {
+            destroy() {
+                chartMap.get(field)?.destroy();
+                chartMap.delete(field);
+            },
+        };
     }
 
-    function rebuildDatasets() {
-        if (!stateChart || !stdChart) return;
+    function rebuildFieldChart(field: string, chart: Chart, colorIdx: number) {
         const labels = stateHistory.map((s) =>
             new Date(s.ts).toLocaleTimeString(),
         );
-        const nonStd = chartFields.filter((f) => !isStdField(f));
-        const stdOnly = chartFields.filter((f) => isStdField(f));
+        const sigmaField = chartFields.find(
+            (f) => isStdField(f) && sigmaBase(f) === field,
+        );
+        const datasets: any[] = [];
 
-        stateChart.data.labels = labels;
-        stateChart.data.datasets = nonStd.map((field, i) => ({
-            label: field,
-            data: stateHistory.map((s) => s.values[field] ?? null),
-            borderColor: chartColor(i),
-            backgroundColor: "transparent",
-            borderWidth: 2,
-            pointRadius: 0,
-            tension: 0.3,
-            spanGaps: true,
-        })) as any;
-        stateChart.update("none");
-
-        stdChart.data.labels = labels;
-        stdChart.data.datasets = stdOnly.map((field) => {
-            const base = field.replace(/_std_dev$/, "").replace(/_std$/, "");
-            const baseIdx = nonStd.indexOf(base);
-            const ci =
-                baseIdx >= 0 ? baseIdx : nonStd.length + stdOnly.indexOf(field);
-            return {
-                label: field,
-                data: stateHistory.map((s) => s.values[field] ?? null),
-                borderColor: chartColor(ci),
-                backgroundColor: "transparent",
-                borderWidth: 1.5,
-                borderDash: [5, 4],
+        if (sigmaField) {
+            datasets.push({
+                label: `${field} −σ`,
+                data: stateHistory.map((s) => {
+                    const v = s.values[field];
+                    const sig = s.values[sigmaField];
+                    return v != null && sig != null ? v - sig : null;
+                }),
+                borderWidth: 0,
+                fill: "+1",
+                backgroundColor: chartColorBand(colorIdx),
                 pointRadius: 0,
                 tension: 0.3,
                 spanGaps: true,
-            };
-        }) as any;
-        stdChart.update("none");
+            });
+            datasets.push({
+                label: `${field} +σ`,
+                data: stateHistory.map((s) => {
+                    const v = s.values[field];
+                    const sig = s.values[sigmaField];
+                    return v != null && sig != null ? v + sig : null;
+                }),
+                borderWidth: 0,
+                fill: false,
+                backgroundColor: "transparent",
+                pointRadius: 0,
+                tension: 0.3,
+                spanGaps: true,
+            });
+        }
+        datasets.push({
+            label: field,
+            data: stateHistory.map((s) => s.values[field] ?? null),
+            borderColor: chartColor(colorIdx),
+            backgroundColor: "transparent",
+            borderWidth: 2,
+            fill: false,
+            pointRadius: 0,
+            tension: 0.3,
+            spanGaps: true,
+        });
+
+        chart.data.labels = labels;
+        chart.data.datasets = datasets;
+        chart.update("none");
+    }
+
+    function rebuildDatasets() {
+        stateFields.forEach((field, i) => {
+            const chart = chartMap.get(field);
+            if (chart) rebuildFieldChart(field, chart, i);
+        });
     }
 
     async function pollState() {
@@ -335,7 +382,10 @@
                 ...stateHistory.slice(-(MAX_HISTORY - 1)),
                 snapshot,
             ];
-            if (fieldsChanged) chartFields = newFields;
+            if (fieldsChanged) {
+                chartFields = newFields;
+                await tick(); // let Svelte mount new canvas elements before updating
+            }
             rebuildDatasets();
         } catch {
             // silently ignore poll errors
@@ -345,8 +395,6 @@
     // ── Lifecycle ─────────────────────────────────────────────
     onMount(async () => {
         await loadAll();
-        await tick();
-        buildCharts();
         await pollState();
         pollTimerId = setInterval(pollState, 2000);
         tickTimerId = setInterval(() => {
@@ -356,8 +404,8 @@
 
     onDestroy(() => {
         unsubSession();
-        stateChart?.destroy();
-        stdChart?.destroy();
+        chartMap.forEach((c) => c.destroy());
+        chartMap.clear();
         if (pollTimerId) clearInterval(pollTimerId);
         if (tickTimerId) clearInterval(tickTimerId);
     });
@@ -692,48 +740,31 @@
         </div>
 
         <!-- ── Live Charts ────────────────────────────────── -->
-        <div class="space-y-4">
-            <!-- State Values -->
-            <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-semibold">State Values</h3>
-                    <span class="text-xs text-slate-500">
-                        Polling every 2 s &middot; {stateHistory.length} points
-                    </span>
-                </div>
-                <div class="relative h-52">
-                    <canvas bind:this={stateCanvas}></canvas>
-                    {#if stateHistory.length === 0 || stateFields.length === 0}
-                        <div
-                            class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm pointer-events-none"
-                        >
-                            Waiting for state data…
-                        </div>
-                    {/if}
-                </div>
+        {#if stateHistory.length === 0}
+            <div
+                class="bg-slate-800 rounded-xl border border-slate-700 p-8 text-center"
+            >
+                <p class="text-sm text-slate-500">Waiting for state data…</p>
             </div>
-
-            <!-- Standard Deviations -->
-            <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-semibold">Standard Deviations</h3>
-                    <span class="text-xs text-slate-500">
-                        Colors match corresponding state values
-                    </span>
-                </div>
-                <div class="relative h-52">
-                    <canvas bind:this={stdCanvas}></canvas>
-                    {#if stateHistory.length === 0 || stdFields.length === 0}
-                        <div
-                            class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm pointer-events-none"
-                        >
-                            {stateHistory.length === 0
-                                ? "Waiting for state data…"
-                                : "No standard deviation fields detected"}
+        {:else}
+            <div class="space-y-4">
+                {#each stateFields as field, i (field)}
+                    <div
+                        class="bg-slate-800 rounded-xl border border-slate-700 p-5"
+                    >
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold font-mono">{field}</h3>
+                            <span class="text-xs text-slate-500">
+                                Polling every 2 s &middot; {stateHistory.length}
+                                points
+                            </span>
                         </div>
-                    {/if}
-                </div>
+                        <div class="relative h-52">
+                            <canvas use:fieldChart={field}></canvas>
+                        </div>
+                    </div>
+                {/each}
             </div>
-        </div>
+        {/if}
     {/if}
 </div>

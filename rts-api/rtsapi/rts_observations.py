@@ -2,6 +2,7 @@ import copy
 import logging
 from dataclasses import dataclass
 from typing import Tuple
+from uuid import UUID
 
 import numpy as np
 import trajectopy as tpy
@@ -288,8 +289,8 @@ class RTSObservations:
                 distance=float(self.distances[i]),
                 horizontal_angle=float(self.h_angles[i]),
                 vertical_angle=float(self.v_angles[i]),
-                rts_id=int(self.rts_ids[i]) if self.rts_ids[i] is not None else None,
-                rts_job_id=int(self.rts_job_ids[i]),
+                rts_id=self.rts_ids[i] if self.rts_ids[i] is not None else None,
+                rts_job_id=self.rts_job_ids[i],
             )
             for i in range(len(self))
         ]

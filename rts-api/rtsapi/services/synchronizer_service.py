@@ -66,7 +66,7 @@ class SynchronizerService:
             return
 
         if not latest_measurement:
-            position = Position(x=x, y=y, z=z, timestamp=add_measurement_request.controller_timestamp)
+            position = Position(x=x, y=y, z=z, v=0.0, timestamp=add_measurement_request.controller_timestamp)
             handle_sensor_measurement[sensor_role](self.app_state.synchronizer, position)
             return
         
@@ -84,8 +84,9 @@ class SynchronizerService:
         velocity_x = (x - latest_x) / delta_t
         velocity_y = (y - latest_y) / delta_t
         velocity_z = (z - latest_z) / delta_t
+        v = np.sqrt(velocity_x**2 + velocity_y**2 + velocity_z**2)
 
-        position = Position(x=x, y=y, z=z, timestamp=add_measurement_request.controller_timestamp, velocity_x=velocity_x, velocity_y=velocity_y, velocity_z=velocity_z)
+        position = Position(x=x, y=y, z=z, v=v, timestamp=add_measurement_request.controller_timestamp)
         handle_sensor_measurement[sensor_role](self.app_state.synchronizer, position)
 
     def handle_external_sensor_measurement(self, external_sensor_id: UUID, add_external_sensor_measurement_request: AddExternalSensorMeasurementRequest):

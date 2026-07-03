@@ -32,7 +32,7 @@ def self_register() -> None:
 
 
 def create_rts(create_rts_request: CreateRTSRequest) -> RTSResponse:
-    response = requests.post(f"{API_URL}/rts", json=create_rts_request.model_dump(), timeout=TIMEOUT)
+    response = requests.post(f"{API_URL}/rts", json=create_rts_request.model_dump(mode='json'), timeout=TIMEOUT)
     response.raise_for_status()
     return RTSResponse.model_validate(response.json())
 
@@ -60,13 +60,13 @@ def get_job_status(job_id: int) -> RTSJobStatus:
 
 
 def post_measurement(new_measurement: AddMeasurementRequest) -> MeasurementResponse:
-    response = requests.post(f"{API_URL}/measurements", json=new_measurement.model_dump(), timeout=TIMEOUT)
+    response = requests.post(f"{API_URL}/measurements", json=new_measurement.model_dump(mode='json'), timeout=TIMEOUT)
     response.raise_for_status()
     return MeasurementResponse.model_validate(response.json())
 
 
 def post_static_measurement(new_measurement: AddMeasurementRequest) -> MeasurementResponse:
-    response = requests.post(f"{API_URL}/measurements/static", json=new_measurement.model_dump(), timeout=TIMEOUT)
+    response = requests.post(f"{API_URL}/measurements/static", json=new_measurement.model_dump(mode='json'), timeout=TIMEOUT)
     response.raise_for_status()
     return MeasurementResponse.model_validate(response.json())
 
