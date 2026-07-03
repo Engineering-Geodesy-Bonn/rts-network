@@ -4,7 +4,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from rtsapi.exceptions import (DeviceNotFoundException,
+from rtsapi.exceptions import (DeviceNotFoundException, ExternalSensorNotFoundException,
                                NoMeasurementsAvailableException,
                                NoOverlapException, RTSJobNotFoundException,
                                RTSJobStatusChangeException,
@@ -26,6 +26,7 @@ EXCEPTION_MAPPING = {
     NoOverlapException: 400,
     ValidationError: 400,
     SessionNotFoundException: 404,
+    ExternalSensorNotFoundException: 404,
 }
 
 

@@ -24,6 +24,9 @@ class RTSJobStatusChangeException(Exception):
             f"Conflict: Cannot change status of RTS Job with id {job_id} from {current_status} to {new_status}"
         )
 
+class ExternalSensorNotFoundException(Exception):
+    def __init__(self, sensor_id: int):
+        super().__init__(f"Not Found: External Sensor with id {sensor_id} does not exist")
 
 class DeviceNotFoundException(Exception):
     def __init__(self, device_id: int):

@@ -222,3 +222,22 @@ class SessionResponse(BaseModel):
     id: UUID
     name: str
     created_at: float
+
+class ExternalSensorResponse(BaseModel):
+    id: int
+    ip: str
+    name: str
+    last_seen: float
+
+class AddExternalSensorMeasurementRequest(BaseModel):
+    t: float
+    x: float
+    y: float
+    z: float
+    vx: float
+    vy: float
+    vz: float
+    epsg: int = 0
+
+class ExternalSensorMeasurementResponse(AddExternalSensorMeasurementRequest):
+    id: int

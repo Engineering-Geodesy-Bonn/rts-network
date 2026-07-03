@@ -5,11 +5,12 @@
     import JobsTab from "./JobsTab.svelte";
     import PlotTab from "./PlotTab.svelte";
     import DevicesTab from "./DevicesTab.svelte";
+    import ExternalSensorsTab from "./ExternalSensorsTab.svelte";
     import SettingsTab from "./SettingsTab.svelte";
 
-    let activeTab = $state<"rts" | "jobs" | "plot" | "devices" | "settings">(
-        "rts",
-    );
+    let activeTab = $state<
+        "rts" | "jobs" | "plot" | "devices" | "externalSensors" | "settings"
+    >("rts");
     let sessionName = $state("");
 
     const unsub = currentSession.subscribe((s) => {
@@ -23,7 +24,13 @@
     }
 
     const tabs: {
-        id: "rts" | "jobs" | "plot" | "devices" | "settings";
+        id:
+            | "rts"
+            | "jobs"
+            | "plot"
+            | "devices"
+            | "externalSensors"
+            | "settings";
         label: string;
         icon: string;
     }[] = [
@@ -31,6 +38,7 @@
         { id: "jobs", label: "Jobs", icon: "📋" },
         { id: "plot", label: "Measurements", icon: "📊" },
         { id: "devices", label: "Devices", icon: "🖥️" },
+        { id: "externalSensors", label: "External Sensors", icon: "📡" },
         { id: "settings", label: "Settings", icon: "⚙️" },
     ];
 </script>
@@ -103,6 +111,8 @@
             <PlotTab />
         {:else if activeTab === "devices"}
             <DevicesTab />
+        {:else if activeTab === "externalSensors"}
+            <ExternalSensorsTab />
         {:else if activeTab === "settings"}
             <SettingsTab />
         {/if}

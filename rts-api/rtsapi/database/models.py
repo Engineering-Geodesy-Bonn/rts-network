@@ -17,7 +17,6 @@ class Session(Base):
     rts: Mapped[List["RTS"]] = relationship(
         back_populates="session",
         cascade="all, delete-orphan",
-        passive_deletes=True,
     )  # one-to-many parent
 
 class RTS(Base):
@@ -56,14 +55,12 @@ class RTS(Base):
     jobs: Mapped[List["RTSJob"]] = relationship(
         back_populates="rts",
         cascade="all, delete-orphan",
-        passive_deletes=True,
     )  # one to many parent
     settings: Mapped["TrackingSettings"] = relationship(
         back_populates="rts",
         cascade="all, delete-orphan",
         uselist=False,
         single_parent=True,
-        passive_deletes=True,
     )  # one-to-one parent
 
 
@@ -84,7 +81,7 @@ class RTSJob(Base):
     rts: Mapped["RTS"] = relationship(back_populates="jobs")  # one-to-many child
 
     measurements: Mapped[List["Measurement"]] = relationship(
-        back_populates="rts_job", cascade="all, delete-orphan", passive_deletes=True
+        back_populates="rts_job", cascade="all, delete-orphan"
     )  # one-to-many parent
 
 
@@ -138,3 +135,33 @@ class Device(Base):
     last_seen: Mapped[float | None]
 
     rts: Mapped[List["RTS"]] = relationship(back_populates="device", cascade="all, delete")  # one-to-many parent
+
+class ExternalSensor(Base):
+    __tablename__ = "external_sensors"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    ip: Mapped[str] = mapped_column(index=True)
+    name: Mapped[str]
+    last_seen: Mapped[float | None]
+
+    measurements: Mapped[List["ExternalSensorMeasurement"]] = relationship(
+        back_populates="external_sensor", cascade="all, delete-orphan"
+    )  # one-to-many parent
+    
+
+class ExternalSensorMeasurement(Base):
+    __tablename__ = "external_sensor_measurements"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)
+    timestamp: Mapped[float]
+    position_x: Mapped[float]
+    position_y: Mapped[float]
+    position_z: Mapped[float]
+    velocity_x: Mapped[float]
+    velocity_y: Mapped[float]
+    velocity_z: Mapped[float]
+    
+    epsg: Mapped[int] = mapped_column(default=0)
+
+    external_sensor_id: Mapped[int] = mapped_column(ForeignKey("external_sensors.id", ondelete="CASCADE"), index=True)
+    external_sensor: Mapped["ExternalSensor"] = relationship(back_populates="measurements")  # one-to-many child

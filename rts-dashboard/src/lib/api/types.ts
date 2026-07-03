@@ -162,6 +162,15 @@ export interface DeviceResponse {
     id: number;
 }
 
+// === External Sensors ===
+export interface ExternalSensorResponse {
+    id: number;
+
+    name: string;
+    last_seen: number;
+    ip: string;
+}
+
 // === RTS Status ===
 export interface RTSStatusResponse {
     job_id: number | null;

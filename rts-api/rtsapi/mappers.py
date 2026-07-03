@@ -219,3 +219,51 @@ class DeviceMapper:
     @staticmethod
     def to_dtos(devices: list[Device]) -> list[dtos.DeviceResponse]:
         return [DeviceMapper.to_dto(device) for device in devices]
+
+
+class ExternalSensorMapper:
+    @staticmethod
+    def to_dto(external_sensor: models.ExternalSensor) -> dtos.ExternalSensorResponse:
+        return dtos.ExternalSensorResponse(
+            id=external_sensor.id,
+            ip=external_sensor.ip,
+            last_seen=external_sensor.last_seen,
+            name=external_sensor.name,
+        )
+
+    @staticmethod
+    def to_dtos(external_sensors: list[models.ExternalSensor]) -> list[dtos.ExternalSensorResponse]:
+        return [ExternalSensorMapper.to_dto(external_sensor) for external_sensor in external_sensors]
+    
+class ExternalSensorMeasurementMapper:
+    @staticmethod
+    def to_db(external_sensor_id: int, external_sensor_measurement: dtos.AddExternalSensorMeasurementRequest) -> models.ExternalSensorMeasurement:
+        return models.ExternalSensorMeasurement(
+            external_sensor_id=external_sensor_id,
+            timestamp=external_sensor_measurement.t,
+            position_x=external_sensor_measurement.x,
+            position_y=external_sensor_measurement.y,
+            position_z=external_sensor_measurement.z,
+            velocity_x=external_sensor_measurement.vx,
+            velocity_y=external_sensor_measurement.vy,
+            velocity_z=external_sensor_measurement.vz,
+            epsg=external_sensor_measurement.epsg,
+        )
+
+    @staticmethod
+    def to_dto(external_sensor_measurement: models.ExternalSensorMeasurement) -> dtos.ExternalSensorMeasurementResponse:
+        return dtos.ExternalSensorMeasurementResponse(
+            id=external_sensor_measurement.id,
+            x=external_sensor_measurement.position_x,
+            y=external_sensor_measurement.position_y,
+            z=external_sensor_measurement.position_z,
+            vx=external_sensor_measurement.velocity_x,
+            vy=external_sensor_measurement.velocity_y,
+            vz=external_sensor_measurement.velocity_z,
+            t=external_sensor_measurement.timestamp,
+            epsg=external_sensor_measurement.epsg,
+        )
+
+    @staticmethod
+    def to_dtos(external_sensor_measurements: list[models.ExternalSensorMeasurement]) -> list[dtos.ExternalSensorMeasurementResponse]:
+        return [ExternalSensorMeasurementMapper.to_dto(external_sensor_measurement) for external_sensor_measurement in external_sensor_measurements]

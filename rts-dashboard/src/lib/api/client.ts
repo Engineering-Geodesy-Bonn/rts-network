@@ -12,6 +12,7 @@ import type {
     RTSJobStatus,
     DeviceResponse,
     RTSStatusResponse,
+    ExternalSensorResponse,
 } from './types';
 
 function getBaseUrl(): string {
@@ -212,4 +213,23 @@ export async function getDevice(id: number): Promise<DeviceResponse> {
 
 export async function registerDevice(): Promise<DeviceResponse> {
     return request<DeviceResponse>('/devices/register', { method: 'POST' });
+}
+
+// ── External Sensors ───────────────────────────────────────
+export async function getExternalSensors(): Promise<ExternalSensorResponse[]> {
+    return request<ExternalSensorResponse[]>('/external_sensors');
+}
+
+export async function updateExternalSensor(
+    id: number,
+    name: string,
+): Promise<ExternalSensorResponse> {
+    return request<ExternalSensorResponse>(
+        `/external_sensors/${id}?name=${encodeURIComponent(name)}`,
+        { method: 'PUT' },
+    );
+}
+
+export async function deleteExternalSensor(id: number): Promise<void> {
+    await request<void>(`/external_sensors/${id}`, { method: 'DELETE' });
 }
