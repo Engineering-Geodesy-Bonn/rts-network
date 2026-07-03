@@ -29,7 +29,7 @@ class RTSService:
         self.device_repository = device_repository
         self.session_repository = session_repository
 
-    def get_rts(self, rts_id: int) -> dtos.RTSResponse:
+    def get_rts(self, rts_id: UUID) -> dtos.RTSResponse:
         db_rts = self.rts_repository.get_rts(rts_id)
         return RTSMapper.to_dto(db_rts)
 
@@ -51,24 +51,24 @@ class RTSService:
         self.tracking_settings_repository.create_tracking_settings(tracking_settings)
         return dtos.RTSResponse.model_validate(created_rts)
 
-    def update_rts(self, rts_id: int, update_rts_request: dtos.UpdateRTSRequest) -> dtos.RTSResponse:
+    def update_rts(self, rts_id: UUID, update_rts_request: dtos.UpdateRTSRequest) -> dtos.RTSResponse:
         return self.rts_repository.update_rts(rts_id, update_rts_request)
 
-    def delete_rts(self, rts_id: int) -> None:
+    def delete_rts(self, rts_id: UUID) -> None:
         self.rts_repository.delete_rts(rts_id)
 
-    def get_tracking_settings(self, rts_id: int) -> dtos.TrackingSettingsResponse:
+    def get_tracking_settings(self, rts_id: UUID) -> dtos.TrackingSettingsResponse:
         db_settings = self.tracking_settings_repository.get_tracking_settings(rts_id)
         return TrackingSettingsMapper.to_dto(db_settings)
 
     def update_tracking_settings(
-        self, rts_id: int, update_tracking_settings_request: dtos.UpdateTrackingSettingsRequest
+        self, rts_id: UUID, update_tracking_settings_request: dtos.UpdateTrackingSettingsRequest
     ) -> dtos.TrackingSettingsResponse:
         db_settings = TrackingSettingsMapper.update_to_db(update_tracking_settings_request)
         updated_settings = self.tracking_settings_repository.update_tracking_settings(rts_id, db_settings)
         return TrackingSettingsMapper.to_dto(updated_settings)
 
-    def get_rts_status(self, rts_id: int) -> dtos.RTSStatus:
+    def get_rts_status(self, rts_id: UUID) -> dtos.RTSStatus:
         self.get_rts(rts_id)
         rts_job = self.rts_job_repository.get_running_rts_job(rts_id)
         rts_job_id = rts_job.id if rts_job is not None else None

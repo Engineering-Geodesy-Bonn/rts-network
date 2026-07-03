@@ -12,7 +12,7 @@ class CreateDeviceRequest(BaseModel):
 
 
 class DeviceResponse(CreateDeviceRequest):
-    id: int
+    id: UUID
 
 
 class RTSJobType(Enum):
@@ -33,14 +33,14 @@ class RTSJobStatus(Enum):
 
 
 class CreateRTSJobRequest(BaseModel):
-    rts_id: int
+    rts_id: UUID
     job_type: RTSJobType
     payload: dict = {}
 
 
 class RTSJobResponse(BaseModel):
-    job_id: int
-    rts_id: int | None
+    job_id: UUID
+    rts_id: UUID | None
     job_type: RTSJobType
     job_status: RTSJobStatus
     created_at: float
@@ -64,7 +64,7 @@ class AddMeasurementRequest(BaseModel):
     distance: float
     horizontal_angle: float
     vertical_angle: float
-    rts_job_id: int
+    rts_job_id: UUID
 
 
 class MeasurementResponse(BaseModel):
@@ -76,8 +76,8 @@ class MeasurementResponse(BaseModel):
     distance: float
     horizontal_angle: float
     vertical_angle: float
-    rts_job_id: int
-    rts_id: int | None
+    rts_job_id: UUID
+    rts_id: UUID | None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -110,7 +110,7 @@ class CreateTrackingSettingsRequest(BaseModel):
     power_search_min_range: int = 1
     power_search_max_range: int = 50
     power_search: bool = True
-    rts_id: int
+    rts_id: UUID
 
 
 class TrackingSettingsResponse(BaseModel):
@@ -129,8 +129,8 @@ class TrackingSettingsResponse(BaseModel):
     power_search_min_range: int = 1
     power_search_max_range: int = 50
     power_search: bool = True
-    rts_id: int
-    id: int
+    rts_id: UUID
+    id: UUID
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -173,13 +173,13 @@ class UpdateRTSRequest(BaseModel):
 
 
 class CreateRTSRequest(UpdateRTSRequest):
-    device_id: int
+    device_id: UUID
     session_id: UUID
 
 
 class RTSResponse(BaseModel):
-    id: int
-    device_id: int
+    id: UUID
+    device_id: UUID
     name: str = "RTS"
     baudrate: int = 115200
     port: str = "/dev/ttyUSB0"
@@ -201,7 +201,7 @@ class RTSResponse(BaseModel):
 
 
 class RTSStatus(BaseModel):
-    job_id: int | None
+    job_id: UUID | None
     busy: bool = False
     last_measurement: MeasurementResponse | None = None
     num_measurements: int = 0
@@ -213,7 +213,7 @@ class TargetPosition(BaseModel):
     y: float
     z: float
     timestamp: float
-    rts_id: int | None
+    rts_id: UUID | None
 
 class CreateSessionRequest(BaseModel):
     name: str
@@ -224,7 +224,7 @@ class SessionResponse(BaseModel):
     created_at: float
 
 class ExternalSensorResponse(BaseModel):
-    id: int
+    id: UUID
     ip: str
     name: str
     last_seen: float
@@ -241,3 +241,13 @@ class AddExternalSensorMeasurementRequest(BaseModel):
 
 class ExternalSensorMeasurementResponse(AddExternalSensorMeasurementRequest):
     id: int
+
+class SynchronizerStateResponse(BaseModel):
+    delta_t: float
+    bias: float
+    sigma_delta_t: float
+    sigma_bias: float
+
+class SensorRolesResponse(BaseModel):
+    primary_sensor_id: UUID | None
+    secondary_sensor_id: UUID | None

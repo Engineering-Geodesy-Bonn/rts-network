@@ -1,4 +1,5 @@
 import time
+from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -25,12 +26,12 @@ class DeviceRepository:
         self.db.refresh(existing_device)
         return existing_device
 
-    def delete_device(self, device_id: int) -> None:
+    def delete_device(self, device_id: UUID) -> None:
         device = self.get_device(device_id)
         self.db.delete(device)
         self.db.commit()
 
-    def get_device(self, device_id: int) -> Device:
+    def get_device(self, device_id: UUID) -> Device:
         device = self.db.query(Device).filter(Device.id == device_id).first()
 
         if not device:
@@ -44,7 +45,7 @@ class DeviceRepository:
     def get_device_by_ip(self, ip: str) -> Device | None:
         return self.db.query(Device).filter(Device.ip == ip).first()
 
-    def update_last_seen(self, device_id: int) -> Device:
+    def update_last_seen(self, device_id: UUID) -> Device:
         device = self.get_device(device_id)
         device.last_seen = time.time()
         self.db.commit()

@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 
@@ -41,12 +42,12 @@ async def get_running_rts_jobs(rts_job_service: RTSJobService = Depends(RTSJobSe
 
 
 @router.get("/jobs/{job_id}")
-async def get_job(job_id: int, rts_job_service: RTSJobService = Depends(RTSJobService)) -> RTSJobResponse:
+async def get_job(job_id: UUID, rts_job_service: RTSJobService = Depends(RTSJobService)) -> RTSJobResponse:
     return rts_job_service.get_rts_job(job_id)
 
 
 @router.delete("/jobs/{job_id}", status_code=204)
-async def delete_rts_job(job_id: int, rts_job_service: RTSJobService = Depends(RTSJobService)) -> None:
+async def delete_rts_job(job_id: UUID, rts_job_service: RTSJobService = Depends(RTSJobService)) -> None:
     return rts_job_service.delete_rts_job(job_id)
 
 
@@ -58,7 +59,7 @@ async def get_all_rts_jobs(rts_job_service: RTSJobService = Depends(RTSJobServic
 @router.get("/jobs/{job_id}/status")
 async def get_rts_job_status(
     request: Request,
-    job_id: int,
+    job_id: UUID,
     rts_job_service: RTSJobService = Depends(RTSJobService),
     device_service: DeviceService = Depends(DeviceService),
 ) -> RTSJobStatusResponse:
@@ -69,7 +70,7 @@ async def get_rts_job_status(
 
 @router.put("/jobs/{job_id}")
 async def update_rts_job_status(
-    job_id: int,
+    job_id: UUID,
     job_status: RTSJobStatus,
     rts_job_service: RTSJobService = Depends(RTSJobService),
 ) -> RTSJobResponse:

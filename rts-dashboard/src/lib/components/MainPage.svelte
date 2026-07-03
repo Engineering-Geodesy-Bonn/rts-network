@@ -6,10 +6,17 @@
     import PlotTab from "./PlotTab.svelte";
     import DevicesTab from "./DevicesTab.svelte";
     import ExternalSensorsTab from "./ExternalSensorsTab.svelte";
+    import SynchronizerTab from "./SynchronizerTab.svelte";
     import SettingsTab from "./SettingsTab.svelte";
 
     let activeTab = $state<
-        "rts" | "jobs" | "plot" | "devices" | "externalSensors" | "settings"
+        | "rts"
+        | "jobs"
+        | "plot"
+        | "devices"
+        | "externalSensors"
+        | "synchronizer"
+        | "settings"
     >("rts");
     let sessionName = $state("");
 
@@ -30,6 +37,7 @@
             | "plot"
             | "devices"
             | "externalSensors"
+            | "synchronizer"
             | "settings";
         label: string;
         icon: string;
@@ -39,6 +47,7 @@
         { id: "plot", label: "Measurements", icon: "📊" },
         { id: "devices", label: "Devices", icon: "🖥️" },
         { id: "externalSensors", label: "External Sensors", icon: "📡" },
+        { id: "synchronizer", label: "Synchronizer", icon: "🔄" },
         { id: "settings", label: "Settings", icon: "⚙️" },
     ];
 </script>
@@ -113,6 +122,8 @@
             <DevicesTab />
         {:else if activeTab === "externalSensors"}
             <ExternalSensorsTab />
+        {:else if activeTab === "synchronizer"}
+            <SynchronizerTab />
         {:else if activeTab === "settings"}
             <SettingsTab />
         {/if}

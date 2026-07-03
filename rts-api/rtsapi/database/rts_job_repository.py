@@ -1,5 +1,6 @@
 import logging
 import time
+from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy.orm import Query, Session
@@ -23,7 +24,7 @@ class RTSJobRepository:
         self.db.refresh(rts_job)
         return rts_job
 
-    def get_static_rts_job(self, rts_id: int) -> RTSJob:
+    def get_static_rts_job(self, rts_id: UUID) -> RTSJob:
         rts_job = (
             self.db.query(RTSJob)
             .filter(RTSJob.rts_id == rts_id, RTSJob.job_type == RTSJobType.STATIC_MEASUREMENT.value)
@@ -43,7 +44,7 @@ class RTSJobRepository:
 
         return rts_job
 
-    def get_rts_job(self, job_id: int) -> RTSJob:
+    def get_rts_job(self, job_id: UUID) -> RTSJob:
         rts_job = self.db.query(RTSJob).filter(RTSJob.id == job_id).first()
 
         if rts_job is None:
@@ -66,7 +67,7 @@ class RTSJobRepository:
     def get_all_rts_jobs(self) -> list[RTSJob]:
         return self.db.query(RTSJob).order_by(RTSJob.created_at.desc()).all()
 
-    def refresh_rts_job_meta(self, job_id: int) -> RTSJob:
+    def refresh_rts_job_meta(self, job_id: UUID) -> RTSJob:
         job = self.get_rts_job(job_id)
         measurements = job.measurements
         job.finished_at = time.time()
@@ -80,7 +81,7 @@ class RTSJobRepository:
         self.db.refresh(job)
         return job
 
-    def update_rts_job_status(self, job_id: int, status: RTSJobStatus) -> RTSJob:
+    def update_rts_job_status(self, job_id: UUID, status: RTSJobStatus) -> RTSJob:
         job = self.db.query(RTSJob).filter(RTSJob.id == job_id).first()
 
         if job is None:
@@ -104,7 +105,7 @@ class RTSJobRepository:
         self.db.refresh(job)
         return job
 
-    def delete_rts_job(self, job_id: int) -> None:
+    def delete_rts_job(self, job_id: UUID) -> None:
         job = self.db.query(RTSJob).filter(RTSJob.id == job_id).first()
 
         if job:
@@ -113,7 +114,7 @@ class RTSJobRepository:
         else:
             logger.warning(f"No RTSJob found with id {job_id}")
 
-    def get_running_rts_job(self, rts_id: int) -> RTSJob:
+    def get_running_rts_job(self, rts_id: UUID) -> RTSJob:
         return (
             self.db.query(RTSJob)
             .filter(RTSJob.rts_id == rts_id)

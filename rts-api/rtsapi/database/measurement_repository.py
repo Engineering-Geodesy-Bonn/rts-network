@@ -1,6 +1,7 @@
 from fastapi import Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from rtsapi.database.models import Measurement
 from rtsapi.database.rts_job_repository import RTSJobRepository
@@ -44,7 +45,7 @@ class MeasurementRepository:
         return latest_measurements
 
 
-    def get_measurements(self, job_id: int = None, since_timestamp: float = None) -> list[Measurement]:
+    def get_measurements(self, job_id: UUID = None, since_timestamp: float = None) -> list[Measurement]:
         query = self.db.query(Measurement)
         if job_id is not None:
             query = query.filter(Measurement.rts_job_id == job_id)
@@ -54,14 +55,14 @@ class MeasurementRepository:
         query = query.order_by(Measurement.controller_timestamp.asc())
         return query.all()
 
-    def delete_measurements(self, job_id: int) -> None:
+    def delete_measurements(self, job_id: UUID) -> None:
         self.db.query(Measurement).filter(Measurement.rts_job_id == job_id).delete()
         self.db.commit()
 
     def get_latest_measurement(self) -> Measurement:
         return self.db.query(Measurement).order_by(Measurement.controller_timestamp.desc()).first()
 
-    def get_last_measurement_of_rts(self, rts_id: int) -> Measurement:
+    def get_last_measurement_of_rts(self, rts_id: UUID) -> Measurement:
         return (
             self.db.query(Measurement)
             .filter(Measurement.rts_id == rts_id)
@@ -69,10 +70,10 @@ class MeasurementRepository:
             .first()
         )
 
-    def get_number_of_measurements_for_job(self, job_id: int) -> int:
+    def get_number_of_measurements_for_job(self, job_id: UUID) -> int:
         return self.db.query(Measurement).filter(Measurement.rts_job_id == job_id).count()
 
-    def get_datarate_for_job(self, job_id: int) -> float:
+    def get_datarate_for_job(self, job_id: UUID) -> float:
         measurements = (
             self.db.query(Measurement)
             .filter(Measurement.rts_job_id == job_id)

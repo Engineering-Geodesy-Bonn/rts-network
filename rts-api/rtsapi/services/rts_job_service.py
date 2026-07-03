@@ -1,4 +1,5 @@
 import logging
+from uuid import UUID
 
 from fastapi import Depends
 
@@ -28,7 +29,7 @@ class RTSJobService:
         created_rts_job = self.rts_job_repository.create_rts_job(db_rts_job)
         return RTSJobMapper.to_dto(created_rts_job)
 
-    def get_rts_job(self, job_id: int) -> dtos.RTSJobResponse:
+    def get_rts_job(self, job_id: UUID) -> dtos.RTSJobResponse:
         db_rts_job = self.rts_job_repository.get_rts_job(job_id)
         return RTSJobMapper.to_dto(db_rts_job)
 
@@ -40,7 +41,7 @@ class RTSJobService:
 
         return RTSJobMapper.to_dto(db_rts_job)
 
-    def get_rts_job_status(self, job_id: int) -> dtos.RTSJobStatusResponse:
+    def get_rts_job_status(self, job_id: UUID) -> dtos.RTSJobStatusResponse:
         db_rts_job = self.rts_job_repository.get_rts_job(job_id)
         return dtos.RTSJobStatusResponse(job_status=dtos.RTSJobStatus(db_rts_job.status))
 
@@ -52,9 +53,9 @@ class RTSJobService:
         db_rts_jobs = self.rts_job_repository.get_running_rts_jobs()
         return [RTSJobMapper.to_dto(rts_job) for rts_job in db_rts_jobs]
 
-    def update_rts_job_status(self, job_id: int, status: dtos.RTSJobStatus) -> dtos.RTSJobResponse:
+    def update_rts_job_status(self, job_id: UUID, status: dtos.RTSJobStatus) -> dtos.RTSJobResponse:
         db_rts_job = self.rts_job_repository.update_rts_job_status(job_id, status)
         return RTSJobMapper.to_dto(db_rts_job)
 
-    def delete_rts_job(self, job_id: int) -> None:
+    def delete_rts_job(self, job_id: UUID) -> None:
         self.rts_job_repository.delete_rts_job(job_id)

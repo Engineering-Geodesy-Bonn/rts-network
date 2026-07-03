@@ -1,4 +1,5 @@
 import time
+from uuid import UUID
 
 from rtsapi import dtos
 from rtsapi.database import models
@@ -28,7 +29,7 @@ class SessionMapper:
 
 class MeasurementMapper:
     @staticmethod
-    def to_db(rts_id: int, measurement: dtos.AddMeasurementRequest) -> Measurement:
+    def to_db(rts_id: UUID, measurement: dtos.AddMeasurementRequest) -> Measurement:
         return Measurement(
             rts_id=rts_id,
             rts_job_id=measurement.rts_job_id,
@@ -237,7 +238,7 @@ class ExternalSensorMapper:
     
 class ExternalSensorMeasurementMapper:
     @staticmethod
-    def to_db(external_sensor_id: int, external_sensor_measurement: dtos.AddExternalSensorMeasurementRequest) -> models.ExternalSensorMeasurement:
+    def to_db(external_sensor_id: UUID, external_sensor_measurement: dtos.AddExternalSensorMeasurementRequest) -> models.ExternalSensorMeasurement:
         return models.ExternalSensorMeasurement(
             external_sensor_id=external_sensor_id,
             timestamp=external_sensor_measurement.t,

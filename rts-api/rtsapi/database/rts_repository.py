@@ -19,7 +19,7 @@ class RTSRepository:
         self.db.refresh(rts)
         return rts
 
-    def get_rts(self, rts_id: int, deleted_ok: bool = False) -> RTS:
+    def get_rts(self, rts_id: UUID, deleted_ok: bool = False) -> RTS:
         if deleted_ok:
             db_rts = self.db.query(RTS).filter(RTS.id == rts_id).first()
         else:
@@ -36,14 +36,14 @@ class RTSRepository:
     def get_all_rts_for_session(self, session_id: UUID) -> list[RTS]:
         return self.db.query(RTS).filter(RTS.session_id == session_id, RTS.deleted == False).all()
 
-    def update_rts(self, rts_id: int, rts) -> RTS:
+    def update_rts(self, rts_id: UUID, rts) -> RTS:
         update_data = {k: v for k, v in rts.__dict__.items() if not k.startswith("_")}
         self.db.query(RTS).filter(RTS.id == rts_id, RTS.deleted == False).update(update_data)
         self.db.commit()
         updated_rts = self.db.query(RTS).filter(RTS.id == rts_id).first()
         return updated_rts
 
-    def delete_rts(self, rts_id: int) -> None:
+    def delete_rts(self, rts_id: UUID) -> None:
         rts = self.db.query(RTS).filter_by(id=rts_id).first()
 
         if rts is None:
@@ -52,15 +52,15 @@ class RTSRepository:
         rts.deleted = True
         self.db.commit()
 
-    def add_to_external_delay(self, rts_id: int, delay: float) -> None:
+    def add_to_external_delay(self, rts_id: UUID, delay: float) -> None:
         self.db.query(RTS).filter(RTS.id == rts_id).update({RTS.external_delay: RTS.external_delay + delay})
         self.db.commit()
 
-    def update_internal_delay(self, rts_id: int, internal_delay: float) -> None:
+    def update_internal_delay(self, rts_id: UUID, internal_delay: float) -> None:
         self.db.query(RTS).filter(RTS.id == rts_id).update({RTS.internal_delay: internal_delay})
         self.db.commit()
 
-    def get_station(self, rts_id: int) -> dict:
+    def get_station(self, rts_id: UUID) -> dict:
         return (
             self.db.query(RTS.station_x, RTS.station_y, RTS.station_z, RTS.orientation)
             .filter(RTS.id == rts_id)
@@ -69,7 +69,7 @@ class RTSRepository:
         )
 
     def set_station(
-        self, rts_id: int, station_x: float, station_y: float, station_z: float, orientation: float
+        self, rts_id: UUID, station_x: float, station_y: float, station_z: float, orientation: float
     ) -> None:
         self.db.query(RTS).filter(RTS.id == rts_id).update(
             {

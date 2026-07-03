@@ -13,6 +13,8 @@ import type {
     DeviceResponse,
     RTSStatusResponse,
     ExternalSensorResponse,
+    SensorRolesResponse,
+    SynchronizerStateResponse,
 } from './types';
 
 function getBaseUrl(): string {
@@ -232,4 +234,28 @@ export async function updateExternalSensor(
 
 export async function deleteExternalSensor(id: number): Promise<void> {
     await request<void>(`/external_sensors/${id}`, { method: 'DELETE' });
+}
+
+// ── Synchronizer ───────────────────────────────────────────
+export async function getSensorRoles(): Promise<SensorRolesResponse> {
+    return request<SensorRolesResponse>('/synchronizer/roles');
+}
+
+export async function setSensorRoles(
+    primarySensorId: string | null,
+    secondarySensorId: string | null,
+): Promise<void> {
+    const params = new URLSearchParams();
+    if (primarySensorId != null) params.set('primary_sensor_id', primarySensorId);
+    if (secondarySensorId != null) params.set('secondary_sensor_id', secondarySensorId);
+    const qs = params.toString();
+    await request<void>(`/synchronizer/roles${qs ? '?' + qs : ''}`, { method: 'PUT' });
+}
+
+export async function getSynchronizerState(): Promise<SynchronizerStateResponse> {
+    return request<SynchronizerStateResponse>('/synchronizer/state');
+}
+
+export async function resetSynchronizer(): Promise<void> {
+    await request<void>('/synchronizer/reset', { method: 'PATCH' });
 }

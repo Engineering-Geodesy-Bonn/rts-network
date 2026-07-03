@@ -1,4 +1,5 @@
 import time
+from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -25,12 +26,12 @@ class ExternalSensorRepository:
         self.db.refresh(existing_external_sensor)
         return existing_external_sensor
 
-    def delete_external_sensor(self, sensor_id: int) -> None:
+    def delete_external_sensor(self, sensor_id: UUID) -> None:
         external_sensor = self.get_external_sensor(sensor_id)
         self.db.delete(external_sensor)
         self.db.commit()
         
-    def get_external_sensor(self, sensor_id: int) -> ExternalSensor:
+    def get_external_sensor(self, sensor_id: UUID) -> ExternalSensor:
         external_sensor = self.db.query(ExternalSensor).filter(ExternalSensor.id == sensor_id).first()
 
         if not external_sensor:
@@ -44,7 +45,7 @@ class ExternalSensorRepository:
     def get_external_sensor_by_ip(self, ip: str) -> ExternalSensor | None:
         return self.db.query(ExternalSensor).filter(ExternalSensor.ip == ip).first()
 
-    def update_last_seen(self, sensor_id: int) -> ExternalSensor:
+    def update_last_seen(self, sensor_id: UUID) -> ExternalSensor:
         external_sensor = self.get_external_sensor(sensor_id)
         external_sensor.last_seen = time.time()
         self.db.commit()

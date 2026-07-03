@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request
+from uuid import UUID
 
 from rtsapi.dtos import DeviceResponse
 from rtsapi.services.device_service import DeviceService
@@ -12,7 +13,7 @@ def get_devices(device_service: DeviceService = Depends(DeviceService)) -> list[
 
 
 @router.get("/devices/{device_id}")
-def get_device(device_id: int, device_service: DeviceService = Depends(DeviceService)) -> DeviceResponse:
+def get_device(device_id: UUID, device_service: DeviceService = Depends(DeviceService)) -> DeviceResponse:
     return device_service.get_device(device_id)
 
 

@@ -22,7 +22,7 @@ class Session(Base):
 class RTS(Base):
     __tablename__ = "rts"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     name: Mapped[str]
 
     baudrate: Mapped[int]
@@ -46,10 +46,10 @@ class RTS(Base):
 
     deleted: Mapped[bool]
 
-    session_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("sessions.id", ondelete="CASCADE"), index=True)
     session: Mapped["Session"] = relationship(back_populates="rts")  # one-to-many child
 
-    device_id: Mapped[int] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"), index=True)
+    device_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("devices.id", ondelete="CASCADE"), index=True)
     device: Mapped["Device"] = relationship(back_populates="rts")  # one-to-many child
 
     jobs: Mapped[List["RTSJob"]] = relationship(
@@ -67,7 +67,7 @@ class RTS(Base):
 class RTSJob(Base):
     __tablename__ = "rts_jobs"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     status: Mapped[str]
     job_type: Mapped[str]
     created_at: Mapped[float]
@@ -77,7 +77,7 @@ class RTSJob(Base):
     num_measurements: Mapped[int | None]
     payload: Mapped[dict] = mapped_column(JSON)
 
-    rts_id: Mapped[int] = mapped_column(ForeignKey("rts.id", ondelete="CASCADE"), index=True)
+    rts_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rts.id", ondelete="CASCADE"), index=True)
     rts: Mapped["RTS"] = relationship(back_populates="jobs")  # one-to-many child
 
     measurements: Mapped[List["Measurement"]] = relationship(
@@ -97,16 +97,16 @@ class Measurement(Base):
     distance: Mapped[float]
     horizontal_angle: Mapped[float]
     vertical_angle: Mapped[float]
-    rts_id: Mapped[int | None] = mapped_column(ForeignKey("rts.id", ondelete="CASCADE"), index=True)
+    rts_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("rts.id", ondelete="CASCADE"), index=True)
 
-    rts_job_id: Mapped[int] = mapped_column(ForeignKey("rts_jobs.id", ondelete="CASCADE"), index=True)
+    rts_job_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rts_jobs.id", ondelete="CASCADE"), index=True)
     rts_job: Mapped["RTSJob"] = relationship(back_populates="measurements")  # one-to-many child
 
 
 class TrackingSettings(Base):
     __tablename__ = "settings"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     tmc_measurement_mode: Mapped[int]
     tmc_inclination_mode: Mapped[int]
     edm_measurement_mode: Mapped[int]
@@ -123,14 +123,14 @@ class TrackingSettings(Base):
     power_search_max_range: Mapped[int]
     power_search: Mapped[bool]
 
-    rts_id: Mapped[int] = mapped_column(ForeignKey("rts.id", ondelete="CASCADE"), unique=True, index=True)
+    rts_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("rts.id", ondelete="CASCADE"), unique=True, index=True)
     rts: Mapped["RTS"] = relationship(back_populates="settings")  # one-to-one child
 
 
 class Device(Base):
     __tablename__ = "devices"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     ip: Mapped[str] = mapped_column(index=True)
     last_seen: Mapped[float | None]
 
@@ -139,7 +139,7 @@ class Device(Base):
 class ExternalSensor(Base):
     __tablename__ = "external_sensors"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     ip: Mapped[str] = mapped_column(index=True)
     name: Mapped[str]
     last_seen: Mapped[float | None]
@@ -163,5 +163,5 @@ class ExternalSensorMeasurement(Base):
     
     epsg: Mapped[int] = mapped_column(default=0)
 
-    external_sensor_id: Mapped[int] = mapped_column(ForeignKey("external_sensors.id", ondelete="CASCADE"), index=True)
+    external_sensor_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("external_sensors.id", ondelete="CASCADE"), index=True)
     external_sensor: Mapped["ExternalSensor"] = relationship(back_populates="measurements")  # one-to-many child

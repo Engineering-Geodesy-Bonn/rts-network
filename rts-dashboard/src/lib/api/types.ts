@@ -165,7 +165,7 @@ export interface DeviceResponse {
 // === External Sensors ===
 export interface ExternalSensorResponse {
     id: number;
-
+    uuid?: string;
     name: string;
     last_seen: number;
     ip: string;
@@ -178,6 +178,16 @@ export interface RTSStatusResponse {
     last_measurement: MeasurementResponse | null;
     num_measurements: number;
     datarate: number;
+}
+
+// === Synchronizer ===
+export interface SensorRolesResponse {
+    primary_sensor_id: string | null;
+    secondary_sensor_id: string | null;
+}
+
+export interface SynchronizerStateResponse {
+    [key: string]: unknown;
 }
 
 // === Target ===

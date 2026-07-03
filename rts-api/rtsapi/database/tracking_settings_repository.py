@@ -1,4 +1,5 @@
 import logging
+from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -24,11 +25,11 @@ class TrackingSettingsRepository:
         self.db.refresh(tracking_settings)
         return tracking_settings
 
-    def delete_tracking_settings(self, rts_id: int) -> None:
+    def delete_tracking_settings(self, rts_id: UUID) -> None:
         self.db.query(TrackingSettings).filter_by(rts_id=rts_id).delete()
         self.db.commit()
 
-    def get_tracking_settings(self, rts_id: int) -> TrackingSettings:
+    def get_tracking_settings(self, rts_id: UUID) -> TrackingSettings:
         tracking_settings = self.db.query(TrackingSettings).filter(TrackingSettings.rts_id == rts_id).first()
 
         if tracking_settings is None:
@@ -39,7 +40,7 @@ class TrackingSettingsRepository:
     def get_all_tracking_settings(self) -> list[TrackingSettings]:
         return self.db.query(TrackingSettings).all()
 
-    def update_tracking_settings(self, rts_id: int, tracking_settings: TrackingSettings) -> TrackingSettings:
+    def update_tracking_settings(self, rts_id: UUID, tracking_settings: TrackingSettings) -> TrackingSettings:
         new_tracking_setting_dict = {
             key: value for key, value in tracking_settings.__dict__.items() if key.startswith("_") is False
         }

@@ -1,6 +1,7 @@
 import time
 
 from fastapi import Depends
+from uuid import UUID
 
 from rtsapi.database.device_repository import DeviceRepository
 from rtsapi.dtos import CreateDeviceRequest, DeviceResponse
@@ -16,16 +17,16 @@ class DeviceService:
         added_device = self.device_repository.add_device(db_device)
         return DeviceMapper.to_dto(added_device)
 
-    def update_device(self, device_id: int, create_device_request: CreateDeviceRequest) -> DeviceResponse:
+    def update_device(self, device_id: UUID, create_device_request: CreateDeviceRequest) -> DeviceResponse:
         db_device = DeviceMapper.to_db(create_device_request)
         db_device.id = device_id
         updated_device = self.device_repository.update_device(db_device)
         return DeviceMapper.to_dto(updated_device)
 
-    def delete_device(self, device_id: int) -> None:
+    def delete_device(self, device_id: UUID) -> None:
         self.device_repository.delete_device(device_id)
 
-    def get_device(self, device_id: int) -> DeviceResponse:
+    def get_device(self, device_id: UUID) -> DeviceResponse:
         device = self.device_repository.get_device(device_id)
         return DeviceMapper.to_dto(device)
 

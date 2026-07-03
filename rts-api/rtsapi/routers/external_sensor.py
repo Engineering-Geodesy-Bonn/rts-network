@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request
+from uuid import UUID
 
 from rtsapi.dtos import AddExternalSensorMeasurementRequest, ExternalSensorResponse
 from rtsapi.services.external_sensor_service import ExternalSensorService
@@ -12,11 +13,11 @@ def get_external_sensors(external_sensor_service: ExternalSensorService = Depend
 
 
 @router.get("/external_sensors/{sensor_id}", status_code=200)
-def get_external_sensor(sensor_id: int, external_sensor_service: ExternalSensorService = Depends(ExternalSensorService)) -> ExternalSensorResponse:
+def get_external_sensor(sensor_id: UUID, external_sensor_service: ExternalSensorService = Depends(ExternalSensorService)) -> ExternalSensorResponse:
     return external_sensor_service.get_external_sensor(sensor_id)
 
 @router.delete("/external_sensors/{sensor_id}", status_code=204)
-def delete_external_sensor(sensor_id: int, external_sensor_service: ExternalSensorService = Depends(ExternalSensorService)) -> None:
+def delete_external_sensor(sensor_id: UUID, external_sensor_service: ExternalSensorService = Depends(ExternalSensorService)) -> None:
     external_sensor_service.delete_external_sensor(sensor_id)
 
 @router.post("/external_sensors/measurement", status_code=204)
@@ -25,9 +26,9 @@ async def add_external_sensor_measurement(request: Request, add_external_sensor_
     external_sensor_service.add_external_sensor_measurement(client_ip, add_external_sensor_measurement_request)
 
 @router.put("/external_sensors/{sensor_id}", status_code=200)
-def update_external_sensor(sensor_id: int, name: str, external_sensor_service: ExternalSensorService = Depends(ExternalSensorService)) -> ExternalSensorResponse:
+def update_external_sensor(sensor_id: UUID, name: str, external_sensor_service: ExternalSensorService = Depends(ExternalSensorService)) -> ExternalSensorResponse:
     return external_sensor_service.update_external_sensor(sensor_id, name)
 
 @router.get("/external_sensors/{sensor_id}/measurements", status_code=200)
-def get_external_sensor_measurements(sensor_id: int, external_sensor_service: ExternalSensorService = Depends(ExternalSensorService)) -> list:
+def get_external_sensor_measurements(sensor_id: UUID, external_sensor_service: ExternalSensorService = Depends(ExternalSensorService)) -> list:
     return external_sensor_service.get_external_sensor_measurements(sensor_id)

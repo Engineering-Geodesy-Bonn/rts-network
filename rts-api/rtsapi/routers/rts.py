@@ -17,7 +17,7 @@ async def get_all_rts(session_id: UUID | None = None,
 
 
 @router.get("/rts/{rts_id}", response_model=RTSResponse)
-async def get_rts(rts_id: int, rts_service: RTSService = Depends(RTSService)):
+async def get_rts(rts_id: UUID, rts_service: RTSService = Depends(RTSService)):
     return rts_service.get_rts(rts_id)
 
 
@@ -31,7 +31,7 @@ async def create_rts(
 
 @router.put("/rts/{rts_id}", response_model=RTSResponse)
 async def update_rts(
-    rts_id: int,
+    rts_id: UUID,
     rts_connection: UpdateRTSRequest,
     rts_service: RTSService = Depends(RTSService),
 ):
@@ -39,17 +39,17 @@ async def update_rts(
 
 
 @router.delete("/rts/{rts_id}", status_code=204)
-async def delete_rts(rts_id: int, rts_service: RTSService = Depends(RTSService)):
+async def delete_rts(rts_id: UUID, rts_service: RTSService = Depends(RTSService)):
     return rts_service.delete_rts(rts_id)
 
 
 @router.get("/rts/{rts_id}/status")
-async def get_rts_status(rts_id: int, rts_service: RTSService = Depends(RTSService)):
+async def get_rts_status(rts_id: UUID, rts_service: RTSService = Depends(RTSService)):
     return rts_service.get_rts_status(rts_id)
 
 
 @router.get("/rts/{rts_id}/tracking_settings", response_model=TrackingSettingsResponse)
-async def get_tracking_settings(rts_id: int, rts_service: RTSService = Depends(RTSService)):
+async def get_tracking_settings(rts_id: UUID, rts_service: RTSService = Depends(RTSService)):
     return rts_service.get_tracking_settings(rts_id)
 
 
@@ -58,7 +58,7 @@ async def get_tracking_settings(rts_id: int, rts_service: RTSService = Depends(R
     response_model=UpdateTrackingSettingsRequest,
 )
 async def update_tracking_settings(
-    rts_id: int,
+    rts_id: UUID,
     tracking_settings: UpdateTrackingSettingsRequest,
     rts_service: RTSService = Depends(RTSService),
 ):

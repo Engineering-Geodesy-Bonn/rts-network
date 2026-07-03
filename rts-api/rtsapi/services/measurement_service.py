@@ -7,26 +7,32 @@ from fastapi.responses import PlainTextResponse
 from rtsapi.database.measurement_repository import MeasurementRepository
 from rtsapi.database.rts_job_repository import RTSJobRepository
 from rtsapi.database.rts_repository import RTSRepository
-from rtsapi.dtos import AddMeasurementRequest, MeasurementResponse, RTSJobStatus, RTSResponse
+from rtsapi.dtos import AddMeasurementRequest, MeasurementResponse, RTSResponse
 from rtsapi.exceptions import NoMeasurementsAvailableException, RTSNotFoundException
 from rtsapi.mappers import MeasurementMapper
 from rtsapi.rts_observations import RTSObservations, RTSStation, RTSVarianceConfig
+from uuid import UUID
+
+from rtsapi.services.synchronizer_service import SynchronizerService
 
 logger = logging.getLogger("root")
 
 
-class MeasurementService:
+class MeasurementRepository:
     def __init__(
         self,
         measurement_repository: MeasurementRepository = Depends(MeasurementRepository),
         rts_job_repository: RTSJobRepository = Depends(RTSJobRepository),
         rts_repository: RTSRepository = Depends(RTSRepository),
+        synchronizer_service: SynchronizerService = Depends(SynchronizerService),
     ) -> None:
         self.measurement_repository = measurement_repository
         self.rts_job_repository = rts_job_repository
         self.rts_repository = rts_repository
+        self.synchronizer_service = synchronizer_service
 
     def add_measurement(self, add_measurement_request: AddMeasurementRequest) -> MeasurementResponse:
+        self.synchronizer_service.handle_rts_measurement(add_measurement_request)
         job = self.rts_job_repository.get_rts_job(add_measurement_request.rts_job_id)
         db_measurement = MeasurementMapper.to_db(job.rts_id, add_measurement_request)
         added_measurement = self.measurement_repository.add_measurement(db_measurement)
@@ -45,25 +51,31 @@ class MeasurementService:
         measurement = AddMeasurementRequest(**measurement_dict)
         self.add_measurement(measurement)
 
-    def get_raw_measurements(self, job_id: int = None) -> list[MeasurementResponse]:
+    def get_raw_measurements(self, job_id: UUID = None) -> list[MeasurementResponse]:
         rts_obs = self.get_rts_observations(job_id)
         return rts_obs.to_measurement_response()
 
     def get_latest_measurements(self) -> list[MeasurementResponse]:
         latest_measurements = self.measurement_repository.get_latest_measurements()
         return [MeasurementMapper.to_dto(m) for m in latest_measurements]
+    
+    def get_latest_measurement_of_rts(self, rts_id: UUID) -> MeasurementResponse | None:
+        latest_measurement = self.measurement_repository.get_last_measurement_of_rts(rts_id)
+        if latest_measurement:
+            return MeasurementMapper.to_dto(latest_measurement)
+        return None
 
-    def get_corrected_measurements(self, job_id: int) -> list[MeasurementResponse]:
+    def get_corrected_measurements(self, job_id: UUID) -> list[MeasurementResponse]:
         corrected_rts_obs = self.get_corrected_rts_observations(job_id)
         return corrected_rts_obs.to_measurement_response()
 
-    def get_rts_observations(self, job_id: int) -> RTSObservations:
+    def get_rts_observations(self, job_id: UUID) -> RTSObservations:
         job = self.rts_job_repository.get_rts_job(job_id)
 
         try:
             rts = self.rts_repository.get_rts(job.rts_id, deleted_ok=True)
         except RTSNotFoundException:
-            rts = RTSResponse(id=0, device_id=0)
+            rts = RTSResponse(id=UUID(int=0), device_id=UUID(int=0))
 
         rts_variance_config = RTSVarianceConfig(
             distance=rts.distance_std_dev**2, ppm=rts.distance_ppm, angle=rts.angle_std_dev**2
@@ -78,19 +90,19 @@ class MeasurementService:
 
         return RTSObservations(measurements=measurements, variances=rts_variance_config, station=rts_station)
 
-    def get_corrected_rts_observations(self, job_id: int) -> RTSObservations:
+    def get_corrected_rts_observations(self, job_id: UUID) -> RTSObservations:
         job = self.rts_job_repository.get_rts_job(job_id)
         try:
             rts = self.rts_repository.get_rts(job.rts_id, deleted_ok=True)
         except RTSNotFoundException:
-            rts = RTSResponse(id=0, device_id=0)
+            rts = RTSResponse(id=UUID(int=0), device_id=UUID(int=0))
 
         rts_observations = self.get_rts_observations(job_id)
         rts_observations.sync_sensor_time(baudrate=rts.baudrate, external_delay=rts.external_delay)
         rts_observations.apply_intrinsic_delay(rts.internal_delay)
         return rts_observations
 
-    def download_measurements(self, job_id: int, filename: str = None, raw: bool = False) -> PlainTextResponse:
+    def download_measurements(self, job_id: UUID, filename: str = None, raw: bool = False) -> PlainTextResponse:
         if not filename:
             job = self.rts_job_repository.get_rts_job(job_id)
             filename = (
@@ -111,7 +123,7 @@ class MeasurementService:
             content=measurements_str, headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
 
-    def download_trajectory(self, job_id: int) -> PlainTextResponse:
+    def download_trajectory(self, job_id: UUID) -> PlainTextResponse:
         job = self.rts_job_repository.get_rts_job(job_id)
         trajectory = self.get_corrected_rts_observations(job_id).export_to_trajectory()
         trajectory_name = (

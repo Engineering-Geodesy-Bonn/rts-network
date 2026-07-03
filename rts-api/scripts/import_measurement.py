@@ -1,5 +1,6 @@
 import logging
 from enum import Enum
+from uuid import UUID
 
 import numpy as np
 import requests
@@ -9,7 +10,7 @@ from rtsapi.dtos import MeasurementResponse
 
 logging.basicConfig(level=logging.INFO)
 
-RTS_ID = 2
+RTS_ID = UUID("00000000-0000-0000-0000-000000000000")  # Replace with actual RTS UUID
 API_URL = "http://127.0.0.1:8000"
 TIMEOUT = 5
 
@@ -23,18 +24,18 @@ class AddMeasurementRequest(BaseModel):
     distance: float
     horizontal_angle: float
     vertical_angle: float
-    rts_job_id: int
+    rts_job_id: UUID
 
 
 class CreateRTSJobRequest(BaseModel):
-    rts_id: int
+    rts_id: UUID
     job_type: str
     payload: dict = {}
 
 
 class RTSJobResponse(BaseModel):
-    job_id: int
-    rts_id: int | None
+    job_id: UUID
+    rts_id: UUID | None
     job_type: str
     job_status: str
     created_at: float
@@ -55,7 +56,7 @@ class RTSJobStatus(Enum):
     FAILED = "failed"
 
 
-def update_job_status(job_id: int, status: RTSJobStatus) -> RTSJobResponse:
+def update_job_status(job_id: UUID, status: RTSJobStatus) -> RTSJobResponse:
     response = requests.put(f"{API_URL}/jobs/{job_id}?job_status={status.value}", timeout=TIMEOUT)
     response.raise_for_status()
     return RTSJobResponse.model_validate(response.json())
