@@ -1234,7 +1234,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.15.1" },
     { name = "sqlalchemy", specifier = ">=2.0.36" },
     { name = "trajectopy", specifier = ">=2.2.3" },
-    { name = "trajectory-sync", git = "https://github.com/gereon-t/trajectory-sync" },
+    { name = "trajectory-sync", specifier = ">=0.1.0" },
     { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 
@@ -1440,9 +1440,13 @@ wheels = [
 [[package]]
 name = "trajectory-sync"
 version = "0.1.0"
-source = { git = "https://github.com/gereon-t/trajectory-sync#2ae76f04cfcbf52c4960e7f195a8b1942bb12d7a" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/4e/0cc00a34b9653d24ff32d0dcf77fd76d80b4444a2fee3a96ebc4d06f4930/trajectory_sync-0.1.0.tar.gz", hash = "sha256:e8a87f47143040bfe11a2884d3af06fe6cdbdad5af96e153fc19c245ebbf4a04", size = 29773, upload-time = "2026-07-06T12:03:41.155Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/45/41/dfb02a0bc0c73ebf87d69f932aaff0edd5ae11233dbe183cd2f8db045928/trajectory_sync-0.1.0-py3-none-any.whl", hash = "sha256:210e111604ec9d906d14bb6990c822cad10699bc84c43298cc7d0485c3d49f57", size = 6598, upload-time = "2026-07-06T12:03:39.932Z" },
 ]
 
 [[package]]
