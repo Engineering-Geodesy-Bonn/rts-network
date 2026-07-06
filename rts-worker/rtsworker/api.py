@@ -3,6 +3,7 @@ import json
 import os
 import queue
 import threading
+from uuid import UUID
 import requests
 import websockets
 from rtsworker.dtos import (
@@ -47,13 +48,13 @@ def fetch_new_job() -> RTSJobResponse:
     return RTSJobResponse.model_validate(response.json())
 
 
-def update_job_status(job_id: int, status: RTSJobStatus) -> RTSJobResponse:
+def update_job_status(job_id: UUID, status: RTSJobStatus) -> RTSJobResponse:
     response = requests.put(f"{API_URL}/jobs/{job_id}?job_status={status.value}", timeout=TIMEOUT)
     response.raise_for_status()
     return RTSJobResponse.model_validate(response.json())
 
 
-def get_job_status(job_id: int) -> RTSJobStatus:
+def get_job_status(job_id: UUID) -> RTSJobStatus:
     response = requests.get(f"{API_URL}/jobs/{job_id}/status", timeout=TIMEOUT)
     response.raise_for_status()
     return RTSJobStatus(response.json()["job_status"])
@@ -71,13 +72,13 @@ def post_static_measurement(new_measurement: AddMeasurementRequest) -> Measureme
     return MeasurementResponse.model_validate(response.json())
 
 
-def get_rts(rts_id: int) -> RTSResponse:
+def get_rts(rts_id: UUID) -> RTSResponse:
     response = requests.get(f"{API_URL}/rts/{rts_id}", timeout=TIMEOUT)
     response.raise_for_status()
     return RTSResponse.model_validate(response.json())
 
 
-def get_tracking_settings(rts_id: int) -> dict:
+def get_tracking_settings(rts_id: UUID) -> dict:
     response = requests.get(f"{API_URL}/rts/{rts_id}/tracking_settings", timeout=TIMEOUT)
     response.raise_for_status()
     return TrackingSettingsResponse.model_validate(response.json())
@@ -89,7 +90,7 @@ def get_latest_target_position() -> TargetPosition:
     return TargetPosition.model_validate(response.json())
 
 
-def websocket_sender(job_id: str, data_queue: queue.Queue, shutdown_event: threading.Event):
+def websocket_sender(job_id: UUID, data_queue: queue.Queue, shutdown_event: threading.Event):
     uri = WEBSOCKET_URL.format(job_id=job_id)
     pending_state = [None]
 

@@ -75,7 +75,23 @@ def change_face(job: RTSJobResponse) -> None:
 
 def dummy_tracking(job: RTSJobResponse):
     print("Starting measurement")
-    while get_job_status(job.job_id) == RTSJobStatus.RUNNING:
+    job_status = get_job_status(job.job_id)
+    last_job_status_time = time.time()
+    
+    measurement_queue = queue.Queue()
+    shutdown_event = threading.Event()
+
+    sender_thread = threading.Thread(
+        target=websocket_sender,
+        args=(job.job_id, measurement_queue, shutdown_event),
+        daemon=True,
+    )
+    sender_thread.start()
+
+    while job_status == RTSJobStatus.RUNNING:
+        if time.time() - last_job_status_time > JOB_CHECK_INTERVAL:
+            job_status = get_job_status(job.job_id)
+            last_job_status_time = time.time()
         timestamp = time.time()
         distance = math.cos(timestamp) * 100
         horizontal_angle = math.sin(timestamp)
@@ -91,7 +107,7 @@ def dummy_tracking(job: RTSJobResponse):
             geocom_return_code=0,
             rpc_return_code=0,
         )
-        post_measurement(add_measurement)
+        measurement_queue.put(add_measurement.model_dump())
         time.sleep(0.01)
     print("Stopped logging")
 
@@ -165,7 +181,7 @@ def track_prism(job: RTSJobResponse) -> None:
 
     except Exception as e:
         print(f"CRITICAL ERROR in measurement loop: {e}")
-        print("This may be caused by a Pydantic version mismatch (e.g., using .model_dump() on V1).")
+        raise e
     finally:
         print("Signaling sender thread to shut down...")
         shutdown_event.set()

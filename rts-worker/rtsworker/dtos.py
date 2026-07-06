@@ -1,6 +1,5 @@
 from enum import Enum
 import math
-from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 
@@ -10,7 +9,7 @@ class CreateDeviceRequest(BaseModel):
 
 
 class DeviceResponse(CreateDeviceRequest):
-    id: UUID
+    id: str
 
 
 class AddMeasurementRequest(BaseModel):
@@ -22,7 +21,7 @@ class AddMeasurementRequest(BaseModel):
     distance: float
     horizontal_angle: float
     vertical_angle: float
-    rts_job_id: UUID
+    rts_job_id: str
 
 
 class MeasurementResponse(BaseModel):
@@ -34,8 +33,8 @@ class MeasurementResponse(BaseModel):
     distance: float
     horizontal_angle: float
     vertical_angle: float
-    rts_job_id: UUID
-    rts_id: UUID | None
+    rts_job_id: str
+    rts_id: str | None
 
 
 class RTSJobType(Enum):
@@ -56,8 +55,8 @@ class RTSJobStatus(Enum):
 
 
 class RTSJobResponse(BaseModel):
-    job_id: UUID
-    rts_id: UUID | None
+    job_id: str
+    rts_id: str | None
     job_type: RTSJobType
     job_status: RTSJobStatus
     created_at: float
@@ -85,12 +84,12 @@ class UpdateRTSRequest(BaseModel):
 
 
 class CreateRTSRequest(UpdateRTSRequest):
-    device_id: UUID
+    device_id: str
 
 
 class RTSResponse(BaseModel):
-    id: UUID
-    device_id: UUID
+    id: str
+    device_id: str
     name: str = "RTS"
     baudrate: int = 115200
     port: str = "/dev/ttyUSB0"
@@ -128,8 +127,8 @@ class TrackingSettingsResponse(BaseModel):
     power_search_min_range: int = 1
     power_search_max_range: int = 50
     power_search: bool = True
-    rts_id: UUID
-    id: UUID
+    rts_id: str
+    id: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -177,6 +176,6 @@ class TargetPosition(BaseModel):
     y: float
     z: float
     timestamp: float
-    rts_id: UUID | None
+    rts_id: str | None
 
     model_config = ConfigDict(from_attributes=True)
