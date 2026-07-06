@@ -175,7 +175,7 @@
                                     {session.name}
                                 </div>
                                 <div class="text-sm text-slate-400 mt-0.5">
-                                    Created {formatDate(session.created_at)} &middot;
+                                    Created {formatDate(session.created_at)}
                                 </div>
                                 <div class="text-sm text-slate-400 mt-0.5">
                                     ID: {session.id}
