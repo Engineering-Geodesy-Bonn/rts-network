@@ -13,7 +13,7 @@
         rtsId,
         onclose,
     }: {
-        rtsId: number;
+        rtsId: string;
         onclose: () => void;
     } = $props();
 

@@ -60,8 +60,7 @@ async def websocket_measurement_endpoint(
                 logger.debug(
                     f"[WS] Received batch of {len(data)} measurements for job {job_id}"
                 )
-                for item in data:
-                    measurement_service.add_measurement_from_ws(item)
+                measurement_service.add_measurements_bulk_from_ws(data)
             elif isinstance(data, dict):
                 measurement_service.add_measurement_from_ws(data)
             else:

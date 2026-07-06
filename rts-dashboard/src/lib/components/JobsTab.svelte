@@ -23,10 +23,10 @@
 
     // ── State ───────────────────────────────────────────────
     let jobs = $state<RTSJobResponse[]>([]);
-    let rtsMap = $state<Record<number, RTSResponse>>({});
+    let rtsMap = $state<Record<string, RTSResponse>>({});
     let loading = $state(true);
     let error = $state("");
-    let downloadingId = $state<number | null>(null);
+    let downloadingId = $state<string | null>(null);
     let downloadingAll = $state(false);
     let plottingJob = $state<RTSJobResponse | null>(null);
     let pollTimerId: ReturnType<typeof setInterval> | null = null;
@@ -77,7 +77,7 @@
             jobs = allJobs.filter(
                 (j) => j.rts_id != null && rtsIds.has(j.rts_id),
             );
-            const map: Record<number, RTSResponse> = {};
+            const map: Record<string, RTSResponse> = {};
             for (const r of allRts) map[r.id] = r;
             rtsMap = map;
         } catch (e: any) {
@@ -100,7 +100,7 @@
     }
 
     // ── Actions ─────────────────────────────────────────────
-    async function handleStop(jobId: number) {
+    async function handleStop(jobId: string) {
         try {
             await updateJobStatus(jobId, "finished");
             await loadData();
@@ -124,8 +124,8 @@
         }
     }
 
-    async function handleDelete(jobId: number) {
-        if (!confirm(`Delete job #${jobId}?`)) return;
+    async function handleDelete(jobId: string) {
+        if (!confirm(`Delete job ${jobId}?`)) return;
         try {
             await deleteJob(jobId);
             jobs = jobs.filter((j) => j.job_id !== jobId);
@@ -134,7 +134,7 @@
         }
     }
 
-    async function handleDownloadRaw(jobId: number) {
+    async function handleDownloadRaw(jobId: string) {
         downloadingId = jobId;
         try {
             await downloadRawMeasurements(jobId);
@@ -145,7 +145,7 @@
         }
     }
 
-    async function handleDownloadTrajectory(jobId: number) {
+    async function handleDownloadTrajectory(jobId: string) {
         downloadingId = jobId;
         try {
             await downloadTrajectory(jobId);
@@ -194,7 +194,7 @@
         return `${m}:${s.toString().padStart(2, "0")}`;
     }
 
-    function rtsName(rtsId: number | null): string {
+    function rtsName(rtsId: string | null): string {
         if (rtsId == null) return "—";
         return rtsMap[rtsId]?.name ?? `RTS ${rtsId}`;
     }

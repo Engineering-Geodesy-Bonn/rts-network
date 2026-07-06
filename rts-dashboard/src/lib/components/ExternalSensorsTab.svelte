@@ -2,7 +2,8 @@
     import { onMount, onDestroy } from "svelte";
     import {
         getExternalSensors,
-        updateExternalSensor,
+        updateExternalSensorName,
+        updateExternalSensorLoggingActive,
         deleteExternalSensor,
     } from "../api/client";
     import type { ExternalSensorResponse } from "../api/types";
@@ -11,10 +12,11 @@
     let loading = $state(true);
     let error = $state("");
     let successMessage = $state("");
-    let editingSensorId = $state<number | null>(null);
+    let editingSensorId = $state<string | null>(null);
     let draftName = $state("");
-    let savingSensorId = $state<number | null>(null);
-    let deletingSensorId = $state<number | null>(null);
+    let savingSensorId = $state<string | null>(null);
+    let deletingSensorId = $state<string | null>(null);
+    let togglingActiveSensorId = $state<string | null>(null);
     let now = $state(Date.now());
     let pollTimerId: ReturnType<typeof setInterval> | null = null;
     let tickTimerId: ReturnType<typeof setInterval> | null = null;
@@ -73,12 +75,16 @@
             cancelEdit();
             return;
         }
+        if (!sensor.id) {
+            error = "Cannot rename: sensor UUID is not available";
+            return;
+        }
 
         savingSensorId = sensor.id;
         error = "";
         successMessage = "";
         try {
-            const updatedSensor = await updateExternalSensor(
+            const updatedSensor = await updateExternalSensorName(
                 sensor.id,
                 trimmedName,
             );
@@ -91,6 +97,32 @@
             error = e.message || "Failed to rename external sensor";
         } finally {
             savingSensorId = null;
+        }
+    }
+
+    async function handleToggleActive(sensor: ExternalSensorResponse) {
+        if (!sensor.id) {
+            error = `Cannot update "${sensor.name}": the sensor has not registered a UUID yet. Ensure the device is connected and try refreshing.`;
+            return;
+        }
+        togglingActiveSensorId = sensor.id;
+        error = "";
+        successMessage = "";
+        try {
+            const updatedSensor = await updateExternalSensorLoggingActive(
+                sensor.id,
+                !sensor.logging_active,
+            );
+            sensors = sensors.map((item) =>
+                item.id === sensor.id ? updatedSensor : item,
+            );
+            successMessage = updatedSensor.logging_active
+                ? `Sensor "${updatedSensor.name}" activated`
+                : `Sensor "${updatedSensor.name}" deactivated`;
+        } catch (e: any) {
+            error = e.message || "Failed to update sensor active state";
+        } finally {
+            togglingActiveSensorId = null;
         }
     }
 
@@ -194,6 +226,7 @@
                 {@const isEditing = editingSensorId === sensor.id}
                 {@const isSaving = savingSensorId === sensor.id}
                 {@const isDeleting = deletingSensorId === sensor.id}
+                {@const isTogglingActive = togglingActiveSensorId === sensor.id}
                 {@const lastSeenTs =
                     typeof sensor.last_seen === "number"
                         ? sensor.last_seen
@@ -202,9 +235,11 @@
 
                 <div
                     class="bg-slate-800 rounded-xl border transition-colors
-                    {recent
-                        ? 'border-green-500/40'
-                        : 'border-slate-700 hover:border-slate-600'}"
+                    {!sensor.logging_active
+                        ? 'border-slate-700/50 opacity-60 hover:opacity-80'
+                        : recent
+                          ? 'border-green-500/40'
+                          : 'border-slate-700 hover:border-slate-600'}"
                 >
                     <div class="p-5">
                         <div
@@ -343,6 +378,30 @@
                                         </span>
                                     </div>
                                 {/if}
+                                <div
+                                    class="flex justify-between gap-3 items-center pt-1 border-t border-slate-700/50"
+                                >
+                                    <span class="text-slate-400">Active</span>
+                                    <button
+                                        onclick={() =>
+                                            handleToggleActive(sensor)}
+                                        disabled={isTogglingActive}
+                                        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                                            {sensor.logging_active
+                                            ? 'bg-blue-600'
+                                            : 'bg-slate-600'}"
+                                        title={sensor.logging_active
+                                            ? "Deactivate sensor"
+                                            : "Activate sensor"}
+                                    >
+                                        <span
+                                            class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform
+                                                {sensor.logging_active
+                                                ? 'translate-x-4.5'
+                                                : 'translate-x-0.5'}"
+                                        ></span>
+                                    </button>
+                                </div>
                             </div>
                         {/if}
                     </div>

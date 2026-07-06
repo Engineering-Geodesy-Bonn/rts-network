@@ -239,6 +239,7 @@ class ExternalSensorResponse(BaseModel):
     ip: str
     name: str
     last_seen: float
+    logging_active: bool = False
 
 
 class AddExternalSensorMeasurementRequest(BaseModel):

@@ -64,7 +64,7 @@
     let measurementCount = $state(0);
     let lastFetch = $state("");
     let cached = $state<MeasurementResponse[]>([]);
-    let rtsMap = $state<Record<number, RTSResponse>>({});
+    let rtsMap = $state<Record<string, RTSResponse>>({});
     let pollTimerId: ReturnType<typeof setInterval> | null = null;
 
     const unsub = measurementCache.subscribe((m) => {
@@ -204,12 +204,12 @@
         if (!xyChart && !xChart) return;
 
         // Group measurements by rts_id
-        const byRts = new Map<number, MeasurementResponse[]>();
+        const byRts = new Map<string, MeasurementResponse[]>();
         const sorted = [...cached].sort(
             (a, b) => a.controller_timestamp - b.controller_timestamp,
         );
         for (const m of sorted) {
-            const key = m.rts_id ?? 0;
+            const key = m.rts_id ?? "";
             if (!byRts.has(key)) byRts.set(key, []);
             byRts.get(key)!.push(m);
         }
@@ -250,14 +250,14 @@
         // Build per-RTS time-series datasets aligned to global labels
         // Each dataset produces a value only for its own RTS measurements, null otherwise
         function makeDatasets(
-            valueFn: (rtsId: number, m: MeasurementResponse) => number,
+            valueFn: (rtsId: string, m: MeasurementResponse) => number,
         ) {
             return rtsIds.map((rtsId, ci) => {
                 const rts = rtsMap[rtsId];
                 return {
                     label: rts?.name ?? `RTS ${rtsId}`,
                     data: sorted.map((m) =>
-                        (m.rts_id ?? 0) === rtsId ? valueFn(rtsId, m) : null,
+                        (m.rts_id ?? "") === rtsId ? valueFn(rtsId, m) : null,
                     ),
                     borderColor: color(ci),
                     backgroundColor: color(ci) + "20",
@@ -269,15 +269,15 @@
             });
         }
 
-        function xVal(rtsId: number, m: MeasurementResponse) {
+        function xVal(rtsId: string, m: MeasurementResponse) {
             const rts = rtsMap[rtsId];
             return computeX(rts?.station_x ?? 0, rts?.orientation ?? 0, m);
         }
-        function yVal(rtsId: number, m: MeasurementResponse) {
+        function yVal(rtsId: string, m: MeasurementResponse) {
             const rts = rtsMap[rtsId];
             return computeY(rts?.station_y ?? 0, rts?.orientation ?? 0, m);
         }
-        function zVal(rtsId: number, m: MeasurementResponse) {
+        function zVal(rtsId: string, m: MeasurementResponse) {
             const rts = rtsMap[rtsId];
             return computeZ(rts?.station_z ?? 0, m);
         }

@@ -25,6 +25,10 @@ class MeasurementRepository:
         self.db.refresh(measurement)
         return measurement
 
+    def add_measurements_bulk(self, measurements: list[Measurement]) -> None:
+        self.db.add_all(measurements)
+        self.db.commit()
+
     def get_latest_measurements(self) -> list[Measurement]:
         """Get the latest measurements for all running jobs"""
         running_jobs = self.rts_job_repository.get_running_rts_jobs()

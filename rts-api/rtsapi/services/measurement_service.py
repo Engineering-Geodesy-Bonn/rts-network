@@ -58,6 +58,15 @@ class MeasurementRepository:
         measurement = AddMeasurementRequest(**measurement_dict)
         self.add_measurement(measurement)
 
+    def add_measurements_bulk_from_ws(self, measurement_dicts: list[dict]) -> None:
+        db_measurements = []
+        for item in measurement_dicts:
+            measurement = AddMeasurementRequest(**item)
+            self.synchronizer_service.handle_rts_measurement(measurement)
+            job = self.rts_job_repository.get_rts_job(measurement.rts_job_id)
+            db_measurements.append(MeasurementMapper.to_db(job.rts_id, measurement))
+        self.measurement_repository.add_measurements_bulk(db_measurements)
+
     def get_raw_measurements(self, job_id: UUID = None) -> list[MeasurementResponse]:
         rts_obs = self.get_rts_observations(job_id)
         return rts_obs.to_measurement_response()

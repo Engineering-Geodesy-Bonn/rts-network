@@ -8,7 +8,7 @@ from rtsapi.database import engine, models
 from rtsapi.global_exception_handling import catch_exceptions_middleware
 from rtsapi.routers import device, measurement, root, rts, rts_job, session, target, external_sensor, synchronizer
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(message)s")
 
 models.Base.metadata.create_all(bind=engine)
 

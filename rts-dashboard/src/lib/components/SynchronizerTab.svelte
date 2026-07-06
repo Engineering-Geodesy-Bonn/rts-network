@@ -38,6 +38,9 @@
         draftPrimary !== savedRoles.primary_sensor_id ||
             draftSecondary !== savedRoles.secondary_sensor_id,
     );
+    let activeSensors = $derived(
+        externalSensors.filter((s) => s.logging_active),
+    );
 
     // ── UI ────────────────────────────────────────────────────
     let loading = $state(true);
@@ -85,14 +88,14 @@
     }
 
     function extId(s: ExternalSensorResponse): string {
-        return s.uuid ?? String(s.id);
+        return s.id;
     }
 
     function findLabel(id: string | null): string {
         if (!id) return "";
         const ext = externalSensors.find((s) => extId(s) === id);
         if (ext) return ext.name;
-        const rts = rtsList.find((r) => String(r.id) === id);
+        const rts = rtsList.find((r) => r.id === id);
         if (rts) return rts.name;
         return id.length > 16 ? `${id.slice(0, 12)}…` : id;
     }
@@ -100,7 +103,7 @@
     function findKind(id: string | null): "External" | "RTS" | null {
         if (!id) return null;
         if (externalSensors.some((s) => extId(s) === id)) return "External";
-        if (rtsList.some((r) => String(r.id) === id)) return "RTS";
+        if (rtsList.some((r) => r.id === id)) return "RTS";
         return null;
     }
 
@@ -582,7 +585,7 @@
                     </h3>
                     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         {#each rtsList as rts (rts.id)}
-                            {@const sid = String(rts.id)}
+                            {@const sid = rts.id}
                             {@const isPrimary = draftPrimary === sid}
                             {@const isSecondary = draftSecondary === sid}
                             <div
@@ -635,7 +638,7 @@
                 </div>
             {/if}
 
-            {#if externalSensors.length > 0}
+            {#if activeSensors.length > 0}
                 <div>
                     <h3
                         class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3"
@@ -643,7 +646,7 @@
                         External Sensors
                     </h3>
                     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                        {#each externalSensors as sensor (sensor.id)}
+                        {#each activeSensors as sensor (sensor.id)}
                             {@const sid = extId(sensor)}
                             {@const isPrimary = draftPrimary === sid}
                             {@const isSecondary = draftSecondary === sid}
@@ -726,7 +729,7 @@
                 </div>
             {/if}
 
-            {#if rtsList.length === 0 && externalSensors.length === 0}
+            {#if rtsList.length === 0 && activeSensors.length === 0}
                 <div
                     class="bg-slate-800 rounded-xl border border-slate-700 p-8 text-center"
                 >

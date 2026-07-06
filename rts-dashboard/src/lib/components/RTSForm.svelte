@@ -9,14 +9,14 @@
         onsaved,
     }: {
         devices: DeviceResponse[];
-        sessionId: number;
+        sessionId: string;
         onclose: () => void;
         onsaved: () => void;
     } = $props();
 
     let name = $state("RTS");
     // svelte-ignore state_referenced_locally
-    const initialDeviceId = devices.length > 0 ? devices[0].id : 0;
+    const initialDeviceId = devices.length > 0 ? devices[0].id : "";
     let deviceId = $state(initialDeviceId);
     let port = $state("/dev/ttyUSB0");
     let baudrate = $state(115200);

@@ -41,6 +41,10 @@ class ExternalSensorService:
         external_sensor = self.external_sensor_repository.get_external_sensor_by_ip(
             client_ip
         )
+
+        if not external_sensor.logging_active:
+            return
+        
         self.synchronizer_service.handle_external_sensor_measurement(
             external_sensor.id, measurement_request
         )
@@ -69,14 +73,25 @@ class ExternalSensorService:
                 )
             )
 
-        self.external_sensor_repository.update_last_seen(external_sensor.id)
+        if time.time() - external_sensor.last_seen > 5.0:
+            self.external_sensor_repository.update_last_seen(external_sensor.id)
         return ExternalSensorMapper.to_dto(external_sensor)
 
-    def update_external_sensor(
+    def update_external_sensor_name(
         self, sensor_id: UUID, name: str
     ) -> ExternalSensorResponse:
         external_sensor = self.external_sensor_repository.get_external_sensor(sensor_id)
         external_sensor.name = name
+        updated_external_sensor = (
+            self.external_sensor_repository.update_external_sensor(external_sensor)
+        )
+        return ExternalSensorMapper.to_dto(updated_external_sensor)
+
+    def update_external_sensor_logging_active(
+        self, sensor_id: UUID, logging_active: bool
+    ) -> ExternalSensorResponse:
+        external_sensor = self.external_sensor_repository.get_external_sensor(sensor_id)
+        external_sensor.logging_active = logging_active
         updated_external_sensor = (
             self.external_sensor_repository.update_external_sensor(external_sensor)
         )

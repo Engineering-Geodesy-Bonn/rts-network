@@ -24,15 +24,15 @@
 
     let rtsList = $state<RTSResponse[]>([]);
     let devices = $state<DeviceResponse[]>([]);
-    let statuses = $state<Record<number, RTSStatusResponse>>({});
-    let jobTypeMap = $state<Record<number, string>>({});
+    let statuses = $state<Record<string, RTSStatusResponse>>({});
+    let jobTypeMap = $state<Record<string, string>>({});
     let loading = $state(true);
     let error = $state("");
     let showAddForm = $state(false);
     let editingRts = $state<RTSResponse | null>(null);
-    let trackingRtsId = $state<number | null>(null);
+    let trackingRtsId = $state<string | null>(null);
     let session = $state<SessionResponse | null>(null);
-    let actionDropdownId = $state<number | null>(null);
+    let actionDropdownId = $state<string | null>(null);
     let statusTimerId: ReturnType<typeof setInterval> | null = null;
 
     const unsub = currentSession.subscribe((s) => {
@@ -80,7 +80,7 @@
         const results = await Promise.allSettled(
             rtsList.map((rts) => getRtsStatus(rts.id)),
         );
-        const newStatuses: Record<number, RTSStatusResponse> = {};
+        const newStatuses: Record<string, RTSStatusResponse> = {};
         rtsList.forEach((rts, i) => {
             const r = results[i];
             if (r.status === "fulfilled") {
@@ -110,7 +110,7 @@
     }
 
     // ── Job Actions ─────────────────────────────────────────
-    async function startTracking(rtsId: number) {
+    async function startTracking(rtsId: string) {
         try {
             await createJob({ rts_id: rtsId, job_type: "track_prism" });
         } catch (e: any) {
@@ -118,7 +118,7 @@
         }
     }
 
-    async function stopTracking(rtsId: number) {
+    async function stopTracking(rtsId: string) {
         const status = statuses[rtsId];
         if (!status?.busy || !status.job_id) return;
         try {
@@ -158,7 +158,7 @@
         }
     }
 
-    async function runAction(rtsId: number, jobType: RTSJobType) {
+    async function runAction(rtsId: string, jobType: RTSJobType) {
         actionDropdownId = null;
         try {
             await createJob({ rts_id: rtsId, job_type: jobType });
@@ -170,7 +170,7 @@
     }
 
     // ── CRUD ────────────────────────────────────────────────
-    async function handleDelete(id: number) {
+    async function handleDelete(id: string) {
         if (!confirm("Delete this RTS station?")) return;
         try {
             await deleteRts(id);
@@ -190,12 +190,12 @@
         loadData();
     }
 
-    function getDeviceIp(deviceId: number): string {
+    function getDeviceIp(deviceId: string): string {
         const dev = devices.find((d) => d.id === deviceId);
         return dev?.ip || "Unknown";
     }
 
-    function toggleDropdown(rtsId: number) {
+    function toggleDropdown(rtsId: string) {
         actionDropdownId = actionDropdownId === rtsId ? null : rtsId;
     }
 

@@ -49,7 +49,7 @@ export async function getSessions(): Promise<SessionResponse[]> {
     return request<SessionResponse[]>('/session');
 }
 
-export async function getSession(id: number): Promise<SessionResponse> {
+export async function getSession(id: string): Promise<SessionResponse> {
     return request<SessionResponse>(`/session/${id}`);
 }
 
@@ -60,16 +60,16 @@ export async function createSession(data: CreateSessionRequest): Promise<Session
     });
 }
 
-export async function deleteSession(id: number): Promise<void> {
+export async function deleteSession(id: string): Promise<void> {
     await request<void>(`/session/${id}`, { method: 'DELETE' });
 }
 
 // ── RTS ─────────────────────────────────────────────────────
-export async function getAllRts(sessionId: number): Promise<RTSResponse[]> {
+export async function getAllRts(sessionId: string): Promise<RTSResponse[]> {
     return request<RTSResponse[]>(`/rts?session_id=${sessionId}`);
 }
 
-export async function getRts(id: number): Promise<RTSResponse> {
+export async function getRts(id: string): Promise<RTSResponse> {
     return request<RTSResponse>(`/rts/${id}`);
 }
 
@@ -80,28 +80,28 @@ export async function createRts(data: CreateRTSRequest): Promise<RTSResponse> {
     });
 }
 
-export async function updateRts(id: number, data: UpdateRTSRequest): Promise<RTSResponse> {
+export async function updateRts(id: string, data: UpdateRTSRequest): Promise<RTSResponse> {
     return request<RTSResponse>(`/rts/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
     });
 }
 
-export async function deleteRts(id: number): Promise<void> {
+export async function deleteRts(id: string): Promise<void> {
     await request<void>(`/rts/${id}`, { method: 'DELETE' });
 }
 
-export async function getRtsStatus(rtsId: number): Promise<RTSStatusResponse> {
+export async function getRtsStatus(rtsId: string): Promise<RTSStatusResponse> {
     return request<RTSStatusResponse>(`/rts/${rtsId}/status`);
 }
 
 // ── Tracking Settings ───────────────────────────────────────
-export async function getTrackingSettings(rtsId: number): Promise<TrackingSettingsResponse> {
+export async function getTrackingSettings(rtsId: string): Promise<TrackingSettingsResponse> {
     return request<TrackingSettingsResponse>(`/rts/${rtsId}/tracking_settings`);
 }
 
 export async function updateTrackingSettings(
-    rtsId: number,
+    rtsId: string,
     data: UpdateTrackingSettingsRequest,
 ): Promise<UpdateTrackingSettingsRequest> {
     return request<UpdateTrackingSettingsRequest>(`/rts/${rtsId}/tracking_settings`, {
@@ -115,15 +115,15 @@ export async function getLatestMeasurements(): Promise<MeasurementResponse[]> {
     return request<MeasurementResponse[]>('/measurements/latest');
 }
 
-export async function getRawMeasurements(jobId: number): Promise<MeasurementResponse[]> {
+export async function getRawMeasurements(jobId: string): Promise<MeasurementResponse[]> {
     return request<MeasurementResponse[]>(`/measurements/raw?job_id=${jobId}`);
 }
 
-export async function getCorrectedMeasurements(jobId: number): Promise<MeasurementResponse[]> {
+export async function getCorrectedMeasurements(jobId: string): Promise<MeasurementResponse[]> {
     return request<MeasurementResponse[]>(`/measurements/corrected?job_id=${jobId}`);
 }
 
-export async function performStaticMeasurement(rtsId: number): Promise<MeasurementResponse> {
+export async function performStaticMeasurement(rtsId: string): Promise<MeasurementResponse> {
     return request<MeasurementResponse>('/measurements/static', {
         method: 'POST',
         body: JSON.stringify({ rts_id: rtsId }),
@@ -149,16 +149,16 @@ async function downloadFile(path: string, fallbackName: string): Promise<void> {
     URL.revokeObjectURL(a.href);
 }
 
-export async function downloadTrajectory(jobId: number): Promise<void> {
+export async function downloadTrajectory(jobId: string): Promise<void> {
     await downloadFile(`/measurements/trajectory/${jobId}`, `trajectory_${jobId}.csv`);
 }
 
-export async function downloadRawMeasurements(jobId: number): Promise<void> {
+export async function downloadRawMeasurements(jobId: string): Promise<void> {
     await downloadFile(`/measurements/download/${jobId}`, `raw_${jobId}.csv`);
 }
 
 // ── Session Export (download all jobs' data as zip/csv) ─────
-export async function exportSession(sessionId: number): Promise<void> {
+export async function exportSession(sessionId: string): Promise<void> {
     // Get session's RTS, then all jobs, then filter to jobs belonging to session RTS
     const sessionRts = await getAllRts(sessionId);
     const rtsIds = new Set(sessionRts.map(r => r.id));
@@ -181,7 +181,7 @@ export async function getAllJobs(): Promise<RTSJobResponse[]> {
     return request<RTSJobResponse[]>('/jobs');
 }
 
-export async function getJob(id: number): Promise<RTSJobResponse> {
+export async function getJob(id: string): Promise<RTSJobResponse> {
     return request<RTSJobResponse>(`/jobs/${id}`);
 }
 
@@ -192,11 +192,11 @@ export async function createJob(data: CreateRTSJobRequest): Promise<RTSJobRespon
     });
 }
 
-export async function deleteJob(id: number): Promise<void> {
+export async function deleteJob(id: string): Promise<void> {
     await request<void>(`/jobs/${id}`, { method: 'DELETE' });
 }
 
-export async function updateJobStatus(id: number, status: RTSJobStatus): Promise<RTSJobResponse> {
+export async function updateJobStatus(id: string, status: RTSJobStatus): Promise<RTSJobResponse> {
     return request<RTSJobResponse>(`/jobs/${id}?job_status=${status}`, { method: 'PUT' });
 }
 
@@ -209,7 +209,7 @@ export async function getDevices(): Promise<DeviceResponse[]> {
     return request<DeviceResponse[]>('/devices');
 }
 
-export async function getDevice(id: number): Promise<DeviceResponse> {
+export async function getDevice(id: string): Promise<DeviceResponse> {
     return request<DeviceResponse>(`/devices/${id}`);
 }
 
@@ -222,17 +222,27 @@ export async function getExternalSensors(): Promise<ExternalSensorResponse[]> {
     return request<ExternalSensorResponse[]>('/external_sensors');
 }
 
-export async function updateExternalSensor(
-    id: number,
+export async function updateExternalSensorName(
+    id: string,
     name: string,
 ): Promise<ExternalSensorResponse> {
     return request<ExternalSensorResponse>(
-        `/external_sensors/${id}?name=${encodeURIComponent(name)}`,
+        `/external_sensors/${id}/name?name=${encodeURIComponent(name)}`,
         { method: 'PUT' },
     );
 }
 
-export async function deleteExternalSensor(id: number): Promise<void> {
+export async function updateExternalSensorLoggingActive(
+    id: string,
+    loggingActive: boolean,
+): Promise<ExternalSensorResponse> {
+    return request<ExternalSensorResponse>(
+        `/external_sensors/${id}/active?logging_active=${loggingActive}`,
+        { method: 'PUT' },
+    );
+}
+
+export async function deleteExternalSensor(id: string): Promise<void> {
     await request<void>(`/external_sensors/${id}`, { method: 'DELETE' });
 }
 

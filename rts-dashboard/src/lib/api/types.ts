@@ -1,6 +1,6 @@
 // === Session ===
 export interface SessionResponse {
-    id: number;
+    id: string;
     name: string;
     created_at: number;
 }
@@ -11,8 +11,8 @@ export interface CreateSessionRequest {
 
 // === RTS ===
 export interface RTSResponse {
-    id: number;
-    device_id: number;
+    id: string;
+    device_id: string;
     name: string;
     baudrate: number;
     port: string;
@@ -48,8 +48,8 @@ export interface CreateRTSRequest {
     distance_std_dev?: number;
     angle_std_dev?: number;
     distance_ppm?: number;
-    device_id: number;
-    session_id: number;
+    device_id: string;
+    session_id: string;
 }
 
 export interface UpdateRTSRequest {
@@ -88,8 +88,8 @@ export interface TrackingSettingsResponse {
     power_search_min_range: number;
     power_search_max_range: number;
     power_search: boolean;
-    rts_id: number;
-    id: number;
+    rts_id: string;
+    id: string;
 }
 
 export interface UpdateTrackingSettingsRequest {
@@ -120,8 +120,8 @@ export interface MeasurementResponse {
     distance: number;
     horizontal_angle: number;
     vertical_angle: number;
-    rts_job_id: number;
-    rts_id: number | null;
+    rts_job_id: string;
+    rts_id: string | null;
 }
 
 // === RTS Jobs ===
@@ -137,8 +137,8 @@ export type RTSJobType =
     | 'add_static_measurement';
 
 export interface RTSJobResponse {
-    job_id: number;
-    rts_id: number | null;
+    job_id: string;
+    rts_id: string | null;
     job_type: RTSJobType;
     job_status: RTSJobStatus;
     created_at: number;
@@ -150,7 +150,7 @@ export interface RTSJobResponse {
 }
 
 export interface CreateRTSJobRequest {
-    rts_id: number;
+    rts_id: string;
     job_type: RTSJobType;
     payload?: Record<string, unknown>;
 }
@@ -159,21 +159,21 @@ export interface CreateRTSJobRequest {
 export interface DeviceResponse {
     ip: string;
     last_seen: number;
-    id: number;
+    id: string;
 }
 
 // === External Sensors ===
 export interface ExternalSensorResponse {
-    id: number;
-    uuid?: string;
+    id: string;
     name: string;
     last_seen: number;
     ip: string;
+    logging_active: boolean;
 }
 
 // === RTS Status ===
 export interface RTSStatusResponse {
-    job_id: number | null;
+    job_id: string | null;
     busy: boolean;
     last_measurement: MeasurementResponse | null;
     num_measurements: number;
@@ -187,7 +187,10 @@ export interface SensorRolesResponse {
 }
 
 export interface SynchronizerStateResponse {
-    [key: string]: unknown;
+    delta_t: number;
+    bias: number;
+    sigma_delta_t: number;
+    sigma_bias: number;
 }
 
 // === Target ===
@@ -196,5 +199,5 @@ export interface TargetPosition {
     y: number;
     z: number;
     timestamp: number;
-    rts_id: number | null;
+    rts_id: string | null;
 }

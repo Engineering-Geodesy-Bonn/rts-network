@@ -161,6 +161,7 @@ class ExternalSensor(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     ip: Mapped[str] = mapped_column(index=True)
     name: Mapped[str]
+    logging_active: Mapped[bool] = mapped_column(default=False)
     last_seen: Mapped[float | None]
 
     measurements: Mapped[List["ExternalSensorMeasurement"]] = relationship(

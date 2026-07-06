@@ -45,7 +45,7 @@
         }
     }
 
-    async function handleDelete(id: number, event: Event) {
+    async function handleDelete(id: string, event: Event) {
         event.stopPropagation();
         if (!confirm("Delete this session and all associated data?")) return;
         try {
@@ -60,7 +60,7 @@
         currentSession.select(session);
     }
 
-    async function handleExport(event: Event, sessionId: number) {
+    async function handleExport(event: Event, sessionId: string) {
         event.stopPropagation();
         exporting = true;
         error = "";

@@ -13,8 +13,8 @@
         jobType,
         onclose,
     }: {
-        jobId: number;
-        rtsId: number | null;
+        jobId: string;
+        rtsId: string | null;
         jobType: string;
         onclose: () => void;
     } = $props();

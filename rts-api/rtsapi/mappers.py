@@ -244,6 +244,7 @@ class ExternalSensorMapper:
             ip=external_sensor.ip,
             last_seen=external_sensor.last_seen,
             name=external_sensor.name,
+            logging_active=external_sensor.logging_active,
         )
 
     @staticmethod
