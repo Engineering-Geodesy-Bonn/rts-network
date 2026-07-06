@@ -60,3 +60,5 @@ test/tmp
 data/
 logs/
 indoor_delay/
+*.db-shm
+*.db-wal

@@ -61,13 +61,12 @@ def update_external_sensor_logging_active(
     return external_sensor_service.update_external_sensor_logging_active(sensor_id, logging_active)
 
 
-@router.get("/external_sensors/{sensor_id}/measurements", status_code=200)
-def get_external_sensor_measurements(
+@router.get("/external_sensors/{sensor_id}/trajectory", status_code=200)
+def get_external_sensor_trajectory(
     sensor_id: UUID,
     external_sensor_service: ExternalSensorService = Depends(ExternalSensorService),
-) -> list:
-    return external_sensor_service.get_external_sensor_measurements(sensor_id)
-
+) -> str:
+    return external_sensor_service.get_external_sensor_trajectory(sensor_id)
 
 @router.websocket("/ws/external_sensors")
 async def external_sensor_measurement_ws(

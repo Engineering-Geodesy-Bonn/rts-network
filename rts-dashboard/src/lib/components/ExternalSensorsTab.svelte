@@ -5,6 +5,7 @@
         updateExternalSensorName,
         updateExternalSensorLoggingActive,
         deleteExternalSensor,
+        downloadExternalSensorTrajectory,
     } from "../api/client";
     import type { ExternalSensorResponse } from "../api/types";
 
@@ -17,6 +18,7 @@
     let savingSensorId = $state<string | null>(null);
     let deletingSensorId = $state<string | null>(null);
     let togglingActiveSensorId = $state<string | null>(null);
+    let downloadingTrajectoryId = $state<string | null>(null);
     let now = $state(Date.now());
     let pollTimerId: ReturnType<typeof setInterval> | null = null;
     let tickTimerId: ReturnType<typeof setInterval> | null = null;
@@ -145,7 +147,17 @@
             deletingSensorId = null;
         }
     }
-
+    async function handleDownloadTrajectory(sensor: ExternalSensorResponse) {
+        downloadingTrajectoryId = sensor.id;
+        error = "";
+        try {
+            await downloadExternalSensorTrajectory(sensor.id);
+        } catch (e: any) {
+            error = e.message || "Failed to download trajectory";
+        } finally {
+            downloadingTrajectoryId = null;
+        }
+    }
     onMount(async () => {
         await loadSensors();
         pollTimerId = setInterval(pollSensors, 5000);
@@ -227,6 +239,8 @@
                 {@const isSaving = savingSensorId === sensor.id}
                 {@const isDeleting = deletingSensorId === sensor.id}
                 {@const isTogglingActive = togglingActiveSensorId === sensor.id}
+                {@const isDownloadingTrajectory =
+                    downloadingTrajectoryId === sensor.id}
                 {@const lastSeenTs =
                     typeof sensor.last_seen === "number"
                         ? sensor.last_seen
@@ -308,6 +322,27 @@
 
                             {#if !isEditing}
                                 <div class="flex items-center gap-1 shrink-0">
+                                    <button
+                                        onclick={() =>
+                                            handleDownloadTrajectory(sensor)}
+                                        disabled={isDownloadingTrajectory}
+                                        class="text-slate-400 hover:text-green-400 hover:bg-green-500/10 disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-lg transition-colors cursor-pointer"
+                                        title="Download trajectory"
+                                    >
+                                        <svg
+                                            class="w-5 h-5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                            />
+                                        </svg>
+                                    </button>
                                     <button
                                         onclick={() => beginEdit(sensor)}
                                         class="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 p-2 rounded-lg transition-colors cursor-pointer"

@@ -242,6 +242,10 @@ export async function updateExternalSensorLoggingActive(
     );
 }
 
+export async function downloadExternalSensorTrajectory(id: string): Promise<void> {
+    await downloadFile(`/external_sensors/${id}/trajectory`, `trajectory_${id}.csv`);
+}
+
 export async function deleteExternalSensor(id: string): Promise<void> {
     await request<void>(`/external_sensors/${id}`, { method: 'DELETE' });
 }

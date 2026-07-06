@@ -2,6 +2,8 @@ import time
 from uuid import UUID
 
 from fastapi import Depends
+from fastapi.responses import PlainTextResponse
+import numpy as np
 
 from rtsapi.database.external_sensor_repository import ExternalSensorRepository
 from rtsapi.database.models import ExternalSensor
@@ -11,7 +13,7 @@ from rtsapi.dtos import (AddExternalSensorMeasurementRequest,
 from rtsapi.mappers import (ExternalSensorMapper,
                             ExternalSensorMeasurementMapper)
 from rtsapi.services.synchronizer_service import SynchronizerService
-
+import trajectopy as tpy
 
 class ExternalSensorService:
     def __init__(
@@ -61,6 +63,22 @@ class ExternalSensorService:
     ) -> list[ExternalSensorMeasurementResponse]:
         external_sensor = self.external_sensor_repository.get_external_sensor(sensor_id)
         return ExternalSensorMeasurementMapper.to_dtos(external_sensor.measurements)
+    
+    def get_external_sensor_trajectory(self, sensor_id: UUID) -> PlainTextResponse:
+        external_sensor = self.external_sensor_repository.get_external_sensor(sensor_id)
+        measurements = external_sensor.measurements
+        trajectory_data = np.array([
+            (m.timestamp, m.position_x, m.position_y, m.position_z, m.velocity_x, m.velocity_y, m.velocity_z) for m in measurements
+        ])
+        trajectory_name = external_sensor.name.replace(" ", "_")
+        filename = f"{trajectory_name}.traj"
+
+        trajectory = tpy.Trajectory(name=trajectory_name, timestamps=trajectory_data[:, 0], positions=tpy.Positions(xyz=trajectory_data[:, 1:4], epsg=measurements[0].epsg), velocity_xyz=trajectory_data[:, 4:7])
+
+        return PlainTextResponse(
+            content=trajectory.to_string(),
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
 
     def upsert_external_sensor(self, client_ip: str) -> ExternalSensorResponse:
         external_sensor = self.external_sensor_repository.get_external_sensor_by_ip(
