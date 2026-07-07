@@ -13,7 +13,16 @@ logger = logging.getLogger("root")
 router = APIRouter(tags=["Measurements"])
 
 
-@router.post("/measurements")
+@router.post(
+    "/measurements",
+    response_model=MeasurementResponse,
+    summary="Add measurement.",
+    response_description="Added measurement.",
+    responses={
+        200: {"description": "Successfully added measurement."},
+        500: {"description": "Internal server error."},
+    },
+)
 async def add_measurement(
     measurement: AddMeasurementRequest,
     measurement_service: MeasurementRepository = Depends(MeasurementRepository),
@@ -21,7 +30,16 @@ async def add_measurement(
     return measurement_service.add_measurement(measurement)
 
 
-@router.post("/measurements/static")
+@router.post(
+    "/measurements/static",
+    response_model=MeasurementResponse,
+    summary="Add static measurement.",
+    response_description="Added static measurement.",
+    responses={
+        200: {"description": "Successfully added static measurement."},
+        500: {"description": "Internal server error."},
+    },
+)
 async def add_static_measurement(
     measurement: AddMeasurementRequest,
     measurement_service: MeasurementRepository = Depends(MeasurementRepository),
@@ -29,7 +47,10 @@ async def add_static_measurement(
     return measurement_service.add_static_measurement(measurement)
 
 
-@router.websocket("/ws/measurements/stream")
+@router.websocket(
+    "/ws/measurements/stream",
+    name="Websocket that streams latest measurements.",
+)
 async def stream_latest_measurements(
     websocket: WebSocket,
     measurement_service: MeasurementRepository = Depends(MeasurementRepository),
@@ -44,7 +65,10 @@ async def stream_latest_measurements(
         pass
 
 
-@router.websocket("/ws/measurements/{job_id}")
+@router.websocket(
+    "/ws/measurements/{job_id}",
+    name="Websocket that accepts RTS measurements.",
+)
 async def websocket_measurement_endpoint(
     websocket: WebSocket,
     job_id: str,
@@ -74,14 +98,33 @@ async def websocket_measurement_endpoint(
         logger.debug(f"Closing WebSocket connection for job {job_id}")
 
 
-@router.get("/measurements/latest")
+@router.get(
+    "/measurements/latest",
+    response_model=list[MeasurementResponse],
+    summary="Get latest measurements.",
+    response_description="A list of latest measurements.",
+    responses={
+        200: {"description": "Successfully retrieved latest measurements."},
+        500: {"description": "Internal server error."},
+    },
+)
 async def get_latest_measurements(
     measurement_service: MeasurementRepository = Depends(MeasurementRepository),
 ) -> list[MeasurementResponse]:
     return measurement_service.get_latest_measurements()
 
 
-@router.get("/measurements/raw")
+@router.get(
+    "/measurements/raw",
+    response_model=list[MeasurementResponse],
+    summary="Get raw RTS measurements for a job.",
+    response_description="A list of raw RTS measurements.",
+    responses={
+        200: {"description": "Successfully retrieved raw RTS measurements."},
+        404: {"description": "Requested RTS job does not exist."},
+        500: {"description": "Internal server error."},
+    },
+)
 async def get_raw_rts_measurements(
     job_id: UUID,
     measurement_service: MeasurementRepository = Depends(MeasurementRepository),
@@ -89,7 +132,17 @@ async def get_raw_rts_measurements(
     return measurement_service.get_raw_measurements(job_id=job_id)
 
 
-@router.get("/measurements/corrected")
+@router.get(
+    "/measurements/corrected",
+    response_model=list[MeasurementResponse],
+    summary="Get corrected RTS measurements for a job.",
+    response_description="A list of corrected RTS measurements.",
+    responses={
+        200: {"description": "Successfully retrieved corrected RTS measurements."},
+        404: {"description": "Requested RTS job does not exist."},
+        500: {"description": "Internal server error."},
+    },
+)
 async def get_corrected_rts_measurements(
     job_id: UUID,
     measurement_service: MeasurementRepository = Depends(MeasurementRepository),
@@ -97,7 +150,17 @@ async def get_corrected_rts_measurements(
     return measurement_service.get_corrected_measurements(job_id)
 
 
-@router.get("/measurements/download/{job_id}")
+@router.get(
+    "/measurements/download/{job_id}",
+    response_class=PlainTextResponse,
+    summary="Download measurements for a job.",
+    response_description="Measurements file.",
+    responses={
+        200: {"description": "Measurements file."},
+        404: {"description": "Requested RTS job does not exist."},
+        500: {"description": "Internal server error."},
+    },
+)
 async def download_measurements(
     job_id: UUID,
     filename: str = None,
@@ -106,7 +169,17 @@ async def download_measurements(
     return measurement_service.download_measurements(job_id, filename)
 
 
-@router.get("/measurements/trajectory/{job_id}")
+@router.get(
+    "/measurements/trajectory/{job_id}",
+    response_class=PlainTextResponse,
+    summary="Export measurements trajectory for a job.",
+    response_description="Trajectory file.",
+    responses={
+        200: {"description": "Trajectory file compatible with trajectopy."},
+        404: {"description": "Requested RTS job does not exist."},
+        500: {"description": "Internal server error."},
+    },
+)
 async def export_to_trajectory(
     job_id: UUID,
     measurement_service: MeasurementRepository = Depends(MeasurementRepository),

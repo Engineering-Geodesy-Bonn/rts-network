@@ -6,7 +6,16 @@ from rtsapi.services.target_service import TargetService
 router = APIRouter(tags=["Target"])
 
 
-@router.get("/target")
+@router.get(
+    "/target",
+    response_model=TargetPosition,
+    summary="Get latest target position.",
+    response_description="Latest target position.",
+    responses={
+        200: {"description": "Successfully retrieved latest target position."},
+        500: {"description": "Internal server error."},
+    },
+)
 async def get_target_position(
     target_service: TargetService = Depends(TargetService),
 ) -> TargetPosition:

@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Robotic Total Station API",
-    version="0.1.0",
+    version="1.0.0",
     summary="This API allows you to interact with multiple Robotic Total Station (RTS) and its measurements.",
     lifespan=lifespan
 )
