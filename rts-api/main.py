@@ -21,7 +21,8 @@ app = FastAPI(
     title="Robotic Total Station API",
     version="1.0.0",
     summary="This API allows you to interact with multiple Robotic Total Station (RTS) and its measurements.",
-    lifespan=lifespan
+    lifespan=lifespan,
+    root_path="/api",
 )
 app.include_router(measurement.router)
 app.include_router(rts_job.router)

@@ -117,44 +117,30 @@
         <h3 class="font-semibold mb-3">About</h3>
         <div class="text-sm text-slate-400 space-y-1">
             <p>
-                <span class="text-white font-medium">RTS Dashboard</span> — Svelte
-                Frontend
+                <span class="text-white font-medium">RTS Dashboard</span>
             </p>
             <p>
-                Connects to the Robotic Total Station API for managing RTS
-                devices, sessions, and live measurement visualization.
+                Gereon Tombrink, Engineering Geodesy Group, University of Bonn,
+                {new Date().getFullYear()}
             </p>
-        </div>
-    </div>
-
-    <!-- Keyboard shortcuts reference -->
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 mt-6">
-        <h3 class="font-semibold mb-3">API Endpoints</h3>
-        <div class="text-sm text-slate-400 space-y-2 font-mono">
-            <div class="flex justify-between">
-                <span>Health Check</span>
-                <span class="text-slate-300">GET /ping</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Sessions</span>
-                <span class="text-slate-300">GET/POST /session</span>
-            </div>
-            <div class="flex justify-between">
-                <span>RTS Stations</span>
-                <span class="text-slate-300">GET/POST /rts</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Latest Measurements</span>
-                <span class="text-slate-300">GET /measurements/latest</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Jobs</span>
-                <span class="text-slate-300">GET/POST /jobs</span>
-            </div>
-            <div class="flex justify-between">
-                <span>Devices</span>
-                <span class="text-slate-300">GET /devices</span>
-            </div>
+            <p>
+                Connects to the RTS API for managing RTS devices, sessions, and
+                live measurement visualization.
+            </p>
+            <p>
+                Code: <a
+                    href="https://github.com/Engineering-Geodesy-Bonn/rts-network"
+                    style="color: #3b82f6; text-decoration: underline;"
+                    >https://github.com/Engineering-Geodesy-Bonn/rts-network</a
+                >
+            </p>
+            <p>
+                API Documentation: <a
+                    href="/api/docs"
+                    style="color: #3b82f6; text-decoration: underline;"
+                    >/api/docs</a
+                >
+            </p>
         </div>
     </div>
 </div>
