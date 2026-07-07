@@ -347,7 +347,7 @@
                                     {rts.name}
                                 </h3>
                                 <span class="text-xs text-slate-500"
-                                    >ID: {rts.id} &middot; {getDeviceIp(
+                                    >ID: {rts.id.substring(0, 8)} &middot; {getDeviceIp(
                                         rts.device_id,
                                     )}</span
                                 >

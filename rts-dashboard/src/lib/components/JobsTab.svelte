@@ -346,7 +346,7 @@
                                         </span>
                                         <span
                                             class="text-xs text-slate-600 font-mono"
-                                            >#{job.job_id}</span
+                                            >ID: {job.job_id}</span
                                         >
                                     </div>
                                     <div

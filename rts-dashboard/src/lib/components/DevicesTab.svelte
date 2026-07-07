@@ -147,7 +147,7 @@
                                 </span>
                             </div>
                             <span class="text-xs text-slate-600 font-mono"
-                                >ID: {device.id}</span
+                                >ID: {device.id.substring(0, 8)}</span
                             >
                         </div>
 

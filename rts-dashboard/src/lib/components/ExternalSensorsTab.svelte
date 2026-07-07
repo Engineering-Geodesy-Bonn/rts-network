@@ -314,7 +314,7 @@
                                             </h3>
                                         </div>
                                         <p class="text-xs text-slate-500 mt-1">
-                                            ID: {sensor.id}
+                                            ID: {sensor.id.substring(0, 8)}
                                         </p>
                                     </div>
                                 {/if}
