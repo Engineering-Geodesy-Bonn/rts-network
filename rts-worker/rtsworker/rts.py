@@ -1,6 +1,10 @@
+import logging
+
 import serial
 from rtsworker.dtos import RTSResponse
 from rtsworker.pygeocom import PyGeoCom
+
+logger = logging.getLogger("root")
 
 
 class RTSSerialConnection:
@@ -21,9 +25,9 @@ class RTSSerialConnection:
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.ser is None:
-            print("Serial port was never opened!")
+            logger.warning("Serial port was never opened!")
             return
         self.ser.reset_input_buffer()
         self.ser.reset_output_buffer()
         self.ser.close()
-        print("Serial port closed")
+        logger.info("Serial port closed")

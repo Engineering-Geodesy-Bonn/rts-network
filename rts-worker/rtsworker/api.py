@@ -1,5 +1,5 @@
 import asyncio
-import json
+import logging
 import os
 import queue
 import threading
@@ -25,6 +25,8 @@ WEBSOCKET_URL = f"ws://{API_HOST}:{API_PORT}/ws/measurements/{{job_id}}"
 WS_RECONNECT_DELAY = 5
 TIMEOUT = 5
 
+logger = logging.getLogger("root")
+
 
 def self_register() -> None:
     response = requests.post(f"{API_URL}/devices/register", timeout=TIMEOUT)
@@ -40,7 +42,7 @@ def create_rts(create_rts_request: CreateRTSRequest) -> RTSResponse:
 
 def fetch_new_job() -> RTSJobResponse:
     response = requests.get(f"{API_URL}/jobs/fetch", timeout=TIMEOUT)
-    print(f"Fetching job at {API_URL}/jobs/fetch")
+    logger.debug(f"Fetching job at {API_URL}/jobs/fetch")
 
     if not response.ok or response.status_code == 204:
         return None
@@ -91,52 +93,56 @@ def get_latest_target_position() -> TargetPosition:
 
 
 def websocket_sender(job_id: UUID, data_queue: queue.Queue, shutdown_event: threading.Event):
+    """Sends queued measurements until shutdown_event is set and the queue is drained.
+
+    After shutdown is requested, a failed connection is retried only once more so that
+    the thread cannot block the end of a job when the API is unreachable.
+    """
     uri = WEBSOCKET_URL.format(job_id=job_id)
     pending_state = [None]
 
-    while not shutdown_event.is_set():
+    while True:
         try:
-            print(f"Attempting WebSocket connection to {uri}...")
+            logger.info(f"Attempting WebSocket connection to {uri}...")
             asyncio.run(connect_and_send(uri, data_queue, shutdown_event, pending_state))
             break
 
         except (websockets.exceptions.ConnectionClosedError, ConnectionRefusedError, asyncio.TimeoutError) as e:
-            print(f"WebSocket connection error: {e}. Retrying in {WS_RECONNECT_DELAY}s...")
+            logger.warning(f"WebSocket connection error: {e}. Retrying in {WS_RECONNECT_DELAY}s...")
         except Exception as e:
-            print(f"Unexpected WebSocket error: {e}. Retrying in {WS_RECONNECT_DELAY}s...")
+            logger.warning(f"Unexpected WebSocket error: {e}. Retrying in {WS_RECONNECT_DELAY}s...")
+
+        if shutdown_event.is_set():
+            unsent = data_queue.qsize() + (pending_state[0] is not None)
+            logger.error(f"Shutdown while disconnected, {unsent} measurements were not sent.")
+            break
 
         shutdown_event.wait(timeout=WS_RECONNECT_DELAY)
 
-    print("WebSocket sender thread shutting down.")
+    logger.info("WebSocket sender thread shutting down.")
 
 
 async def connect_and_send(uri: str, data_queue: queue.Queue, shutdown_event: threading.Event, pending_state: list):
     async with websockets.connect(uri, ping_interval=10, ping_timeout=10) as websocket:
-        print(f"WebSocket connected to {uri}")
+        logger.info(f"WebSocket connected to {uri}")
 
         if pending_state[0]:
-            print("Sending pending measurement...")
-            await websocket.send(json.dumps(pending_state[0]))
+            logger.info("Sending pending measurement...")
+            await websocket.send(pending_state[0].model_dump_json())
             pending_state[0] = None
             data_queue.task_done()
-            print("Pending measurement sent.")
 
-        while not shutdown_event.is_set():
+        while True:
             try:
-                measurement = await asyncio.to_thread(data_queue.get, timeout=1.0)
-                pending_state[0] = measurement
-                await websocket.send(json.dumps(measurement))
-                pending_state[0] = None
-
-                data_queue.task_done()
-
+                measurement: AddMeasurementRequest = await asyncio.to_thread(data_queue.get, timeout=1.0)
             except queue.Empty:
+                if shutdown_event.is_set():
+                    break
                 continue
-            except websockets.exceptions.ConnectionClosed:
-                print("WebSocket connection closed during send.")
-                raise
 
-    if shutdown_event.is_set():
-        print("WebSocket connection closing due to shutdown signal.")
-    else:
-        print("WebSocket connection closed unexpectedly.")
+            pending_state[0] = measurement
+            await websocket.send(measurement.model_dump_json())
+            pending_state[0] = None
+            data_queue.task_done()
+
+    logger.info("WebSocket connection closed after draining the queue.")
