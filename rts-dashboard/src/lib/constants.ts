@@ -42,6 +42,13 @@ export const FINE_ADJUST_POSITION_MODES: Record<number, string> = {
     1: 'Point',
 };
 
+// ── Internal Delays (s) per RTS model ───────────────────────
+export const INTERNAL_DELAYS: Record<string, number> = {
+    MS60: 0.0,
+    TS16: 7.22 / 1000,
+    TS60: 4.98 / 1000,
+};
+
 // ── Serial Parity ───────────────────────────────────────────
 export const PARITY_OPTIONS: Record<string, string> = {
     N: 'None',

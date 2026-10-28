@@ -5,7 +5,7 @@ import threading
 
 import requests
 
-from rtsworker.api import get_job_status, websocket_sender
+from rtsworker.api import APIConfig, get_job_status, websocket_sender
 from rtsworker.dtos import AddMeasurementRequest, RTSJobStatus
 
 logger = logging.getLogger("root")
@@ -22,8 +22,9 @@ LOG_HEADER = "ref_time,ts_time,h_angle,v_angle,distance,num_chars,geocom_return_
 class JobStatusWatcher:
     """Polls the job status in a background thread so the measurement loop never blocks on HTTP."""
 
-    def __init__(self, job_id: str):
+    def __init__(self, job_id: str, api_config: APIConfig):
         self.job_id = job_id
+        self.api_config = api_config
         self._stopped = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
 
@@ -42,7 +43,7 @@ class JobStatusWatcher:
     def _run(self):
         while not self._stopped.wait(JOB_CHECK_INTERVAL):
             try:
-                if get_job_status(self.job_id) != RTSJobStatus.RUNNING:
+                if get_job_status(self.job_id, self.api_config) != RTSJobStatus.RUNNING:
                     self._stopped.set()
             except requests.RequestException as e:
                 logger.warning(f"Could not fetch status of job {self.job_id}: {e}")
@@ -51,14 +52,14 @@ class JobStatusWatcher:
 class MeasurementStream:
     """Writes measurements to a local CSV file and streams them to the API via websocket."""
 
-    def __init__(self, job_id: str):
+    def __init__(self, job_id: str, api_config: APIConfig):
         self.job_id = job_id
         self.log_path = os.path.join(MEASUREMENT_LOG_DIR, f"{job_id}.csv")
         self._queue = queue.Queue()
         self._shutdown = threading.Event()
         self._sender = threading.Thread(
             target=websocket_sender,
-            args=(job_id, self._queue, self._shutdown),
+            args=(job_id, self._queue, self._shutdown, api_config),
             daemon=True,
         )
 

@@ -63,30 +63,6 @@ class RTSJobResponse(BaseModel):
     payload: dict = {}
 
 
-class UpdateRTSRequest(BaseModel):
-    name: str = "RTS"
-    baudrate: int = 115200
-    port: str = "/dev/ttyUSB0"
-    timeout: int = 30
-    parity: str = "N"
-    stopbits: int = 1
-    bytesize: int = 8
-    external_delay: float = 0.0
-    internal_delay: float = 0.0
-    station_x: float = 0.0
-    station_y: float = 0.0
-    station_z: float = 0.0
-    station_epsg: int = 0  # local ellipsoidal as default
-    orientation: float = 0.0
-    distance_std_dev: float = 0.001
-    angle_std_dev: float = 0.0003 * math.pi / 200
-    distance_ppm: float = 1.0
-
-
-class CreateRTSRequest(UpdateRTSRequest):
-    device_id: str
-
-
 class RTSResponse(BaseModel):
     id: str
     device_id: str

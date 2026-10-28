@@ -2,6 +2,7 @@ import logging
 import time
 import math
 from rtsworker.api import (
+    APIConfig,
     get_latest_target_position,
     get_rts,
     get_tracking_settings,
@@ -37,9 +38,9 @@ def angles_from_position(station: Station, target: TargetPosition) -> tuple[floa
     return h_angle, v_angle
 
 
-def turn_to_target(job: RTSJobResponse) -> None:
-    rts = get_rts(job.rts_id)
-    target_position = get_latest_target_position()
+def turn_to_target(job: RTSJobResponse, api_config: APIConfig) -> None:
+    rts = get_rts(job.rts_id, api_config)
+    target_position = get_latest_target_position(api_config)
 
     if target_position is None:
         raise ValueError("No target position available")
@@ -50,29 +51,29 @@ def turn_to_target(job: RTSJobResponse) -> None:
         h_angle, v_angle = angles_from_position(station, target_position)
         rts_serial.position(horizontal=h_angle, vertical=v_angle)
 
-    update_job_status(job.job_id, RTSJobStatus.FINISHED)
+    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
 
 
-def test_rts(job: RTSJobResponse) -> None:
-    rts = get_rts(job.rts_id)
+def test_rts(job: RTSJobResponse, api_config: APIConfig) -> None:
+    rts = get_rts(job.rts_id, api_config)
     with RTSSerialConnection(rts) as rts_serial:
         rts_serial.beep_alarm_normal()
         time.sleep(1)
 
-    update_job_status(job.job_id, RTSJobStatus.FINISHED)
+    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
 
 
-def change_face(job: RTSJobResponse) -> None:
-    rts = get_rts(job.rts_id)
+def change_face(job: RTSJobResponse, api_config: APIConfig) -> None:
+    rts = get_rts(job.rts_id, api_config)
     with RTSSerialConnection(rts) as rts_serial:
         logger.info("Changing face")
         rts_serial.change_face()
-    update_job_status(job.job_id, RTSJobStatus.FINISHED)
+    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
 
 
-def dummy_tracking(job: RTSJobResponse):
+def dummy_tracking(job: RTSJobResponse, api_config: APIConfig):
     logger.info("Starting measurement")
-    with MeasurementStream(job.job_id) as stream, JobStatusWatcher(job.job_id) as job_status:
+    with MeasurementStream(job.job_id, api_config) as stream, JobStatusWatcher(job.job_id, api_config) as job_status:
         while job_status.running:
             timestamp = time.time()
             distance = math.cos(timestamp) * 100
@@ -94,19 +95,19 @@ def dummy_tracking(job: RTSJobResponse):
     logger.info("Stopped logging")
 
 
-def track_prism(job: RTSJobResponse) -> None:
-    rts = get_rts(job.rts_id)
-    tracking_settings_response = get_tracking_settings(job.rts_id)
+def track_prism(job: RTSJobResponse, api_config: APIConfig) -> None:
+    rts = get_rts(job.rts_id, api_config)
+    tracking_settings_response = get_tracking_settings(job.rts_id, api_config)
     tracking_settings = TrackingSettings.from_response(tracking_settings_response)
 
-    with MeasurementStream(job.job_id) as stream, RTSSerialConnection(rts) as rts_serial:
+    with MeasurementStream(job.job_id, api_config) as stream, RTSSerialConnection(rts) as rts_serial:
         rts_serial.stop_tracking()
         rts_serial.start_tracking(tracking_settings)
         logger.info("Starting measurement loop...")
         no_distance_count = 0
         last_alarm = 0
 
-        with JobStatusWatcher(job.job_id) as job_status:
+        with JobStatusWatcher(job.job_id, api_config) as job_status:
             while job_status.running:
                 response = rts_serial.get_full_measurement(TMCInclinationMode.AUTOMATIC, 1000)
 
@@ -141,9 +142,9 @@ def track_prism(job: RTSJobResponse) -> None:
         logger.info("Tracking loop finished.")
 
 
-def add_single_measurement(job: RTSJobResponse) -> None:
-    rts = get_rts(job.rts_id)
-    tracking_settings_response = get_tracking_settings(job.rts_id)
+def add_single_measurement(job: RTSJobResponse, api_config: APIConfig) -> None:
+    rts = get_rts(job.rts_id, api_config)
+    tracking_settings_response = get_tracking_settings(job.rts_id, api_config)
     tracking_settings = TrackingSettings.from_response(tracking_settings_response)
     with RTSSerialConnection(rts) as rts_serial:
         rts_serial.stop_tracking()
@@ -160,13 +161,13 @@ def add_single_measurement(job: RTSJobResponse) -> None:
             geocom_return_code=response.geocom_return_code,
             rpc_return_code=response.rpc_return_code,
         )
-        post_static_measurement(new_measurement)
+        post_static_measurement(new_measurement, api_config)
         rts_serial.stop_tracking()
 
-    update_job_status(job.job_id, RTSJobStatus.FINISHED)
+    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
 
 
-def add_single_measurement_dummy(job: RTSJobResponse) -> None:
+def add_single_measurement_dummy(job: RTSJobResponse, api_config: APIConfig) -> None:
     timestamp = time.time()
     distance = math.cos(timestamp) * 100
     horizontal_angle = math.sin(timestamp)
@@ -182,5 +183,5 @@ def add_single_measurement_dummy(job: RTSJobResponse) -> None:
         geocom_return_code=0,
         rpc_return_code=0,
     )
-    post_static_measurement(add_measurement)
-    update_job_status(job.job_id, RTSJobStatus.FINISHED)
+    post_static_measurement(add_measurement, api_config)
+    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
