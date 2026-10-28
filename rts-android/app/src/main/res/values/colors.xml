@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Match the dashboard: slate-900 background, slate-800 header -->
+    <color name="background">#0f172a</color>
+    <color name="header">#1e293b</color>
+    <color name="text">#f1f5f9</color>
+    <color name="accent">#3b82f6</color>
+</resources>
