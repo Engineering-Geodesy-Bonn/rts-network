@@ -25,7 +25,7 @@ logger = logging.getLogger("worker")
 
 @dataclass
 class APIConfig:
-    host: str = field(default_factory=lambda: os.getenv("API_HOST", "131.220.172.1"))
+    host: str = field(default_factory=lambda: os.getenv("API_HOST", "192.168.0.101"))
     port: int = field(default_factory=lambda: int(os.getenv("API_PORT", 8000)))
     timeout: int = field(default_factory=lambda: int(os.getenv("API_TIMEOUT", 5)))
     ws_reconnect_delay: int = field(default_factory=lambda: int(os.getenv("WS_RECONNECT_DELAY", 5)))
