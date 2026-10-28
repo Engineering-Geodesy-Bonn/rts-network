@@ -1,6 +1,7 @@
 <script lang="ts">
     import { updateRts } from "../api/client";
     import type { RTSResponse } from "../api/types";
+    import { INTERNAL_DELAYS } from "../constants";
 
     let {
         rts,
@@ -31,6 +32,20 @@
     let distance_std_dev = $state(init.distance_std_dev);
     let angle_std_dev = $state(init.angle_std_dev);
     let distance_ppm = $state(init.distance_ppm);
+
+    // Preselect the RTS model whose delay matches the stored value, otherwise "custom"
+    const CUSTOM_DELAY = "custom";
+    let internal_delay_preset = $state(
+        Object.entries(INTERNAL_DELAYS).find(
+            ([, delay]) => Math.abs(delay - init.internal_delay) < 1e-9,
+        )?.[0] ?? CUSTOM_DELAY,
+    );
+
+    function handleInternalDelayPresetChange() {
+        if (internal_delay_preset !== CUSTOM_DELAY) {
+            internal_delay = INTERNAL_DELAYS[internal_delay_preset];
+        }
+    }
 
     let saving = $state(false);
     let error = $state("");
@@ -287,13 +302,29 @@
                         class="block text-xs text-slate-400 mb-1"
                         for="e-intd">Internal Delay (s)</label
                     >
-                    <input
+                    <select
                         id="e-intd"
-                        type="number"
-                        step="any"
-                        bind:value={internal_delay}
+                        bind:value={internal_delay_preset}
+                        onchange={handleInternalDelayPresetChange}
                         class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-                    />
+                    >
+                        {#each Object.entries(INTERNAL_DELAYS) as [model, delay]}
+                            <option value={model}
+                                >{model} ({(delay * 1000).toFixed(2)} ms)</option
+                            >
+                        {/each}
+                        <option value={CUSTOM_DELAY}>Custom</option>
+                    </select>
+                    {#if internal_delay_preset === CUSTOM_DELAY}
+                        <input
+                            id="e-intd-custom"
+                            type="number"
+                            step="any"
+                            bind:value={internal_delay}
+                            aria-label="Custom internal delay (s)"
+                            class="mt-2 w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        />
+                    {/if}
                 </div>
                 <div>
                     <label

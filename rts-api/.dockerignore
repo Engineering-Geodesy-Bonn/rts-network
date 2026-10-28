@@ -1,4 +1,6 @@
 test
 .venv
 logs/
-# database.db
+*.db
+*.db-shm
+*.db-wal

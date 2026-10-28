@@ -4,6 +4,10 @@ services:
       context: ./rts-api
     ports:
       - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////data/database.db
+    volumes:
+      - rtsapi-data:/data
     restart: always
   rtsdashboard:
     build:
@@ -13,3 +17,6 @@ services:
     depends_on:
       - rtsapi
     restart: always
+
+volumes:
+  rtsapi-data:
