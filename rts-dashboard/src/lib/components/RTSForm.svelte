@@ -53,7 +53,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-stretch sm:items-center justify-center z-50 sm:p-4"
     onclick={onclose}
     onkeydown={(e) => e.key === "Escape" && onclose()}
     role="dialog"
@@ -61,16 +61,16 @@
 >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-        class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md shadow-2xl"
+        class="bg-slate-800 sm:rounded-xl sm:border border-slate-700 w-full max-w-md h-full sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:pt-0 sm:pb-0"
         onclick={(e) => e.stopPropagation()}
         onkeydown={() => {}}
     >
         <div
-            class="p-6 border-b border-slate-700 flex items-center justify-between"
+            class="px-4 py-3 sm:p-6 border-b border-slate-700 flex items-center justify-between gap-3 shrink-0"
         >
-            <h2 class="text-xl font-semibold">Add RTS Station</h2>
+            <h2 class="text-lg sm:text-xl font-semibold min-w-0 break-words">Add RTS Station</h2>
             <button
-                class="text-slate-400 hover:text-white p-1 cursor-pointer"
+                class="text-slate-400 hover:text-white p-2.5 -mr-2 sm:p-1 sm:mr-0 shrink-0 cursor-pointer"
                 onclick={onclose}
                 aria-label="Close"
             >
@@ -91,7 +91,7 @@
         </div>
 
         <form
-            class="p-6 space-y-4"
+            class="p-4 sm:p-6 space-y-4 overflow-y-auto grow sm:grow-0 min-h-0"
             onsubmit={(e) => {
                 e.preventDefault();
                 handleSubmit();
@@ -114,7 +114,7 @@
                     id="rts-name"
                     type="text"
                     bind:value={name}
-                    class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
                 />
             </div>
 
@@ -126,7 +126,7 @@
                 <select
                     id="rts-device"
                     bind:value={deviceId}
-                    class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
                 >
                     {#each devices as dev (dev.id)}
                         <option value={dev.id}>{dev.ip} (ID: {dev.id})</option>
@@ -146,7 +146,7 @@
                     id="rts-port"
                     type="text"
                     bind:value={port}
-                    class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500 transition-colors"
                 />
             </div>
 
@@ -160,7 +160,7 @@
                         id="rts-baudrate"
                         type="number"
                         bind:value={baudrate}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
                     />
                 </div>
                 <div>
@@ -172,7 +172,7 @@
                         id="rts-timeout"
                         type="number"
                         bind:value={timeout}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
                     />
                 </div>
             </div>
@@ -192,7 +192,7 @@
                             type="number"
                             step="any"
                             bind:value={stationX}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
                         />
                     </div>
                     <div>
@@ -205,7 +205,7 @@
                             type="number"
                             step="any"
                             bind:value={stationY}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
                         />
                     </div>
                     <div>
@@ -218,24 +218,24 @@
                             type="number"
                             step="any"
                             bind:value={stationZ}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
                         />
                     </div>
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3 pt-2">
+            <div class="flex justify-end gap-3 pt-2 pb-1">
                 <button
                     type="button"
                     onclick={onclose}
-                    class="px-4 py-2 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                    class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-slate-400 hover:text-white bg-slate-700/50 sm:bg-transparent rounded-lg transition-colors cursor-pointer"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
                     disabled={saving || deviceId === 0}
-                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2 rounded-lg transition-colors cursor-pointer"
+                    class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2.5 sm:py-2 rounded-lg transition-colors cursor-pointer"
                 >
                     {saving ? "Creating..." : "Create"}
                 </button>

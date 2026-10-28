@@ -71,9 +71,9 @@
 
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-            <h2 class="text-2xl font-bold">Devices</h2>
+            <h2 class="text-xl sm:text-2xl font-bold">Devices</h2>
             <p class="text-sm text-slate-400 mt-1">
                 {devices.length} device{devices.length !== 1 ? "s" : ""} registered
                 {#if devices.filter((d) => isOnline(d.last_seen)).length > 0}
@@ -85,7 +85,7 @@
         </div>
         <button
             onclick={loadDevices}
-            class="text-slate-400 hover:text-white hover:bg-slate-700 px-3 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+            class="text-slate-400 hover:text-white hover:bg-slate-700 px-3 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
         >
             ↻ Refresh
         </button>
@@ -111,7 +111,7 @@
         </div>
     {:else if devices.length === 0}
         <div
-            class="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center"
+            class="bg-slate-800 rounded-xl border border-slate-700 p-6 sm:p-12 text-center"
         >
             <div class="text-4xl mb-3">🖥️</div>
             <h3 class="text-lg font-medium text-slate-300 mb-1">
@@ -120,14 +120,14 @@
             <p class="text-slate-500">No devices have been registered yet.</p>
         </div>
     {:else}
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
             {#each devices as device (device.id)}
                 {@const online = isOnline(device.last_seen)}
                 <div
                     class="bg-slate-800 rounded-xl border transition-colors
                         {online ? 'border-green-500/40' : 'border-slate-700'}"
                 >
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <!-- Top row: status + ID -->
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2.5">
@@ -154,7 +154,7 @@
                         <!-- IP address -->
                         <div class="mb-4">
                             <div
-                                class="text-lg font-semibold text-white font-mono"
+                                class="text-lg font-semibold text-white font-mono break-all"
                             >
                                 {device.ip}
                             </div>
@@ -162,13 +162,13 @@
 
                         <!-- Details -->
                         <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
+                            <div class="flex justify-between gap-3">
                                 <span class="text-slate-400">Last Seen</span>
-                                <span class="text-slate-200 text-xs"
+                                <span class="text-slate-200 text-xs text-right"
                                     >{formatLastSeen(device.last_seen)}</span
                                 >
                             </div>
-                            <div class="flex justify-between">
+                            <div class="flex justify-between gap-3">
                                 <span class="text-slate-400">Time Ago</span>
                                 <span
                                     class="text-xs font-mono

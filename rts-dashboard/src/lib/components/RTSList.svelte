@@ -220,9 +220,9 @@
 
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-            <h2 class="text-2xl font-bold">RTS Stations</h2>
+            <h2 class="text-xl sm:text-2xl font-bold">RTS Stations</h2>
             <p class="text-sm text-slate-400 mt-1">
                 {rtsList.length} station{rtsList.length !== 1 ? "s" : ""}
                 {#if busyCount > 0}
@@ -236,27 +236,27 @@
                 <button
                     onclick={startAllTracking}
                     disabled={idleCount === 0}
-                    class="bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                    class="bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-4 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
                 >
                     ▶ Start All
                 </button>
                 <button
                     onclick={stopAllTracking}
                     disabled={busyCount === 0}
-                    class="bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                    class="bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-4 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
                 >
                     ■ Stop All
                 </button>
             {/if}
             <button
                 onclick={loadData}
-                class="text-slate-400 hover:text-white hover:bg-slate-700 px-3 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                class="text-slate-400 hover:text-white hover:bg-slate-700 px-3 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
             >
                 ↻ Refresh
             </button>
             <button
                 onclick={() => (showAddForm = true)}
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer text-sm sm:text-base"
             >
                 <svg
                     class="w-5 h-5"
@@ -296,7 +296,7 @@
         </div>
     {:else if rtsList.length === 0}
         <div
-            class="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center"
+            class="bg-slate-800 rounded-xl border border-slate-700 p-6 sm:p-12 text-center"
         >
             <img
                 src="/RTS.png"
@@ -311,7 +311,7 @@
             </p>
         </div>
     {:else}
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
             {#each rtsList as rts (rts.id)}
                 {@const status = statuses[rts.id]}
                 {@const busy = status?.busy ?? false}
@@ -331,8 +331,8 @@
                         : 'border-slate-700 hover:border-slate-600'}"
                 >
                     <!-- Card Header -->
-                    <div class="p-4 pb-0 flex items-start justify-between">
-                        <div class="flex items-center gap-2">
+                    <div class="p-3 sm:p-4 pb-0 sm:pb-0 flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
                             <!-- Status Dot -->
                             <div
                                 class="w-2.5 h-2.5 rounded-full shrink-0 mt-1
@@ -340,9 +340,9 @@
                                     ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]'
                                     : 'bg-slate-600'}"
                             ></div>
-                            <div>
+                            <div class="min-w-0">
                                 <h3
-                                    class="font-semibold text-lg text-white leading-tight"
+                                    class="font-semibold text-lg text-white leading-tight break-words"
                                 >
                                     {rts.name}
                                 </h3>
@@ -353,9 +353,9 @@
                                 >
                             </div>
                         </div>
-                        <div class="flex gap-0.5">
+                        <div class="flex gap-0.5 shrink-0">
                             <button
-                                class="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                class="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 p-2.5 sm:p-1.5 rounded-lg transition-colors cursor-pointer"
                                 title="Edit RTS settings"
                                 onclick={() => (editingRts = rts)}
                             >
@@ -374,7 +374,7 @@
                                 </svg>
                             </button>
                             <button
-                                class="text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                class="text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 p-2.5 sm:p-1.5 rounded-lg transition-colors cursor-pointer"
                                 title="Tracking settings"
                                 onclick={() => (trackingRtsId = rts.id)}
                             >
@@ -401,7 +401,7 @@
                             <!-- Actions Dropdown -->
                             <div class="relative">
                                 <button
-                                    class="text-slate-400 hover:text-white hover:bg-slate-700 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                    class="text-slate-400 hover:text-white hover:bg-slate-700 p-2.5 sm:p-1.5 rounded-lg transition-colors cursor-pointer"
                                     title="More actions"
                                     onclick={(e) => {
                                         e.stopPropagation();
@@ -425,12 +425,12 @@
                                 {#if actionDropdownId === rts.id}
                                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                                     <div
-                                        class="absolute right-0 top-full mt-1 w-48 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-30 py-1"
+                                        class="absolute right-0 top-full mt-1 w-56 sm:w-48 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-30 py-1"
                                         onclick={(e) => e.stopPropagation()}
                                         onkeydown={() => {}}
                                     >
                                         <button
-                                            class="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
+                                            class="w-full text-left px-4 py-3 sm:py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
                                             onclick={() =>
                                                 runAction(
                                                     rts.id,
@@ -440,7 +440,7 @@
                                             🔌 Test Connection
                                         </button>
                                         <button
-                                            class="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
+                                            class="w-full text-left px-4 py-3 sm:py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
                                             onclick={() =>
                                                 runAction(
                                                     rts.id,
@@ -450,7 +450,7 @@
                                             🔄 Change Face
                                         </button>
                                         <button
-                                            class="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
+                                            class="w-full text-left px-4 py-3 sm:py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
                                             onclick={() =>
                                                 runAction(
                                                     rts.id,
@@ -460,7 +460,7 @@
                                             🎯 Turn to Target
                                         </button>
                                         <button
-                                            class="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
+                                            class="w-full text-left px-4 py-3 sm:py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
                                             onclick={() =>
                                                 runAction(
                                                     rts.id,
@@ -473,7 +473,7 @@
                                             class="border-t border-slate-600 my-1"
                                         ></div>
                                         <button
-                                            class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                            class="w-full text-left px-4 py-3 sm:py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                                             onclick={() => handleDelete(rts.id)}
                                         >
                                             🗑️ Delete RTS
@@ -487,7 +487,7 @@
                     <!-- Live Status Bar -->
                     {#if status}
                         <div
-                            class="mx-4 mt-3 px-3 py-2 rounded-lg text-xs font-mono flex items-center justify-between
+                            class="mx-3 sm:mx-4 mt-3 px-3 py-2 rounded-lg text-xs font-mono flex flex-wrap items-center justify-between gap-x-3 gap-y-1
                                 {busy
                                 ? 'bg-green-500/10 border border-green-500/20'
                                 : 'bg-slate-700/50'}"
@@ -510,29 +510,29 @@
                     {/if}
 
                     <!-- Info -->
-                    <div class="p-4 space-y-1.5 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">Port</span>
+                    <div class="p-3 sm:p-4 space-y-1.5 text-sm">
+                        <div class="flex justify-between gap-3">
+                            <span class="text-slate-400 shrink-0">Port</span>
                             <span class="text-slate-200 font-mono text-xs"
                                 >{rts.port}</span
                             >
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">Baudrate</span>
+                        <div class="flex justify-between gap-3">
+                            <span class="text-slate-400 shrink-0">Baudrate</span>
                             <span class="text-slate-200"
                                 >{rts.baudrate.toLocaleString()}</span
                             >
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">Station</span>
-                            <span class="text-slate-200 font-mono text-xs">
+                        <div class="flex justify-between gap-3">
+                            <span class="text-slate-400 shrink-0">Station</span>
+                            <span class="text-slate-200 font-mono text-xs text-right break-all">
                                 ({rts.station_x.toFixed(3)}, {rts.station_y.toFixed(
                                     3,
                                 )}, {rts.station_z.toFixed(3)})
                             </span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">Orientation</span>
+                        <div class="flex justify-between gap-3">
+                            <span class="text-slate-400 shrink-0">Orientation</span>
                             <span class="text-slate-200"
                                 >{((rts.orientation * 200) / Math.PI).toFixed(
                                     4,
@@ -542,11 +542,11 @@
                     </div>
 
                     <!-- Quick Actions Row -->
-                    <div class="px-4 pb-2 flex gap-2">
+                    <div class="px-3 sm:px-4 pb-2 flex gap-2">
                         <button
                             onclick={() => runAction(rts.id, "change_face")}
                             disabled={busy}
-                            class="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 text-xs font-medium py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                            class="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 text-xs font-medium py-2.5 sm:py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                             title="Change Face"
                         >
                             🔄 Change Face
@@ -554,7 +554,7 @@
                         <button
                             onclick={() => runAction(rts.id, "turn_to_target")}
                             disabled={busy}
-                            class="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 text-xs font-medium py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                            class="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 text-xs font-medium py-2.5 sm:py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                             title="Turn to Target"
                         >
                             🎯 Turn to Target
@@ -562,11 +562,11 @@
                     </div>
 
                     <!-- Start / Stop Button -->
-                    <div class="px-4 pb-4">
+                    <div class="px-3 sm:px-4 pb-3 sm:pb-4">
                         {#if busy}
                             <button
                                 onclick={() => stopTracking(rts.id)}
-                                class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                                class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 sm:py-2.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
                             >
                                 <svg
                                     class="w-4 h-4"
@@ -588,7 +588,7 @@
                         {:else}
                             <button
                                 onclick={() => startTracking(rts.id)}
-                                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 sm:py-2.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
                             >
                                 <svg
                                     class="w-4 h-4"

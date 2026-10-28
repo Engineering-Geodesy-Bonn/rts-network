@@ -2,6 +2,14 @@
 
 :root {
     color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+html,
+body {
+    /* Never allow the page itself to scroll sideways on phones */
+    overflow-x: clip;
 }
 
 body {
@@ -10,10 +18,13 @@ body {
     background-color: #0f172a;
     color: #f1f5f9;
     min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
 }
 
 #app {
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 /* Custom scrollbar */

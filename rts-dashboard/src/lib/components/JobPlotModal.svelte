@@ -278,7 +278,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-stretch sm:items-center justify-center z-50 sm:p-4"
     onclick={onclose}
     onkeydown={(e) => e.key === "Escape" && onclose()}
     role="dialog"
@@ -286,18 +286,18 @@
 >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-        class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl"
+        class="bg-slate-800 sm:rounded-xl sm:border border-slate-700 w-full max-w-5xl h-full sm:h-auto sm:max-h-[92vh] flex flex-col shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:pt-0 sm:pb-0"
         onclick={(e) => e.stopPropagation()}
         onkeydown={() => {}}
     >
         <!-- Header -->
         <div
-            class="p-5 border-b border-slate-700 flex items-center justify-between shrink-0"
+            class="px-4 py-3 sm:p-5 border-b border-slate-700 flex items-center justify-between gap-3 shrink-0"
         >
-            <div>
-                <h2 class="text-lg font-semibold text-white">
+            <div class="min-w-0">
+                <h2 class="text-base sm:text-lg font-semibold text-white">
                     {JOB_TYPE_NAMES[jobType] ?? jobType}
-                    <span class="text-slate-400 text-sm font-normal"
+                    <span class="text-slate-400 text-sm font-normal break-all"
                         >— Job #{jobId}</span
                     >
                 </h2>
@@ -309,7 +309,7 @@
                 </p>
             </div>
             <button
-                class="text-slate-400 hover:text-white p-1 cursor-pointer"
+                class="text-slate-400 hover:text-white p-2.5 -mr-2 sm:p-1 sm:mr-0 shrink-0 cursor-pointer"
                 onclick={onclose}
                 aria-label="Close"
             >
@@ -330,7 +330,7 @@
         </div>
 
         <!-- Content -->
-        <div class="p-5 overflow-y-auto flex-1">
+        <div class="p-3 sm:p-5 overflow-y-auto flex-1 min-h-0">
             {#if error}
                 <div
                     class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-4 text-sm"
@@ -340,7 +340,7 @@
             {/if}
 
             {#if loading}
-                <div class="flex items-center justify-center py-16">
+                <div class="flex flex-wrap items-center justify-center gap-y-2 py-16">
                     <div
                         class="inline-block w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"
                     ></div>
@@ -361,7 +361,7 @@
                         2D Position (X vs Y)
                     </h3>
                     <div
-                        class="bg-slate-900 rounded-lg border border-slate-700 p-3"
+                        class="bg-slate-900 rounded-lg border border-slate-700 p-2 sm:p-3"
                     >
                         <canvas bind:this={xyCanvas}></canvas>
                     </div>
@@ -376,8 +376,7 @@
                             X over Time
                         </h3>
                         <div
-                            class="bg-slate-900 rounded-lg border border-slate-700 p-3"
-                            style="height: 200px;"
+                            class="bg-slate-900 rounded-lg border border-slate-700 p-2 sm:p-3 h-[180px] sm:h-[200px]"
                         >
                             <canvas bind:this={xCanvas}></canvas>
                         </div>
@@ -389,8 +388,7 @@
                             Y over Time
                         </h3>
                         <div
-                            class="bg-slate-900 rounded-lg border border-slate-700 p-3"
-                            style="height: 200px;"
+                            class="bg-slate-900 rounded-lg border border-slate-700 p-2 sm:p-3 h-[180px] sm:h-[200px]"
                         >
                             <canvas bind:this={yCanvas}></canvas>
                         </div>
@@ -402,8 +400,7 @@
                             Z over Time
                         </h3>
                         <div
-                            class="bg-slate-900 rounded-lg border border-slate-700 p-3"
-                            style="height: 200px;"
+                            class="bg-slate-900 rounded-lg border border-slate-700 p-2 sm:p-3 h-[180px] sm:h-[200px]"
                         >
                             <canvas bind:this={zCanvas}></canvas>
                         </div>

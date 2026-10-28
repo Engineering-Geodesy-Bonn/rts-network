@@ -414,11 +414,11 @@
     });
 </script>
 
-<div class="max-w-6xl mx-auto space-y-6">
+<div class="max-w-6xl mx-auto space-y-4 sm:space-y-6">
     <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <div>
-            <h2 class="text-2xl font-bold">Synchronizer</h2>
+            <h2 class="text-xl sm:text-2xl font-bold">Synchronizer</h2>
             <p class="text-sm text-slate-400 mt-1">
                 Assign sensor roles and monitor synchronization state
             </p>
@@ -428,7 +428,7 @@
                 <button
                     onclick={saveRoles}
                     disabled={saving}
-                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
                 >
                     {saving ? "Saving…" : "Save Roles"}
                 </button>
@@ -436,14 +436,14 @@
             <button
                 onclick={handleReset}
                 disabled={resetting}
-                class="bg-red-600/80 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                class="bg-red-600/80 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
             >
                 {resetting ? "Resetting…" : "↺ Reset"}
             </button>
             <button
                 onclick={loadAll}
                 disabled={loading}
-                class="text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 px-3 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                class="text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 px-3 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
             >
                 ↻ Refresh
             </button>
@@ -496,7 +496,7 @@
                     {#if draftPrimary !== null}
                         <button
                             onclick={() => (draftPrimary = null)}
-                            class="text-slate-500 hover:text-slate-300 text-xs px-2 py-1 rounded hover:bg-slate-700 cursor-pointer transition-colors"
+                            class="text-slate-500 hover:text-slate-300 text-xs px-3 py-2 sm:px-2 sm:py-1 -my-1 sm:my-0 rounded hover:bg-slate-700 cursor-pointer transition-colors"
                             >✕ Clear</button
                         >
                     {/if}
@@ -542,7 +542,7 @@
                     {#if draftSecondary !== null}
                         <button
                             onclick={() => (draftSecondary = null)}
-                            class="text-slate-500 hover:text-slate-300 text-xs px-2 py-1 rounded hover:bg-slate-700 cursor-pointer transition-colors"
+                            class="text-slate-500 hover:text-slate-300 text-xs px-3 py-2 sm:px-2 sm:py-1 -my-1 sm:my-0 rounded hover:bg-slate-700 cursor-pointer transition-colors"
                             >✕ Clear</button
                         >
                     {/if}
@@ -589,7 +589,7 @@
                             {@const isPrimary = draftPrimary === sid}
                             {@const isSecondary = draftSecondary === sid}
                             <div
-                                class="bg-slate-800 rounded-xl border p-4 transition-colors
+                                class="bg-slate-800 rounded-xl border p-4 transition-colors min-w-0
                                     {isPrimary
                                     ? 'border-blue-500/60'
                                     : isSecondary
@@ -606,7 +606,7 @@
                                         class="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300"
                                         >RTS</span
                                     >
-                                    <span class="text-xs text-slate-500"
+                                    <span class="text-xs text-slate-500 truncate min-w-0"
                                         >ID: {rts.id}</span
                                     >
                                 </div>
@@ -615,7 +615,7 @@
                                 >
                                     <button
                                         onclick={() => assignPrimary(sid)}
-                                        class="flex-1 text-xs py-1.5 rounded-lg transition-colors cursor-pointer
+                                        class="flex-1 text-xs py-2.5 sm:py-1.5 rounded-lg transition-colors cursor-pointer
                                             {isPrimary
                                             ? 'bg-blue-600 text-white font-medium'
                                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}"
@@ -624,7 +624,7 @@
                                     </button>
                                     <button
                                         onclick={() => assignSecondary(sid)}
-                                        class="flex-1 text-xs py-1.5 rounded-lg transition-colors cursor-pointer
+                                        class="flex-1 text-xs py-2.5 sm:py-1.5 rounded-lg transition-colors cursor-pointer
                                             {isSecondary
                                             ? 'bg-amber-600 text-white font-medium'
                                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}"
@@ -652,7 +652,7 @@
                             {@const isSecondary = draftSecondary === sid}
                             {@const recent = isRecent(sensor.last_seen)}
                             <div
-                                class="bg-slate-800 rounded-xl border p-4 transition-colors
+                                class="bg-slate-800 rounded-xl border p-4 transition-colors min-w-0
                                     {isPrimary
                                     ? 'border-blue-500/60'
                                     : isSecondary
@@ -677,7 +677,7 @@
                                         class="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300"
                                         >External</span
                                     >
-                                    <span class="text-xs text-slate-500"
+                                    <span class="text-xs text-slate-500 truncate min-w-0"
                                         >ID: {sensor.id}</span
                                     >
                                 </div>
@@ -706,7 +706,7 @@
                                 >
                                     <button
                                         onclick={() => assignPrimary(sid)}
-                                        class="flex-1 text-xs py-1.5 rounded-lg transition-colors cursor-pointer
+                                        class="flex-1 text-xs py-2.5 sm:py-1.5 rounded-lg transition-colors cursor-pointer
                                             {isPrimary
                                             ? 'bg-blue-600 text-white font-medium'
                                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}"
@@ -715,7 +715,7 @@
                                     </button>
                                     <button
                                         onclick={() => assignSecondary(sid)}
-                                        class="flex-1 text-xs py-1.5 rounded-lg transition-colors cursor-pointer
+                                        class="flex-1 text-xs py-2.5 sm:py-1.5 rounded-lg transition-colors cursor-pointer
                                             {isSecondary
                                             ? 'bg-amber-600 text-white font-medium'
                                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}"
@@ -753,16 +753,20 @@
             <div class="space-y-4">
                 {#each stateFields as field, i (field)}
                     <div
-                        class="bg-slate-800 rounded-xl border border-slate-700 p-5"
+                        class="bg-slate-800 rounded-xl border border-slate-700 p-3 sm:p-5"
                     >
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-semibold font-mono">{field}</h3>
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-3 sm:mb-4"
+                        >
+                            <h3 class="font-semibold font-mono break-all">
+                                {field}
+                            </h3>
                             <span class="text-xs text-slate-500">
                                 Polling every 2 s &middot; {stateHistory.length}
                                 points
                             </span>
                         </div>
-                        <div class="relative h-52">
+                        <div class="relative h-48 sm:h-52">
                             <canvas use:fieldChart={field}></canvas>
                         </div>
                     </div>

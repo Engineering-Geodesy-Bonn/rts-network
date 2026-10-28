@@ -368,15 +368,15 @@
 
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-            <h2 class="text-2xl font-bold">Live Measurements</h2>
+            <h2 class="text-xl sm:text-2xl font-bold">Live Measurements</h2>
             <p class="text-sm text-slate-400 mt-1">
                 {measurementCount} cached &middot; Last fetch: {lastFetch ||
                     "never"}
             </p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <div class="flex items-center gap-2">
                 <label class="text-sm text-slate-400" for="poll-interval"
                     >Interval:</label
@@ -385,7 +385,7 @@
                     id="poll-interval"
                     value={pollInterval}
                     onchange={handleIntervalChange}
-                    class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                    class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 sm:py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
                 >
                     <option value={500}>0.5s</option>
                     <option value={1000}>1s</option>
@@ -398,13 +398,13 @@
                 onclick={togglePolling}
                 class="{polling
                     ? 'bg-amber-600 hover:bg-amber-700'
-                    : 'bg-green-600 hover:bg-green-700'} text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    : 'bg-green-600 hover:bg-green-700'} text-white text-sm font-medium px-4 py-2.5 sm:py-1.5 rounded-lg transition-colors cursor-pointer"
             >
                 {polling ? "⏸ Pause" : "▶ Resume"}
             </button>
             <button
                 onclick={clearCache}
-                class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
+                class="bg-slate-700 hover:bg-slate-600 text-white text-sm px-4 py-2.5 sm:py-1.5 rounded-lg transition-colors cursor-pointer"
             >
                 Clear
             </button>
@@ -426,7 +426,7 @@
         >
             2D Position (X vs Y)
         </h3>
-        <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-2 sm:p-4">
             <canvas bind:this={xyCanvas}></canvas>
         </div>
     </div>
@@ -440,8 +440,7 @@
                 X over Time
             </h3>
             <div
-                class="bg-slate-800 rounded-xl border border-slate-700 p-3"
-                style="height: 250px;"
+                class="bg-slate-800 rounded-xl border border-slate-700 p-2 sm:p-3 h-[200px] sm:h-[250px]"
             >
                 <canvas bind:this={xCanvas}></canvas>
             </div>
@@ -453,8 +452,7 @@
                 Y over Time
             </h3>
             <div
-                class="bg-slate-800 rounded-xl border border-slate-700 p-3"
-                style="height: 250px;"
+                class="bg-slate-800 rounded-xl border border-slate-700 p-2 sm:p-3 h-[200px] sm:h-[250px]"
             >
                 <canvas bind:this={yCanvas}></canvas>
             </div>
@@ -466,8 +464,7 @@
                 Z over Time
             </h3>
             <div
-                class="bg-slate-800 rounded-xl border border-slate-700 p-3"
-                style="height: 250px;"
+                class="bg-slate-800 rounded-xl border border-slate-700 p-2 sm:p-3 h-[200px] sm:h-[250px]"
             >
                 <canvas bind:this={zCanvas}></canvas>
             </div>
@@ -480,41 +477,41 @@
             class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden"
         >
             <div
-                class="p-4 border-b border-slate-700 flex items-center justify-between"
+                class="p-3 sm:p-4 border-b border-slate-700 flex items-center justify-between gap-3"
             >
                 <h3 class="font-semibold">Recent Measurements</h3>
                 <span class="text-xs text-slate-500">Showing latest 10</span>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-sm whitespace-nowrap">
                     <thead class="bg-slate-700/50 sticky top-0">
                         <tr>
                             <th
-                                class="px-4 py-2 text-left text-slate-400 font-medium"
+                                class="px-3 sm:px-4 py-2 text-left text-slate-400 font-medium"
                                 >Time</th
                             >
                             <th
-                                class="px-4 py-2 text-left text-slate-400 font-medium"
+                                class="px-3 sm:px-4 py-2 text-left text-slate-400 font-medium"
                                 >RTS</th
                             >
                             <th
-                                class="px-4 py-2 text-right text-slate-400 font-medium"
+                                class="px-3 sm:px-4 py-2 text-right text-slate-400 font-medium"
                                 >X (m)</th
                             >
                             <th
-                                class="px-4 py-2 text-right text-slate-400 font-medium"
+                                class="px-3 sm:px-4 py-2 text-right text-slate-400 font-medium"
                                 >Y (m)</th
                             >
                             <th
-                                class="px-4 py-2 text-right text-slate-400 font-medium"
+                                class="px-3 sm:px-4 py-2 text-right text-slate-400 font-medium"
                                 >Z (m)</th
                             >
                             <th
-                                class="px-4 py-2 text-right text-slate-400 font-medium"
+                                class="px-3 sm:px-4 py-2 text-right text-slate-400 font-medium"
                                 >Dist (m)</th
                             >
                             <th
-                                class="px-4 py-2 text-right text-slate-400 font-medium"
+                                class="px-3 sm:px-4 py-2 text-right text-slate-400 font-medium"
                                 >GRC</th
                             >
                         </tr>
@@ -537,32 +534,32 @@
                             {@const mz = computeZ(rts?.station_z ?? 0, m)}
                             <tr class="hover:bg-slate-700/30">
                                 <td
-                                    class="px-4 py-1.5 text-slate-300 font-mono text-xs"
+                                    class="px-3 sm:px-4 py-1.5 text-slate-300 font-mono text-xs"
                                     >{new Date(
                                         m.controller_timestamp * 1000,
                                     ).toLocaleTimeString()}</td
                                 >
-                                <td class="px-4 py-1.5 text-slate-300"
+                                <td class="px-3 sm:px-4 py-1.5 text-slate-300"
                                     >{rts?.name ?? m.rts_id ?? "—"}</td
                                 >
                                 <td
-                                    class="px-4 py-1.5 text-slate-300 text-right font-mono"
+                                    class="px-3 sm:px-4 py-1.5 text-slate-300 text-right font-mono"
                                     >{mx.toFixed(4)}</td
                                 >
                                 <td
-                                    class="px-4 py-1.5 text-slate-300 text-right font-mono"
+                                    class="px-3 sm:px-4 py-1.5 text-slate-300 text-right font-mono"
                                     >{my.toFixed(4)}</td
                                 >
                                 <td
-                                    class="px-4 py-1.5 text-slate-300 text-right font-mono"
+                                    class="px-3 sm:px-4 py-1.5 text-slate-300 text-right font-mono"
                                     >{mz.toFixed(4)}</td
                                 >
                                 <td
-                                    class="px-4 py-1.5 text-slate-300 text-right font-mono"
+                                    class="px-3 sm:px-4 py-1.5 text-slate-300 text-right font-mono"
                                     >{m.distance.toFixed(4)}</td
                                 >
                                 <td
-                                    class="px-4 py-1.5 text-right font-mono {m.geocom_return_code ===
+                                    class="px-3 sm:px-4 py-1.5 text-right font-mono {m.geocom_return_code ===
                                     0
                                         ? 'text-green-400'
                                         : 'text-red-400'}"

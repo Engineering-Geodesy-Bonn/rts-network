@@ -105,7 +105,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-stretch sm:items-center justify-center z-50 sm:p-4"
     onclick={onclose}
     onkeydown={(e) => e.key === "Escape" && onclose()}
     role="dialog"
@@ -113,20 +113,21 @@
 >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-        class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl"
+        class="bg-slate-800 sm:rounded-xl sm:border border-slate-700 w-full max-w-lg h-full sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:pt-0 sm:pb-0"
         onclick={(e) => e.stopPropagation()}
         onkeydown={() => {}}
     >
         <div
-            class="p-6 border-b border-slate-700 flex items-center justify-between shrink-0"
+            class="px-4 py-3 sm:p-6 border-b border-slate-700 flex items-center justify-between gap-3 shrink-0"
         >
-            <h2 class="text-xl font-semibold">
-                Tracking Settings <span class="text-slate-400 text-sm"
+            <h2 class="text-lg sm:text-xl font-semibold min-w-0 break-words">
+                Tracking Settings <span
+                    class="block sm:inline text-slate-400 text-xs sm:text-sm font-normal break-all"
                     >(RTS #{rtsId})</span
                 >
             </h2>
             <button
-                class="text-slate-400 hover:text-white p-1 cursor-pointer"
+                class="text-slate-400 hover:text-white p-2.5 -mr-2 sm:p-1 sm:mr-0 shrink-0 cursor-pointer"
                 onclick={onclose}
                 aria-label="Close"
             >
@@ -154,7 +155,7 @@
             </div>
         {:else}
             <form
-                class="p-6 space-y-3 overflow-y-auto"
+                class="p-4 sm:p-6 space-y-3 overflow-y-auto grow sm:grow-0 min-h-0"
                 onsubmit={(e) => {
                     e.preventDefault();
                     handleSubmit();
@@ -190,7 +191,7 @@
                         <select
                             id="ts-tmc"
                             bind:value={tmc_measurement_mode}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         >
                             {#each Object.entries(TMC_MEASUREMENT_MODES) as [val, label]}
                                 <option value={Number(val)}>{label}</option>
@@ -205,7 +206,7 @@
                         <select
                             id="ts-incl"
                             bind:value={tmc_inclination_mode}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         >
                             {#each Object.entries(TMC_INCLINATION_MODES) as [val, label]}
                                 <option value={Number(val)}>{label}</option>
@@ -220,7 +221,7 @@
                         <select
                             id="ts-edm"
                             bind:value={edm_measurement_mode}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         >
                             {#each Object.entries(EDM_MEASUREMENT_MODES) as [val, label]}
                                 <option value={Number(val)}>{label}</option>
@@ -235,7 +236,7 @@
                         <select
                             id="ts-prism"
                             bind:value={prism_type}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         >
                             {#each Object.entries(PRISM_TYPES) as [val, label]}
                                 <option value={Number(val)}>{label}</option>
@@ -250,8 +251,8 @@
                 >
                     Fine Adjust
                 </h3>
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="col-span-2 sm:col-span-1">
                         <label
                             class="block text-xs text-slate-400 mb-1"
                             for="ts-fapm">Position Mode</label
@@ -259,7 +260,7 @@
                         <select
                             id="ts-fapm"
                             bind:value={fine_adjust_position_mode}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         >
                             {#each Object.entries(FINE_ADJUST_POSITION_MODES) as [val, label]}
                                 <option value={Number(val)}>{label}</option>
@@ -276,7 +277,7 @@
                             type="number"
                             step="any"
                             bind:value={fine_adjust_horizontal_search_range}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     </div>
                     <div>
@@ -289,7 +290,7 @@
                             type="number"
                             step="any"
                             bind:value={fine_adjust_vertical_search_range}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     </div>
                 </div>
@@ -311,7 +312,7 @@
                             type="number"
                             step="any"
                             bind:value={power_search_area_dcenterhz}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     </div>
                     <div>
@@ -324,7 +325,7 @@
                             type="number"
                             step="any"
                             bind:value={power_search_area_dcenterv}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     </div>
                     <div>
@@ -337,7 +338,7 @@
                             type="number"
                             step="any"
                             bind:value={power_search_area_drangehz}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     </div>
                     <div>
@@ -350,7 +351,7 @@
                             type="number"
                             step="any"
                             bind:value={power_search_area_drangev}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     </div>
                     <div>
@@ -361,7 +362,7 @@
                         <select
                             id="ts-pse"
                             bind:value={power_search_area_enabled}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         >
                             <option value={1}>Yes</option>
                             <option value={0}>No</option>
@@ -376,7 +377,7 @@
                             id="ts-psmin"
                             type="number"
                             bind:value={power_search_min_range}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     </div>
                     <div>
@@ -388,35 +389,35 @@
                             id="ts-psmax"
                             type="number"
                             bind:value={power_search_max_range}
-                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3 pt-2">
                     <label
-                        class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer"
+                        class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer py-2 sm:py-0"
                     >
                         <input
                             type="checkbox"
                             bind:checked={power_search}
-                            class="w-4 h-4 rounded border-slate-600 bg-slate-900 accent-blue-500"
+                            class="w-5 h-5 sm:w-4 sm:h-4 rounded border-slate-600 bg-slate-900 accent-blue-500"
                         />
                         Power Search Enabled
                     </label>
                 </div>
 
-                <div class="flex justify-end gap-3 pt-3">
+                <div class="flex justify-end gap-3 pt-3 pb-1">
                     <button
                         type="button"
                         onclick={onclose}
-                        class="px-4 py-2 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                        class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-slate-400 hover:text-white bg-slate-700/50 sm:bg-transparent rounded-lg transition-colors cursor-pointer"
                         >Close</button
                     >
                     <button
                         type="submit"
                         disabled={saving}
-                        class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2 rounded-lg transition-colors cursor-pointer"
+                        class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2.5 sm:py-2 rounded-lg transition-colors cursor-pointer"
                     >
                         {saving ? "Saving..." : "Save"}
                     </button>
