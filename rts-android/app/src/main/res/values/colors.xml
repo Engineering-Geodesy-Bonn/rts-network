@@ -5,4 +5,5 @@
     <color name="header">#1e293b</color>
     <color name="text">#f1f5f9</color>
     <color name="accent">#3b82f6</color>
+    <color name="icon_background">#ffffff</color>
 </resources>
