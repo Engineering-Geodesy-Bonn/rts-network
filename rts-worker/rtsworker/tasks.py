@@ -137,7 +137,7 @@ def track_prism(job: RTSJobResponse, api_config: APIConfig) -> None:
 
                 new_measurement = AddMeasurementRequest(
                     rts_job_id=job.job_id,
-                    controller_timestamp=response.resp_time + rts.external_delay,
+                    controller_timestamp=response.resp_time,
                     sensor_timestamp=response.time,
                     horizontal_angle=response.h_angle,
                     vertical_angle=response.v_angle,
