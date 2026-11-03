@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RTS Dashboard</string>
+    <string name="retry">Retry</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_connect">Save &amp; connect</string>
+    <string name="settings_connect_wifi">Connect to router Wi-Fi</string>
+    <string name="settings_ssid">Router Wi-Fi name (SSID)</string>
+    <string name="settings_passphrase">Wi-Fi password</string>
+    <string name="settings_url">Dashboard URL</string>
+    <string name="settings_hint">The router Wi-Fi is used only by this app, so the phone keeps using mobile data for everything else. Uncheck \"Connect to router Wi-Fi\" if the phone is already in the same network as the dashboard.</string>
+    <string name="status_not_configured">Enter the Wi-Fi of the field router in the settings.</string>
+    <string name="status_connecting">Connecting to Wi-Fi \"%1$s\"…\n\nConfirm the connection if Android asks.</string>
+    <string name="status_loading">Loading dashboard from %1$s…</string>
+    <string name="status_lost">Connection to \"%1$s\" lost.\nReconnecting as soon as the router is back in range…</string>
+    <string name="status_unavailable">Could not connect to \"%1$s\".\n\nCheck that the router is on, in range, and that Wi-Fi name and password are correct.</string>
+    <string name="status_dashboard_unreachable">Dashboard not reachable at %1$s\n(%2$s)\n\nCheck that the Raspberry Pi is running and the URL is correct.</string>
+    <string name="download_saved">Saved to Downloads/RTS/%1$s</string>
+    <string name="download_failed">Could not save %1$s</string>
+    <string-array name="menu_items">
+        <item>Reload dashboard</item>
+        <item>Settings</item>
+        <item>Exit</item>
+    </string-array>
+</resources>

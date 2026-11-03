@@ -210,13 +210,11 @@ class RTSObservations:
 
     @property
     def v_omega(self) -> np.ndarray:
-        v_diff = np.unwrap(self.v_angles[1:]) - np.unwrap(self.v_angles[:-1])
-        return np.r_[v_diff / self.delta_time, 0]
+        return np.r_[np.diff(np.unwrap(self.v_angles)) / self.delta_time, 0]
 
     @property
     def h_omega(self) -> np.ndarray:
-        h_diff = np.unwrap(self.h_angles[1:]) - np.unwrap(self.h_angles[:-1])
-        return np.r_[h_diff / self.delta_time, 0]
+        return np.r_[np.diff(np.unwrap(self.h_angles)) / self.delta_time, 0]
 
     @property
     def num_targets(self) -> int:

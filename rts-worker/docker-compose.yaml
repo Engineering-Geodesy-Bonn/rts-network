@@ -4,6 +4,9 @@ services:
     environment:
       - API_HOST=${API_HOST}
       - API_PORT=${API_PORT}
+      - MEASUREMENT_LOG_DIR=/data/measurements
+    volumes:
+      - ./measurements:/data/measurements
     # Host networking so the API fallback scan sees the real LAN instead of the Docker bridge subnet
     network_mode: host
     privileged: true

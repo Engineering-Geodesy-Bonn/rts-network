@@ -141,6 +141,14 @@ async function downloadFile(path: string, fallbackName: string): Promise<void> {
     const disposition = res.headers.get('content-disposition') || '';
     const match = disposition.match(/filename=(.+)/);
     const filename = match ? match[1].replace(/"/g, '') : fallbackName;
+
+    // Inside the Android app, WebView ignores <a download>, so hand the file to the app.
+    const android = (window as any).RTSAndroid;
+    if (android?.saveFile) {
+        android.saveFile(filename, await res.text());
+        return;
+    }
+
     const blob = await res.blob();
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

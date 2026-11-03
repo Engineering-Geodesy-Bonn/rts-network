@@ -37,6 +37,10 @@ You can run multiple workers depending on the available USB ports and the number
 docker-compose up -d --scale worker=3
 ```
 
+## Local Measurement Log
+
+During tracking, every measurement sent to the API is also appended to `measurements/<job_id>.csv` on the worker (mounted from the host via `docker-compose.yaml`, configurable with `MEASUREMENT_LOG_DIR`). The columns match the CSV download of the API, plus the time the request was sent to the total station, so the file can be re-imported with `rts-api/scripts/import_measurement.py` if measurements were lost on the way to the API.
+
 ## Custom Workers
 
 The behavior of the worker can be customized by creating a custom task mapping and passing it to the Worker class at initialization. The custom task mapping must be a dictionary with RTSJobType as key and a function as value. The function must accept a single argument, which is of type RTSJobResponse. The function should return None. The Worker class fetches available jobs, sets an available job to running and runs the task. All other communication, e.g. if the task is successful or not, should be done via the RTS API within the task function.

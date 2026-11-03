@@ -597,6 +597,25 @@ class PyGeoCom:
         self._stream = stream
         self._stream.write(b"\n")
         self._debug = debug
+        self.last_request_time = 0.0
+
+    def _read_line(self) -> bytes:
+        """Reads one response line in chunks.
+
+        Serial.readline reads byte by byte (one syscall and GIL acquisition per byte),
+        which delays and jitters the response timestamp taken right after it.
+        """
+        line = bytearray()
+        while True:
+            chunk = self._stream.read(self._stream.in_waiting or 1)
+            if not chunk:
+                raise TimeoutError(f"Incomplete GeoCOM response: {bytes(line)!r}")
+            line += chunk
+            end = line.find(b"\n")
+            if end != -1:
+                if end + 1 < len(line):
+                    logger.warning(f"Discarding bytes after GeoCOM response: {bytes(line[end + 1:])!r}")
+                return bytes(line[: end + 1])
 
     def _request(
         self,
@@ -620,8 +639,9 @@ class PyGeoCom:
         if self._debug:
             print(b">> " + d)
         self._stream.write(d)
+        self.last_request_time = time()
 
-        d = self._stream.readline()
+        d = self._read_line()
         resp_time = time()
         resp_len = len(d)
         if self._debug:

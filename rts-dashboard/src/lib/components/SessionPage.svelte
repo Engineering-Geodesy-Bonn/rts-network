@@ -82,16 +82,18 @@
     });
 </script>
 
-<div class="min-h-screen flex items-center justify-center p-4">
+<div
+    class="min-h-screen flex items-start sm:items-center justify-center px-3 sm:px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:py-4"
+>
     <div class="w-full max-w-lg">
         <!-- Header -->
-        <div class="text-center mb-8">
+        <div class="text-center mb-6 sm:mb-8">
             <img
                 src="/RTS.png"
                 alt="RTS"
-                class="h-20 mx-auto mb-3 object-contain"
+                class="h-14 sm:h-20 mx-auto mb-3 object-contain"
             />
-            <h1 class="text-4xl font-bold mb-2 tracking-tight">
+            <h1 class="text-3xl sm:text-4xl font-bold mb-2 tracking-tight">
                 RTS Dashboard
             </h1>
             <p class="text-slate-400">
@@ -108,7 +110,9 @@
         {/if}
 
         <!-- Create Session -->
-        <div class="bg-slate-800 rounded-xl p-6 mb-6 border border-slate-700">
+        <div
+            class="bg-slate-800 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-slate-700"
+        >
             <h2 class="text-lg font-semibold mb-3">New Session</h2>
             <form
                 class="flex gap-3"
@@ -121,12 +125,12 @@
                     type="text"
                     bind:value={newSessionName}
                     placeholder="Session name..."
-                    class="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    class="flex-1 min-w-0 bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 />
                 <button
                     type="submit"
                     disabled={creating || !newSessionName.trim()}
-                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-2.5 rounded-lg transition-colors cursor-pointer"
+                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 sm:px-6 py-2.5 rounded-lg shrink-0 transition-colors cursor-pointer"
                 >
                     {creating ? "Creating..." : "Create"}
                 </button>
@@ -140,7 +144,7 @@
             >
                 <h2 class="text-lg font-semibold">Existing Sessions</h2>
                 <button
-                    class="text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                    class="text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-pointer px-2 py-2 -my-2 -mr-2"
                     onclick={loadSessions}
                 >
                     Refresh
@@ -163,27 +167,29 @@
                     {#each sessions as session (session.id)}
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
                         <div
-                            class="w-full flex items-center justify-between p-4 hover:bg-slate-700/50 transition-colors text-left cursor-pointer"
+                            class="w-full flex items-center justify-between gap-2 p-3 sm:p-4 hover:bg-slate-700/50 transition-colors text-left cursor-pointer"
                             onclick={() => handleSelect(session)}
                             onkeydown={(e) =>
                                 e.key === "Enter" && handleSelect(session)}
                             role="button"
                             tabindex="0"
                         >
-                            <div>
-                                <div class="font-medium text-white">
+                            <div class="min-w-0">
+                                <div class="font-medium text-white break-words">
                                     {session.name}
                                 </div>
                                 <div class="text-sm text-slate-400 mt-0.5">
                                     Created {formatDate(session.created_at)}
                                 </div>
-                                <div class="text-sm text-slate-400 mt-0.5">
+                                <div
+                                    class="text-xs sm:text-sm text-slate-400 mt-0.5 break-all"
+                                >
                                     ID: {session.id}
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
                                 <button
-                                    class="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                                    class="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-2.5 sm:p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
                                     disabled={exporting}
                                     onclick={(e) => {
                                         e.stopPropagation();
@@ -206,7 +212,7 @@
                                     </svg>
                                 </button>
                                 <button
-                                    class="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors cursor-pointer"
+                                    class="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2.5 sm:p-2 rounded-lg transition-colors cursor-pointer"
                                     onclick={(e) => handleDelete(session.id, e)}
                                     title="Delete session"
                                 >

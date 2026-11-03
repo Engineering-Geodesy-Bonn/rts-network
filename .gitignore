@@ -1,2 +1,5 @@
 .env
 database.db
+# Persistent data and backups
+data/
+backups/

@@ -7,7 +7,7 @@ services:
     environment:
       - DATABASE_URL=sqlite:////data/database.db
     volumes:
-      - rtsapi-data:/data
+      - ./data/rts-api:/data
     restart: always
   rtsdashboard:
     build:
@@ -17,6 +17,3 @@ services:
     depends_on:
       - rtsapi
     restart: always
-
-volumes:
-  rtsapi-data:

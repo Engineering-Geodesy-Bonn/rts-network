@@ -83,7 +83,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-stretch sm:items-center justify-center z-50 sm:p-4"
     onclick={onclose}
     onkeydown={(e) => e.key === "Escape" && onclose()}
     role="dialog"
@@ -91,16 +91,16 @@
 >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-        class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl"
+        class="bg-slate-800 sm:rounded-xl sm:border border-slate-700 w-full max-w-lg h-full sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:pt-0 sm:pb-0"
         onclick={(e) => e.stopPropagation()}
         onkeydown={() => {}}
     >
         <div
-            class="p-6 border-b border-slate-700 flex items-center justify-between shrink-0"
+            class="px-4 py-3 sm:p-6 border-b border-slate-700 flex items-center justify-between gap-3 shrink-0"
         >
-            <h2 class="text-xl font-semibold">Edit RTS: {rts.name}</h2>
+            <h2 class="text-lg sm:text-xl font-semibold min-w-0 break-words">Edit RTS: {rts.name}</h2>
             <button
-                class="text-slate-400 hover:text-white p-1 cursor-pointer"
+                class="text-slate-400 hover:text-white p-2.5 -mr-2 sm:p-1 sm:mr-0 shrink-0 cursor-pointer"
                 onclick={onclose}
                 aria-label="Close"
             >
@@ -121,7 +121,7 @@
         </div>
 
         <form
-            class="p-6 space-y-3 overflow-y-auto"
+            class="p-4 sm:p-6 space-y-3 overflow-y-auto grow sm:grow-0 min-h-0"
             onsubmit={(e) => {
                 e.preventDefault();
                 handleSubmit();
@@ -146,7 +146,7 @@
                         id="e-name"
                         type="text"
                         bind:value={name}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div class="col-span-2">
@@ -158,7 +158,7 @@
                         id="e-port"
                         type="text"
                         bind:value={port}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
                     />
                 </div>
             </div>
@@ -169,7 +169,7 @@
             >
                 Serial
             </h3>
-            <div class="grid grid-cols-4 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                     <label
                         class="block text-xs text-slate-400 mb-1"
@@ -179,7 +179,7 @@
                         id="e-baud"
                         type="number"
                         bind:value={baudrate}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -191,7 +191,7 @@
                         id="e-timeout"
                         type="number"
                         bind:value={timeout}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -203,7 +203,7 @@
                         id="e-parity"
                         type="text"
                         bind:value={parity}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -215,7 +215,7 @@
                         id="e-stop"
                         type="number"
                         bind:value={stopbits}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -227,7 +227,7 @@
                         id="e-byte"
                         type="number"
                         bind:value={bytesize}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
             </div>
@@ -238,7 +238,7 @@
             >
                 Station Position
             </h3>
-            <div class="grid grid-cols-4 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                     <label class="block text-xs text-slate-400 mb-1" for="e-sx"
                         >X</label
@@ -248,7 +248,7 @@
                         type="number"
                         step="any"
                         bind:value={station_x}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -260,7 +260,7 @@
                         type="number"
                         step="any"
                         bind:value={station_y}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -272,7 +272,7 @@
                         type="number"
                         step="any"
                         bind:value={station_z}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -285,7 +285,7 @@
                         type="number"
                         step="any"
                         bind:value={orientation}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
             </div>
@@ -306,7 +306,7 @@
                         id="e-intd"
                         bind:value={internal_delay_preset}
                         onchange={handleInternalDelayPresetChange}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     >
                         {#each Object.entries(INTERNAL_DELAYS) as [model, delay]}
                             <option value={model}
@@ -322,7 +322,7 @@
                             step="any"
                             bind:value={internal_delay}
                             aria-label="Custom internal delay (s)"
-                            class="mt-2 w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                            class="mt-2 w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                         />
                     {/if}
                 </div>
@@ -336,7 +336,7 @@
                         type="number"
                         step="any"
                         bind:value={external_delay}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -349,7 +349,7 @@
                         type="number"
                         step="any"
                         bind:value={distance_std_dev}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -362,7 +362,7 @@
                         type="number"
                         step="any"
                         bind:value={angle_std_dev}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
                 <div>
@@ -375,22 +375,22 @@
                         type="number"
                         step="any"
                         bind:value={distance_ppm}
-                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 sm:py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3 pt-3">
+            <div class="flex justify-end gap-3 pt-3 pb-1">
                 <button
                     type="button"
                     onclick={onclose}
-                    class="px-4 py-2 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                    class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-slate-400 hover:text-white bg-slate-700/50 sm:bg-transparent rounded-lg transition-colors cursor-pointer"
                     >Cancel</button
                 >
                 <button
                     type="submit"
                     disabled={saving}
-                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2 rounded-lg transition-colors cursor-pointer"
+                    class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2.5 sm:py-2 rounded-lg transition-colors cursor-pointer"
                 >
                     {saving ? "Saving..." : "Save Changes"}
                 </button>

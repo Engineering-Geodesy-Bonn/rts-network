@@ -222,9 +222,9 @@
 
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-            <h2 class="text-2xl font-bold">Jobs</h2>
+            <h2 class="text-xl sm:text-2xl font-bold">Jobs</h2>
             <p class="text-sm text-slate-400 mt-1">
                 {visibleCount} total
                 {#if runningCount > 0}
@@ -238,7 +238,7 @@
             {#if runningCount > 0}
                 <button
                     onclick={handleStopAll}
-                    class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                    class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
                 >
                     ■ Stop All
                 </button>
@@ -246,15 +246,17 @@
             <button
                 onclick={handleDownloadAllTrajectories}
                 disabled={downloadingAll}
-                class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium px-4 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
             >
                 {downloadingAll
                     ? "⏳ Downloading..."
-                    : "📈 Download All Trajectories"}
+                    : "📈 Download All"}<span class="hidden sm:inline"
+                    >{downloadingAll ? "" : " Trajectories"}</span
+                >
             </button>
             <button
                 onclick={loadData}
-                class="text-slate-400 hover:text-white hover:bg-slate-700 px-3 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                class="text-slate-400 hover:text-white hover:bg-slate-700 px-3 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
             >
                 ↻ Refresh
             </button>
@@ -281,7 +283,7 @@
         </div>
     {:else if jobs.length === 0}
         <div
-            class="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center"
+            class="bg-slate-800 rounded-xl border border-slate-700 p-6 sm:p-12 text-center"
         >
             <div class="text-4xl mb-3">📋</div>
             <h3 class="text-lg font-medium text-slate-300 mb-1">No jobs yet</h3>
@@ -325,11 +327,11 @@
                                 : 'border-slate-700'}"
                         >
                             <div
-                                class="p-4 flex flex-col md:flex-row md:items-center gap-4"
+                                class="p-3 sm:p-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4"
                             >
                                 <!-- Left: job info -->
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-1.5">
+                                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
                                         <span class="font-semibold text-white">
                                             {JOB_TYPE_NAMES[job.job_type] ??
                                                 job.job_type}
@@ -345,12 +347,12 @@
                                             {job.job_status}
                                         </span>
                                         <span
-                                            class="text-xs text-slate-600 font-mono"
+                                            class="text-xs text-slate-600 font-mono break-all"
                                             >ID: {job.job_id}</span
                                         >
                                     </div>
                                     <div
-                                        class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 text-xs"
+                                        class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-1 text-xs"
                                     >
                                         <div>
                                             <span class="text-slate-500"
@@ -360,7 +362,7 @@
                                                 >{rtsName(job.rts_id)}</span
                                             >
                                         </div>
-                                        <div>
+                                        <div class="col-span-2 sm:col-span-1">
                                             <span class="text-slate-500"
                                                 >Created:</span
                                             >
@@ -399,12 +401,12 @@
                                 </div>
 
                                 <!-- Right: actions -->
-                                <div class="flex flex-wrap gap-1.5 shrink-0">
+                                <div class="flex flex-wrap gap-1.5 shrink-0 [&>button]:grow md:[&>button]:grow-0">
                                     {#if isRunning}
                                         <button
                                             onclick={() =>
                                                 handleStop(job.job_id)}
-                                            class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                            class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-2.5 md:py-1.5 rounded-lg transition-colors cursor-pointer"
                                         >
                                             ■ Stop
                                         </button>
@@ -413,7 +415,7 @@
                                     {#if canDownload}
                                         <button
                                             onclick={() => (plottingJob = job)}
-                                            class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                            class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium px-3 py-2.5 md:py-1.5 rounded-lg transition-colors cursor-pointer"
                                             title="Plot corrected measurements"
                                         >
                                             📊 Plot
@@ -428,7 +430,7 @@
                                                 )}
                                             disabled={downloadingId ===
                                                 job.job_id}
-                                            class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                            class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-medium px-3 py-2.5 md:py-1.5 rounded-lg transition-colors cursor-pointer"
                                             title="Download trajectory (XYZ CSV)"
                                         >
                                             📈 Trajectory
@@ -441,7 +443,7 @@
                                                 handleDownloadRaw(job.job_id)}
                                             disabled={downloadingId ===
                                                 job.job_id}
-                                            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium px-3 py-2.5 md:py-1.5 rounded-lg transition-colors cursor-pointer"
                                             title="Download raw measurements CSV"
                                         >
                                             📄 Raw
@@ -450,7 +452,7 @@
 
                                     <button
                                         onclick={() => handleDelete(job.job_id)}
-                                        class="text-slate-500 hover:text-red-400 hover:bg-red-500/10 text-xs px-2 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                        class="text-slate-500 hover:text-red-400 hover:bg-red-500/10 text-xs px-3 md:px-2 py-2.5 md:py-1.5 rounded-lg transition-colors cursor-pointer grow-0!"
                                         title="Delete job"
                                     >
                                         🗑️

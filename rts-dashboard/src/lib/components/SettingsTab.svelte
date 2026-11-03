@@ -55,9 +55,9 @@
 </script>
 
 <div class="max-w-2xl mx-auto">
-    <h2 class="text-2xl font-bold mb-6">API Settings</h2>
+    <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">API Settings</h2>
 
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-6">
         <div class="space-y-4">
             <div>
                 <label
@@ -89,23 +89,23 @@
                 </div>
             {/if}
 
-            <div class="flex gap-3 pt-2">
+            <div class="flex flex-wrap gap-2 sm:gap-3 pt-2">
                 <button
                     onclick={handleTest}
                     disabled={testing}
-                    class="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg transition-colors cursor-pointer"
+                    class="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg grow sm:grow-0 transition-colors cursor-pointer"
                 >
                     {testing ? "Testing..." : "Test Connection"}
                 </button>
                 <button
                     onclick={handleSave}
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition-colors cursor-pointer"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg grow sm:grow-0 transition-colors cursor-pointer"
                 >
                     Save
                 </button>
                 <button
                     onclick={handleReset}
-                    class="text-slate-400 hover:text-white px-5 py-2.5 rounded-lg transition-colors cursor-pointer"
+                    class="text-slate-400 hover:text-white px-5 py-2.5 rounded-lg grow sm:grow-0 transition-colors cursor-pointer"
                 >
                     Reset to Default
                 </button>
@@ -113,7 +113,7 @@
         </div>
     </div>
 
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 mt-6">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-6 mt-4 sm:mt-6">
         <h3 class="font-semibold mb-3">About</h3>
         <div class="text-sm text-slate-400 space-y-1">
             <p>
@@ -130,6 +130,7 @@
             <p>
                 Code: <a
                     href="https://github.com/Engineering-Geodesy-Bonn/rts-network"
+                    class="break-all"
                     style="color: #3b82f6; text-decoration: underline;"
                     >https://github.com/Engineering-Geodesy-Bonn/rts-network</a
                 >

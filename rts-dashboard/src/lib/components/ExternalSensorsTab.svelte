@@ -173,9 +173,9 @@
 </script>
 
 <div class="max-w-6xl mx-auto">
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-            <h2 class="text-2xl font-bold">External Sensors</h2>
+            <h2 class="text-xl sm:text-2xl font-bold">External Sensors</h2>
             <p class="text-sm text-slate-400 mt-1">
                 {sensors.length} sensor{sensors.length !== 1 ? "s" : ""} registered
             </p>
@@ -183,7 +183,7 @@
         <button
             onclick={loadSensors}
             disabled={loading}
-            class="text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 px-3 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+            class="text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 px-3 py-2.5 sm:py-2 rounded-lg transition-colors text-sm cursor-pointer"
         >
             ↻ Refresh
         </button>
@@ -221,7 +221,7 @@
         </div>
     {:else if sensors.length === 0}
         <div
-            class="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center"
+            class="bg-slate-800 rounded-xl border border-slate-700 p-6 sm:p-12 text-center"
         >
             <div class="text-4xl mb-3">📡</div>
             <h3 class="text-lg font-medium text-slate-300 mb-1">
@@ -233,7 +233,7 @@
             </p>
         </div>
     {:else}
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
             {#each sensors as sensor (sensor.id)}
                 {@const isEditing = editingSensorId === sensor.id}
                 {@const isSaving = savingSensorId === sensor.id}
@@ -255,7 +255,7 @@
                           ? 'border-green-500/40'
                           : 'border-slate-700 hover:border-slate-600'}"
                 >
-                    <div class="p-5">
+                    <div class="p-4 sm:p-5">
                         <div
                             class="flex items-start justify-between gap-3 mb-4"
                         >
@@ -278,7 +278,7 @@
                                                 type="submit"
                                                 disabled={isSaving ||
                                                     !draftName.trim()}
-                                                class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                                                class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2.5 sm:px-3 sm:py-2 rounded-lg transition-colors cursor-pointer"
                                             >
                                                 {isSaving
                                                     ? "Saving..."
@@ -288,7 +288,7 @@
                                                 type="button"
                                                 onclick={cancelEdit}
                                                 disabled={isSaving}
-                                                class="text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 text-sm px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                                                class="text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-50 text-sm px-4 py-2.5 sm:px-3 sm:py-2 rounded-lg transition-colors cursor-pointer"
                                             >
                                                 Cancel
                                             </button>
@@ -321,7 +321,7 @@
                             </div>
 
                             {#if !isEditing}
-                                <div class="flex items-center gap-1 shrink-0">
+                                <div class="flex items-center gap-0.5 sm:gap-1 shrink-0 -mr-1.5 sm:mr-0">
                                     <button
                                         onclick={() =>
                                             handleDownloadTrajectory(sensor)}
@@ -392,7 +392,7 @@
                                     <div class="flex justify-between gap-3">
                                         <span class="text-slate-400">IP</span>
                                         <span
-                                            class="text-slate-200 font-mono uppercase"
+                                            class="text-slate-200 font-mono uppercase break-all text-right"
                                         >
                                             {sensor.ip}
                                         </span>
@@ -421,7 +421,7 @@
                                         onclick={() =>
                                             handleToggleActive(sensor)}
                                         disabled={isTogglingActive}
-                                        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                                        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed my-2.5 sm:my-0 before:absolute before:-inset-3 before:content-['']
                                             {sensor.logging_active
                                             ? 'bg-blue-600'
                                             : 'bg-slate-600'}"
