@@ -135,6 +135,27 @@ class RTSJobRepository:
             .first()
         )
 
+    def get_jobs_by_status(self, rts_id: UUID, status: RTSJobStatus) -> list[RTSJob]:
+        return (
+            self.db.query(RTSJob)
+            .filter(RTSJob.rts_id == rts_id, RTSJob.status == status.value)
+            .order_by(RTSJob.created_at.asc())
+            .all()
+        )
+
+    def get_last_completed_rts_job(self, rts_id: UUID) -> RTSJob | None:
+        """Most recent finished or failed job, ignoring the implicit static measurement container job."""
+        return (
+            self.db.query(RTSJob)
+            .filter(
+                RTSJob.rts_id == rts_id,
+                RTSJob.status.in_([RTSJobStatus.FINISHED.value, RTSJobStatus.FAILED.value]),
+                RTSJob.job_type != RTSJobType.STATIC_MEASUREMENT.value,
+            )
+            .order_by(RTSJob.created_at.desc())
+            .first()
+        )
+
     def get_running_rts_jobs(self) -> list[RTSJob]:
         return (
             self.db.query(RTSJob)

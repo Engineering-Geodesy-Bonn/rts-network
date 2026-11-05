@@ -65,6 +65,7 @@ export const JOB_TYPE_NAMES: Record<string, string> = {
     turn_to_target: 'Turn to Target',
     static_measurement: 'Static Measurement',
     add_static_measurement: 'Static Measurement',
+    health_check: 'Instrument Check',
 };
 
 // ── Job Status Colors ───────────────────────────────────────
@@ -96,3 +97,4 @@ export const units = {
 
 // ── Polling Intervals ───────────────────────────────────────
 export const RTS_STATUS_POLL_MS = 1000;
+export const STATUS_BOARD_POLL_MS = 2000;

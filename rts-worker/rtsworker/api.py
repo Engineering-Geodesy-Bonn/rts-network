@@ -10,6 +10,7 @@ from uuid import UUID
 import aiohttp
 import requests
 import websockets
+from rtsworker.health import STATE
 from rtsworker.dtos import (
     AddMeasurementRequest,
     DeviceResponse,
@@ -179,6 +180,11 @@ def get_tracking_settings(rts_id: UUID, api_config: APIConfig) -> dict:
     return TrackingSettingsResponse.model_validate(response.json())
 
 
+def post_instrument_report(rts_id: str, report: dict, api_config: APIConfig) -> None:
+    response = requests.post(f"{api_config.api_url}/rts/{rts_id}/instrument_report", json=report, timeout=api_config.timeout)
+    response.raise_for_status()
+
+
 def get_latest_target_position(api_config: APIConfig) -> TargetPosition:
     response = requests.get(f"{api_config.api_url}/target", timeout=api_config.timeout)
     response.raise_for_status()
@@ -202,8 +208,11 @@ def websocket_sender(job_id: UUID, data_queue: queue.Queue, shutdown_event: thre
 
         except (websockets.exceptions.ConnectionClosedError, ConnectionRefusedError, asyncio.TimeoutError) as e:
             logger.warning(f"WebSocket connection error: {e}. Retrying in {api_config.ws_reconnect_delay}s...")
+            STATE.error(f"Measurement stream disconnected: {e}")
         except Exception as e:
             logger.warning(f"Unexpected WebSocket error: {e}. Retrying in {api_config.ws_reconnect_delay}s...")
+            STATE.error(f"Measurement stream error: {e!r}")
+        STATE.stream_connected = False
 
         if shutdown_event.is_set():
             unsent = data_queue.qsize() + (pending_state[0] is not None)
@@ -218,6 +227,7 @@ def websocket_sender(job_id: UUID, data_queue: queue.Queue, shutdown_event: thre
 async def connect_and_send(uri: str, data_queue: queue.Queue, shutdown_event: threading.Event, pending_state: list):
     async with websockets.connect(uri, ping_interval=10, ping_timeout=10) as websocket:
         logger.info(f"WebSocket connected to {uri}")
+        STATE.stream_connected = True
 
         if pending_state[0]:
             logger.info("Sending pending measurement...")
@@ -237,5 +247,6 @@ async def connect_and_send(uri: str, data_queue: queue.Queue, shutdown_event: th
             await websocket.send(measurement.model_dump_json())
             pending_state[0] = None
             data_queue.task_done()
+            STATE.measurement_sent(data_queue.qsize())
 
     logger.info("WebSocket connection closed after draining the queue.")

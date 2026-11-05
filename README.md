@@ -10,6 +10,10 @@ The RTSN system consists of multiple robotic total stations that are connected t
 
 ![](./.images/overview.png)
 
+## Status Board
+
+The **Status** tab of the dashboard shows the health of the whole network on one page: a network map and checks for every device (worker connection, GNSS fix, PPS, chrony synchronization and accuracy, clock agreement between devices, temperature, power, disk), every worker (job loop, measurement stream backlog, errors) and every total station (serial port, instrument communication, battery, job queue and, while tracking, data rate, prism lock and timestamp jitter). Checks that cannot be verified count as not ok, so "All checks passed" means everything has actually been verified. Set up GNSS time synchronization on the workers as described in the [worker README](rts-worker/README.md#gps-time-synchronization-raspberry-pi).
+
 ## Installation
 
 The RTS network consists of multiple components that need to be installed and configured. It is recommended to install the API and the dashboard on a device like a laptop or a server and the worker on a Raspberry Pi that is connected to the total stations. Installation instructions for each component can be found in the respective folders of the components. If you want to install the dashboard and the API on the same device, you can use the docker compose file provided in this repository. The docker compose file will build the images for the API and the dashboard and run them in separate containers. The worker can be installed on a Raspberry Pi or any other device that is connected to the total stations.

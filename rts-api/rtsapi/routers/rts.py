@@ -1,8 +1,15 @@
 from uuid import UUID
 
+import time
+
 from fastapi import APIRouter, Depends
 
-from rtsapi.dtos import (CreateRTSRequest, RTSResponse,
+from rtsapi.app_state import AppState
+from rtsapi.dependencies import get_app_state
+from rtsapi.exceptions import NoMeasurementsAvailableException
+
+from rtsapi.dtos import (CreateRTSRequest, InstrumentReport,
+                         InstrumentReportRecord, RTSResponse,
                          RTSStatus, TrackingSettingsResponse, UpdateRTSRequest,
                          UpdateTrackingSettingsRequest)
 from rtsapi.services.rts_service import RTSService
@@ -142,3 +149,45 @@ async def update_tracking_settings(
     rts_service: RTSService = Depends(RTSService),
 ):
     return rts_service.update_tracking_settings(rts_id, tracking_settings)
+
+
+@router.post(
+    "/rts/{rts_id}/instrument_report",
+    response_model=InstrumentReportRecord,
+    summary="Report instrument health (battery, temperature, identification).",
+    response_description="Stored instrument report.",
+    responses={
+        200: {"description": "Successfully stored instrument report."},
+        404: {"description": "Requested RTS entry does not exist."},
+        500: {"description": "Internal server error."},
+    },
+)
+def post_instrument_report(
+    rts_id: UUID,
+    report: InstrumentReport,
+    rts_service: RTSService = Depends(RTSService),
+    app_state: AppState = Depends(get_app_state),
+) -> InstrumentReportRecord:
+    rts_service.get_rts(rts_id)
+    record = InstrumentReportRecord(**report.model_dump(), received_at=time.time())
+    app_state.instrument_reports[rts_id] = record
+    return record
+
+
+@router.get(
+    "/rts/{rts_id}/instrument_report",
+    response_model=InstrumentReportRecord,
+    summary="Get latest instrument report.",
+    response_description="Latest instrument report.",
+    responses={
+        200: {"description": "Successfully retrieved instrument report."},
+        404: {"description": "No instrument report available."},
+        500: {"description": "Internal server error."},
+    },
+)
+def get_instrument_report(
+    rts_id: UUID, app_state: AppState = Depends(get_app_state)
+) -> InstrumentReportRecord:
+    if rts_id not in app_state.instrument_reports:
+        raise NoMeasurementsAvailableException(f"No instrument report for RTS {rts_id}")
+    return app_state.instrument_reports[rts_id]

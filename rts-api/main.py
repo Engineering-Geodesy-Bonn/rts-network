@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from rtsapi.app_state import AppState
 from rtsapi.database import engine, models
 from rtsapi.global_exception_handling import catch_exceptions_middleware
-from rtsapi.routers import device, measurement, root, rts, rts_job, session, target, external_sensor, synchronizer
+from rtsapi.routers import device, measurement, root, rts, rts_job, session, target, external_sensor, synchronizer, status, worker
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(message)s")
 
@@ -33,6 +33,8 @@ app.include_router(rts.router)
 app.include_router(session.router)
 app.include_router(external_sensor.router)
 app.include_router(synchronizer.router)
+app.include_router(worker.router)
+app.include_router(status.router)
 
 app.middleware("http")(catch_exceptions_middleware)
 

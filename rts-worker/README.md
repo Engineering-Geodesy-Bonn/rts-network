@@ -41,6 +41,18 @@ docker-compose up -d --scale worker=3
 
 During tracking, every measurement sent to the API is also appended to `measurements/<job_id>.csv` on the worker (mounted from the host via `docker-compose.yaml`, configurable with `MEASUREMENT_LOG_DIR`). The columns match the CSV download of the API, plus the time the request was sent to the total station, so the file can be re-imported with `rts-api/scripts/import_measurement.py` if measurements were lost on the way to the API.
 
+## Health Reporting
+
+Every worker sends a heartbeat to the API every 2 seconds (`HEARTBEAT_INTERVAL`). The dashboard's **Status** tab evaluates these heartbeats, so that an all-green board means that every device is reachable, synchronized and ready to measure. A heartbeat contains:
+
+- **Clock synchronization**: `chronyc tracking` and `chronyc sources` of the host (reference clock, offset, estimated error, PPS source). The Docker image contains `chronyc`; thanks to host networking it queries the chrony daemon of the host (`CHRONY_HOST`, default `127.0.0.1`).
+- **GNSS receiver**: fix, satellites and DOP from gpsd (`GPSD_HOST`/`GPSD_PORT`, default `127.0.0.1:2947`).
+- **Clock comparison with the API**: an NTP-like offset and round trip measurement, used to cross-check that all devices agree on the time.
+- **System**: CPU temperature, under-voltage (Raspberry Pi), free disk space of the measurement log, available serial ports.
+- **Runtime**: current job, measurement stream state and backlog, last error.
+
+The job type `health_check` (*Instrument Check* in the dashboard) reads model, serial number, firmware, battery and temperature of the total station and measures the GeoCOM latency. Tracking jobs report the same information when they start.
+
 ## Custom Workers
 
 The behavior of the worker can be customized by creating a custom task mapping and passing it to the Worker class at initialization. The custom task mapping must be a dictionary with RTSJobType as key and a function as value. The function must accept a single argument, which is of type RTSJobResponse. The function should return None. The Worker class fetches available jobs, sets an available job to running and runs the task. All other communication, e.g. if the task is successful or not, should be done via the RTS API within the task function.

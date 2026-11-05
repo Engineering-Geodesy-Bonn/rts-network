@@ -12,6 +12,7 @@ task_mapping = {
     RTSJobType.TRACK_PRISM: tasks.track_prism,
     RTSJobType.TURN_TO_TARGET: tasks.turn_to_target,
     RTSJobType.ADD_STATIC_MEASUREMENT: tasks.add_single_measurement,
+    RTSJobType.HEALTH_CHECK: tasks.health_check,
 }
 
 

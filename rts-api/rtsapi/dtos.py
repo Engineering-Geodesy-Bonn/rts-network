@@ -23,6 +23,7 @@ class RTSJobType(Enum):
     TURN_TO_TARGET = "turn_to_target"
     STATIC_MEASUREMENT = "static_measurement"
     ADD_STATIC_MEASUREMENT = "add_static_measurement"
+    HEALTH_CHECK = "health_check"
 
 
 class RTSJobStatus(Enum):
@@ -267,3 +268,257 @@ class SynchronizerStateResponse(BaseModel):
 class SensorRolesResponse(BaseModel):
     primary_sensor_id: UUID | None
     secondary_sensor_id: UUID | None
+
+
+# ── Worker heartbeats ───────────────────────────────────────────────────
+# All fields are optional so that older or newer workers can always report.
+
+
+class ChronyTracking(BaseModel):
+    reference_id: str = ""
+    reference_name: str = ""
+    stratum: int = 0
+    ref_time: float = 0.0
+    system_time_offset: float = 0.0
+    last_offset: float = 0.0
+    rms_offset: float = 0.0
+    frequency_ppm: float = 0.0
+    residual_freq_ppm: float = 0.0
+    skew_ppm: float = 0.0
+    root_delay: float = 0.0
+    root_dispersion: float = 0.0
+    update_interval: float = 0.0
+    leap_status: str = ""
+
+
+class ChronySource(BaseModel):
+    mode: str
+    state: str
+    name: str
+    stratum: int = 0
+    poll: int = 0
+    reach: int = 0
+    last_rx: int | None = None
+    offset: float = 0.0
+    measured_offset: float = 0.0
+    error: float = 0.0
+
+
+class ChronyStatus(BaseModel):
+    available: bool = False
+    error: str | None = None
+    tracking: ChronyTracking | None = None
+    sources: list[ChronySource] = []
+
+
+class GpsDevice(BaseModel):
+    path: str | None = None
+    driver: str | None = None
+
+
+class GpsStatus(BaseModel):
+    available: bool = False
+    error: str | None = None
+    devices: list[GpsDevice] = []
+    mode: int | None = None
+    status: int | None = None
+    time: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    alt: float | None = None
+    eph: float | None = None
+    epv: float | None = None
+    ept: float | None = None
+    satellites_visible: int | None = None
+    satellites_used: int | None = None
+    hdop: float | None = None
+    pdop: float | None = None
+    tdop: float | None = None
+
+
+class SerialPort(BaseModel):
+    path: str
+    target: str
+
+
+class SystemInfo(BaseModel):
+    hostname: str | None = None
+    platform: str | None = None
+    python_version: str | None = None
+    uptime: float | None = None
+    cpu_count: int | None = None
+    cpu_temperature: float | None = None
+    load_average: list[float] = []
+    memory_total: int | None = None
+    memory_available: int | None = None
+    disk_total: int | None = None
+    disk_free: int | None = None
+    undervoltage: bool | None = None
+    serial_ports: list[SerialPort] = []
+    pps_devices: list[str] = []
+
+
+class WorkerRuntime(BaseModel):
+    state: str = "idle"
+    job_id: str | None = None
+    job_type: str | None = None
+    rts_id: str | None = None
+    job_started_at: float | None = None
+    last_activity_at: float | None = None
+    jobs_finished: int = 0
+    jobs_failed: int = 0
+    last_error: str | None = None
+    last_error_at: float | None = None
+    streaming: bool = False
+    stream_connected: bool = False
+    stream_backlog: int = 0
+    measurements_logged: int = 0
+    measurements_sent: int = 0
+    last_measurement_at: float | None = None
+
+
+class ClockSample(BaseModel):
+    offset: float  # API server clock minus worker clock (s)
+    delay: float  # network round trip delay without server processing (s)
+    measured_at: float
+    samples: int = 1
+
+
+class WorkerHeartbeat(BaseModel):
+    worker_id: str
+    version: str = "unknown"
+    sent_at: float
+    started_at: float | None = None
+    api_host: str | None = None
+    interval: float = 2.0
+    clock: ClockSample | None = None
+    chrony: ChronyStatus = ChronyStatus()
+    gps: GpsStatus = GpsStatus()
+    system: SystemInfo = SystemInfo()
+    runtime: WorkerRuntime = WorkerRuntime()
+
+
+class HeartbeatAck(BaseModel):
+    server_receive_time: float
+    server_send_time: float
+
+
+class WorkerRecord(BaseModel):
+    ip: str
+    received_at: float
+    heartbeat: WorkerHeartbeat
+
+
+class InstrumentReport(BaseModel):
+    ok: bool = True
+    source: str = "health_check"
+    errors: list[str] = []
+    collected_at: float | None = None
+    instrument_name: str | None = None
+    serial_number: int | None = None
+    software_version: str | None = None
+    battery_capacity: int | None = None
+    power_source: str | None = None
+    internal_temperature: float | None = None
+    face: int | None = None
+    latency_mean: float | None = None
+    latency_max: float | None = None
+    latency_samples: int | None = None
+
+
+class InstrumentReportRecord(InstrumentReport):
+    received_at: float
+
+
+# ── Status board ────────────────────────────────────────────────────────
+
+
+class CheckStatus(Enum):
+    OK = "ok"
+    INFO = "info"  # informative only, does not influence the overall status
+    UNKNOWN = "unknown"  # could not be verified
+    WARN = "warn"
+    FAIL = "fail"
+
+
+class StatusCheck(BaseModel):
+    key: str
+    label: str
+    status: CheckStatus
+    message: str
+
+
+class WorkerBoardEntry(BaseModel):
+    worker_id: str
+    online: bool
+    age: float
+    status: CheckStatus
+    checks: list[StatusCheck]
+    heartbeat: WorkerHeartbeat
+
+
+class DeviceBoardEntry(BaseModel):
+    device_id: UUID
+    ip: str
+    hostname: str | None
+    in_session: bool
+    online: bool
+    reports_health: bool
+    last_seen_age: float | None
+    rts_ids: list[UUID]
+    status: CheckStatus
+    checks: list[StatusCheck]
+    workers: list[WorkerBoardEntry]
+    clock: ClockSample | None
+    chrony: ChronyStatus | None
+    gps: GpsStatus | None
+    system: SystemInfo | None
+
+
+class TrackingQuality(BaseModel):
+    samples: int
+    rate_hz: float | None
+    last_measurement_age: float | None
+    no_distance_ratio: float | None
+    error_ratio: float | None
+    timing_residual_std: float | None
+    timing_residual_max: float | None
+    clock_drift_ppm: float | None
+
+
+class RTSBoardEntry(BaseModel):
+    rts_id: UUID
+    name: str
+    device_id: UUID
+    device_ip: str | None
+    port: str
+    baudrate: int
+    state: str  # idle | pending | running
+    running_job: RTSJobResponse | None
+    pending_jobs: int
+    last_job: RTSJobResponse | None
+    instrument: InstrumentReportRecord | None
+    tracking: TrackingQuality | None
+    status: CheckStatus
+    checks: list[StatusCheck]
+
+
+class ExternalSensorBoardEntry(BaseModel):
+    id: UUID
+    name: str
+    ip: str
+    online: bool
+    logging_active: bool
+    last_seen_age: float | None
+    status: CheckStatus
+    checks: list[StatusCheck]
+
+
+class StatusBoardResponse(BaseModel):
+    server_time: float
+    overall: CheckStatus
+    counts: dict[str, int]
+    network_checks: list[StatusCheck]
+    devices: list[DeviceBoardEntry]
+    rts: list[RTSBoardEntry]
+    external_sensors: list[ExternalSensorBoardEntry]

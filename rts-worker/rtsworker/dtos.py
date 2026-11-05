@@ -45,6 +45,7 @@ class RTSJobType(Enum):
     TURN_TO_TARGET = "turn_to_target"
     STATIC_MEASUREMENT = "static_measurement"
     ADD_STATIC_MEASUREMENT = "add_static_measurement"
+    HEALTH_CHECK = "health_check"
 
 
 class RTSJobStatus(Enum):

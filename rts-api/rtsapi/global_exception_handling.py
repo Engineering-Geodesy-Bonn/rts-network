@@ -1,4 +1,5 @@
 import logging
+import time
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -33,6 +34,8 @@ EXCEPTION_MAPPING = {
 
 
 async def catch_exceptions_middleware(request: Request, call_next):
+    # Earliest possible receive time, used for the clock comparison with the workers
+    request.state.received_at = time.time()
     try:
         logger.info(f"Request: {request.method} {request.url}")
         return await call_next(request)

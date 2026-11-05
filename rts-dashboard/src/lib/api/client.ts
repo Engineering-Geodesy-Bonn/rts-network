@@ -15,6 +15,7 @@ import type {
     ExternalSensorResponse,
     SensorRolesResponse,
     SynchronizerStateResponse,
+    StatusBoardResponse,
 } from './types';
 
 function getBaseUrl(): string {
@@ -280,4 +281,9 @@ export async function getSynchronizerState(): Promise<SynchronizerStateResponse>
 
 export async function resetSynchronizer(): Promise<void> {
     await request<void>('/synchronizer/reset', { method: 'PATCH' });
+}
+
+// ── Status Board ───────────────────────────────────────────
+export async function getStatusBoard(sessionId: string): Promise<StatusBoardResponse> {
+    return request<StatusBoardResponse>(`/status?session_id=${sessionId}`);
 }

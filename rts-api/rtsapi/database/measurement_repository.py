@@ -87,6 +87,17 @@ class MeasurementRepository:
             .first()
         )
 
+    def get_recent_measurements(self, job_id: UUID, limit: int) -> list[Measurement]:
+        """Latest measurements of a job in ascending time order."""
+        measurements = (
+            self.db.query(Measurement)
+            .filter(Measurement.rts_job_id == job_id)
+            .order_by(Measurement.controller_timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+        return measurements[::-1]
+
     def get_number_of_measurements_for_job(self, job_id: UUID) -> int:
         return (
             self.db.query(Measurement).filter(Measurement.rts_job_id == job_id).count()

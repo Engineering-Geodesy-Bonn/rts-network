@@ -106,10 +106,25 @@ class MeasurementRepository:
             z=rts.station_z,
             orientation=rts.orientation,
         )
-        measurements = [
+        all_measurements = [
             MeasurementMapper.to_dto(measurement)
             for measurement in self.measurement_repository.get_measurements(job_id)
         ]
+        # Samples without distance (instrument lost the prism) come with sensor
+        # time 0. They are no measurements: kept, they would show up as points at
+        # the station position and wreck the sensor time line fit of the job.
+        measurements = [
+            m
+            for m in all_measurements
+            if m.distance > 0 and m.sensor_timestamp > 0
+        ]
+        if len(measurements) < len(all_measurements):
+            logger.info(
+                "Ignoring %i of %i measurements of job %s without distance or sensor time",
+                len(all_measurements) - len(measurements),
+                len(all_measurements),
+                job_id,
+            )
         if not measurements:
             raise NoMeasurementsAvailableException(
                 f"No measurements found for job ID {job_id}"

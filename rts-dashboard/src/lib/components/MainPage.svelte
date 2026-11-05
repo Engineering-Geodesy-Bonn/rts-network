@@ -8,8 +8,10 @@
     import ExternalSensorsTab from "./ExternalSensorsTab.svelte";
     import SynchronizerTab from "./SynchronizerTab.svelte";
     import SettingsTab from "./SettingsTab.svelte";
+    import StatusTab from "./StatusTab.svelte";
 
     let activeTab = $state<
+        | "status"
         | "rts"
         | "jobs"
         | "plot"
@@ -32,6 +34,7 @@
 
     const tabs: {
         id:
+            | "status"
             | "rts"
             | "jobs"
             | "plot"
@@ -59,6 +62,7 @@
             shortLabel: "Sync",
             icon: "🔄",
         },
+        { id: "status", label: "Status", shortLabel: "Status", icon: "🩺" },
         {
             id: "settings",
             label: "Settings",
@@ -144,7 +148,9 @@
     <main
         class="flex-1 min-w-0 px-3 pt-3 sm:px-6 sm:pt-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6"
     >
-        {#if activeTab === "rts"}
+        {#if activeTab === "status"}
+            <StatusTab />
+        {:else if activeTab === "rts"}
             <RTSList />
         {:else if activeTab === "jobs"}
             <JobsTab />
@@ -165,7 +171,7 @@
     <nav
         class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-800 border-t border-slate-700 pb-[env(safe-area-inset-bottom)]"
     >
-        <div class="grid grid-cols-7">
+        <div class="grid grid-cols-8">
             {#each tabs as tab (tab.id)}
                 <button
                     class="relative flex flex-col items-center justify-center gap-0.5 min-h-14 px-0.5 py-1.5 cursor-pointer transition-colors

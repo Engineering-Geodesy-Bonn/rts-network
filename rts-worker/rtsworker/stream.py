@@ -7,6 +7,7 @@ import requests
 
 from rtsworker.api import APIConfig, get_job_status, websocket_sender
 from rtsworker.dtos import AddMeasurementRequest, RTSJobStatus
+from rtsworker.health import STATE
 
 logger = logging.getLogger("root")
 
@@ -69,6 +70,7 @@ class MeasurementStream:
         if self._log_file.tell() == 0:
             self._log_file.write(LOG_HEADER)
         logger.info(f"Logging measurements of job {self.job_id} to {self.log_path}")
+        STATE.stream_started()
         self._sender.start()
         return self
 
@@ -78,6 +80,7 @@ class MeasurementStream:
             f"{m.distance},{m.response_length},{m.geocom_return_code},{m.rpc_return_code},{request_time}\n"
         )
         self._queue.put(m)
+        STATE.measurement_logged(self._queue.qsize())
 
     def __exit__(self, exc_type, exc_value, traceback):
         logger.info("Waiting for sender thread to drain the measurement queue...")
@@ -89,3 +92,4 @@ class MeasurementStream:
                 f"All measurements are in {self.log_path}"
             )
         self._log_file.close()
+        STATE.stream_stopped()

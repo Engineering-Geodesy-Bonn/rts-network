@@ -444,6 +444,16 @@
                                             onclick={() =>
                                                 runAction(
                                                     rts.id,
+                                                    "health_check",
+                                                )}
+                                        >
+                                            🩺 Instrument Check
+                                        </button>
+                                        <button
+                                            class="w-full text-left px-4 py-3 sm:py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors cursor-pointer"
+                                            onclick={() =>
+                                                runAction(
+                                                    rts.id,
                                                     "change_face",
                                                 )}
                                         >
