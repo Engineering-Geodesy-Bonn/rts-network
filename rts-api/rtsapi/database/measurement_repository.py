@@ -89,14 +89,16 @@ class MeasurementRepository:
 
     def get_recent_measurements(self, job_id: UUID, limit: int) -> list[Measurement]:
         """Latest measurements of a job in ascending time order."""
+        # Ordering by id (insertion order) is served by the index; ordering by
+        # timestamp would sort all measurements of the job on every call.
         measurements = (
             self.db.query(Measurement)
             .filter(Measurement.rts_job_id == job_id)
-            .order_by(Measurement.controller_timestamp.desc())
+            .order_by(Measurement.id.desc())
             .limit(limit)
             .all()
         )
-        return measurements[::-1]
+        return sorted(measurements, key=lambda m: m.controller_timestamp)
 
     def get_number_of_measurements_for_job(self, job_id: UUID) -> int:
         return (
