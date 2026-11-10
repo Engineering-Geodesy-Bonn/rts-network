@@ -1,5 +1,12 @@
 services:
   api:
     build: .
-    network_mode: host
+    ports:
+      - "8000:8000"
+    environment:
+      - RTS_DB_PATH=/data/rtsnet.db
+      - RTS_LEGACY_DB=/data/database.db
+    volumes:
+      - ./data:/data
     restart: always
+    stop_grace_period: 30s

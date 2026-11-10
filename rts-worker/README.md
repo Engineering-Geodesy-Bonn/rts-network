@@ -37,28 +37,42 @@ You can run multiple workers depending on the available USB ports and the number
 docker-compose up -d --scale worker=3
 ```
 
-## Local Measurement Log
+## Configuration
 
-During tracking, every measurement sent to the API is also appended to `measurements/<job_id>.csv` on the worker (mounted from the host via `docker-compose.yaml`, configurable with `MEASUREMENT_LOG_DIR`). The columns match the CSV download of the API, plus the time the request was sent to the total station, so the file can be re-imported with `rts-api/scripts/import_measurement.py` if measurements were lost on the way to the API.
+| Environment variable | Default | Meaning |
+|---|---|---|
+| `API_HOST` / `API_PORT` | 192.168.0.101 / 8000 | API server; if unreachable, the local /24 network is scanned |
+| `MEASUREMENT_LOG_DIR` | `measurements` | CSV logs and the outbox (shared by all workers of a device) |
+| `WORKER_ID` | random | Identity of the worker (shown in the dashboard) |
+| `HEARTBEAT_INTERVAL` | 2 | s between health reports |
+| `SIM_TARGET` | – | `E,N,H` center of the simulated prism path (shared by simulated stations) |
+
+## Reliability
+
+- **Outbox**: every measurement is committed to `measurements/outbox.db` (SQLite) before anything else and deleted only after the API confirmed that it is stored. If the API or the network is down, the worker keeps measuring and uploads the backlog later. After a crash or reboot the remaining measurements are sent on start; the rows of a worker that stopped are adopted by the other workers of the device after 30 s.
+- **CSV log**: additionally, every measurement is appended to `measurements/<job_id>.csv` (columns of the API's CSV download, plus request time and sequence number). It can be uploaded again with `rts-api/scripts/import_csv.py`.
+- **Lease**: the worker renews the lease of its job every second. Network problems never stop a measurement; only a stop from the dashboard does.
+- **Serial port**: opened exclusively, so two jobs can never talk to the same instrument.
+
+## Simulated Total Station
+
+A total station configured with the port `sim://<name>` is simulated (25 Hz, prism moving on a circle, drifting instrument clock). Use it to try the system or to test without hardware.
 
 ## Health Reporting
 
-Every worker sends a heartbeat to the API every 2 seconds (`HEARTBEAT_INTERVAL`). The dashboard's **Status** tab evaluates these heartbeats, so that an all-green board means that every device is reachable, synchronized and ready to measure. A heartbeat contains:
+Every worker sends a heartbeat to the API every 2 seconds. The dashboard's **Health** page evaluates these heartbeats, so that an all-green board means that every device is reachable, synchronized and ready to measure. A heartbeat contains:
 
 - **Clock synchronization**: `chronyc tracking` and `chronyc sources` of the host (reference clock, offset, estimated error, PPS source). The Docker image contains `chronyc`; thanks to host networking it queries the chrony daemon of the host (`CHRONY_HOST`, default `127.0.0.1`).
 - **GNSS receiver**: fix, satellites and DOP from gpsd (`GPSD_HOST`/`GPSD_PORT`, default `127.0.0.1:2947`).
 - **Clock comparison with the API**: an NTP-like offset and round trip measurement, used to cross-check that all devices agree on the time.
-- **System**: CPU temperature, under-voltage (Raspberry Pi), free disk space of the measurement log, available serial ports.
-- **Runtime**: current job, measurement stream state and backlog, last error.
+- **System**: CPU temperature, under-voltage (Raspberry Pi), free disk space, available serial ports.
+- **Runtime**: current job, unsent measurements in the outbox and their age, last error, prism lost.
 
-The job type `health_check` (*Instrument Check* in the dashboard) reads model, serial number, firmware, battery and temperature of the total station and measures the GeoCOM latency. Tracking jobs report the same information when they start.
+The job type `health_check` (*Instrument check* in the dashboard) reads model, serial number, firmware, battery and temperature of the total station and measures the GeoCOM latency. Tracking jobs report the same information when they start.
 
-## Custom Workers
+## Custom Tasks
 
-The behavior of the worker can be customized by creating a custom task mapping and passing it to the Worker class at initialization. The custom task mapping must be a dictionary with RTSJobType as key and a function as value. The function must accept a single argument, which is of type RTSJobResponse. The function should return None. The Worker class fetches available jobs, sets an available job to running and runs the task. All other communication, e.g. if the task is successful or not, should be done via the RTS API within the task function.
-
-By defining a custom task mapping, the worker can be extended to support total stations from other manufacturers or to support additional tasks. However, the tracking settings managed by the API are currently tailored to Leica total stations. A workaround would be to define custom settings in the task function without using the API.
-
+Tasks are functions `task(ctx: JobContext) -> None` registered in `rtsworker/tasks.py` (`TASKS`). A task returns normally on success and raises on failure; the worker reports the result. Measuring tasks write measurements with `ctx.sink.put(response)` and end when `ctx.stop` is set. A custom mapping can be passed to `Worker(tasks=...)`.
 
 ## GPS Time Synchronization (Raspberry Pi)
 

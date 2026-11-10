@@ -1,38 +1,62 @@
 # Robotic Total Station Network
 
-This repository contains the code for the Robotic Total Station Network (RTSN) project. A RTSN is a network of spatially distributed robotic total stations that are tracking the same or multiple moving objects. A RTSN can be used for various applications such as reference trajectory generation in GNSS denied environments or tracking of moving objects in construction sites or industrial environments where a consistent line of sight is not guaranteed using a single total station.
+This repository contains the code for the Robotic Total Station Network (RTSN). An RTSN is a network of spatially distributed robotic total stations tracking the same or several moving objects, e.g. to generate reference trajectories in GNSS-denied environments or to track objects on construction sites where a single total station cannot keep a line of sight.
 
 ![](./.images/dashboard.png)
 
-## System Overview
+## Components
 
-The RTSN system consists of multiple robotic total stations that are connected to a central server. The RTS API is responsible for collecting the data from the total stations, processing the data, managing RTS jobs and providing the tracking information to the clients. The clients can be any device that is connected to the RTS API and can communicate with it. The RTS Worker is the bridge between the total stations and the RTS API. It is responsible for collecting the data from the total stations using serial communcation and sending it to the RTS API using a REST API. The RTS Dashboard can be used to visualize the tracking information and control the total stations.
+| Component | Runs on | Purpose |
+|---|---|---|
+| [rts-api](rts-api) | laptop / server / Raspberry Pi | Stores configuration, jobs and measurements (SQLite), evaluates the health of the network, pushes live data to the dashboards |
+| [rts-dashboard](rts-dashboard) | served by nginx next to the API | Web app to set up stations, measure, monitor and download data (works on phones; Android wrapper in [rts-android](rts-android)) |
+| [rts-worker](rts-worker) | Raspberry Pi at the total station | Controls one total station via GeoCOM, timestamps the measurements (GNSS/PPS disciplined clock) and uploads them |
+| [external-sensors](external-sensors) | any device | Optional sensors (e.g. GNSS receivers) that stream positions to the API |
 
 ![](./.images/overview.png)
 
-## Status Board
+## How data flows (and why it is not lost)
 
-The **Status** tab of the dashboard shows the health of the whole network on one page: a network map and checks for every device (worker connection, GNSS fix, PPS, chrony synchronization and accuracy, clock agreement between devices, temperature, power, disk), every worker (job loop, measurement stream backlog, errors) and every total station (serial port, instrument communication, battery, job queue and, while tracking, data rate, prism lock and timestamp jitter). Checks that cannot be verified count as not ok, so "All checks passed" means everything has actually been verified. Set up GNSS time synchronization on the workers as described in the [worker README](rts-worker/README.md#gps-time-synchronization-raspberry-pi).
+```
+total station ──serial──▶ worker ──▶ outbox (SQLite on the worker) ──websocket, batches──▶ API ──▶ database
+                            │                                         ◀── acknowledgement ──┘
+                            └──▶ CSV log on the worker                 API ──websocket──▶ dashboards (live)
+```
+
+- Every measurement gets a **sequence number** and is committed to the worker's **outbox** before anything else. It is deleted there only after the API confirmed that it is **committed to the database**. Network outages, API restarts and worker crashes therefore lose no data: the backlog is uploaded when the connection is back (the API ignores duplicates).
+- A worker holds a **lease** on its job and renews it every second. If the API does not hear from it, the job shows *No contact* (the worker keeps measuring). It is only stopped by the user, never by a network problem.
+- The API writes through a **single writer thread** (no lock contention), serves reads in a thread pool and never blocks its event loop. Live data, the target position and the health checks are computed from memory, so the cost of the dashboards does not grow with the size of a session.
+- Dashboards receive **pushed events** (live measurements 5× per second, job changes, the status board every 2 s) instead of polling. A dashboard that was offline or asleep detects the gap from the sequence numbers and fills it from the API.
 
 ## Installation
 
-The RTS network consists of multiple components that need to be installed and configured. It is recommended to install the API and the dashboard on a device like a laptop or a server and the worker on a Raspberry Pi that is connected to the total stations. Installation instructions for each component can be found in the respective folders of the components. If you want to install the dashboard and the API on the same device, you can use the docker compose file provided in this repository. The docker compose file will build the images for the API and the dashboard and run them in separate containers. The worker can be installed on a Raspberry Pi or any other device that is connected to the total stations.
-
-Clone the repository and navigate to the root folder:
+Install the API and the dashboard on one machine with Docker:
 
 ```bash
 git clone https://github.com/Engineering-Geodesy-Bonn/rts-network
 cd rts-network
+docker compose up -d --build
 ```
 
-Then, build and run the Docker containers using the following command:
+The dashboard is available at `http://<host>:8050`, the API at `http://<host>:8000` (documentation at `/docs`). Install a worker on every Raspberry Pi connected to a total station as described in the [worker README](rts-worker/README.md).
+
+### Upgrading from version 1
+
+Version 2 uses a new database file (`data/rts-api/rtsnet.db`). On its **first start the API imports the version 1 database** (`data/rts-api/database.db`) automatically. The old file is opened read-only and stays untouched, so you can go back to version 1 at any time. Every imported job is verified (number of measurements and a checksum of the distances); the result is shown in the dashboard under *Settings*. A database can also be imported manually, e.g. a backup (`rtsapi import-legacy <file>`, idempotent).
+
+All workers must be updated together with the API: the worker protocol changed.
+
+## Testing without hardware
+
+A total station with the port `sim://<name>` is simulated by the worker (25 Hz, prism moving on a circle). `tools/e2e.py` starts an API and several workers with simulated instruments, injects faults (API killed for 10 s, a worker killed with SIGKILL) and verifies that every measurement in the workers' logs arrived exactly once:
 
 ```bash
-docker-compose up -d
+(cd rts-api && uv sync) && (cd rts-worker && uv sync)
+python3 tools/e2e.py --rts 4 --duration 300 --chaos
 ```
 
-This will build the Docker images for the API and dashboard and start the containers. The API will be available at `http://localhost:8000` and the dashboard at `http://localhost:8050`.
+The API has a unit test suite: `cd rts-api && uv run pytest`.
 
 ## License
 
-The license of each component is specified in the respective folders. The RTS API and the RTS Dashboard are licensed under the GPLv3 license. The RTS Worker is licensed under the MIT license. The licenses are included in the respective folders.
+The license of each component is specified in its folder. The RTS API and the RTS Dashboard are licensed under the GPLv3 license, the RTS Worker under the MIT license.

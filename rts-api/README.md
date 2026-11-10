@@ -1,69 +1,59 @@
-# Robotic Total Station API
+# RTS Network API
 
-This is the backend component of the RTS Network project. It is a RESTful API that provides an easy way to interact with multiple robotic total station connected to several devices running RTS workers. The API is built using the FastAPI framework and is designed to be used in conjunction with the RTS Network frontend.
+Backend of the RTS Network: stores sessions, total stations, jobs and measurements, coordinates the workers and pushes live data and health information to the dashboards. Built with FastAPI and SQLite.
 
-## Features
+## Running
 
-This API manages connected logging devices and robotic total stations. It provides the following features:
-
-- Automatic registration of logging devices that connect to the API (see RTS Worker project)
-- Registering and managing RTS and their connection and tracking settings
-- Managing RTS jobs: creating, updating, and deleting jobs like tracking a prism
-- Managing RTS measurements: creating, updating, and deleting measurements
-- Alignment and intrinsic calibration of RTS
-
-## Documentation
-
-The API documentation is available at the `/docs` endpoint. It provides detailed information about the available endpoints, request and response formats.
-
-## Installation
-
-Installation is done using Docker. Make sure you have Docker installed on your system.
-
-1. Clone the repository
+With Docker (together with the dashboard, see the [main README](../README.md)), or standalone:
 
 ```bash
-git clone https://github.com/Engineering-Geodesy-Bonn/rts-network
+docker compose up -d          # API on port 8000, data in ./data
 ```
 
-2. Change into the project directory
+Without Docker (Python ≥ 3.11, [uv](https://docs.astral.sh/uv/)):
 
 ```bash
-cd rts-api
+uv sync
+uv run rtsapi serve --db ./rtsnet.db --root-path ""
 ```
 
-3. Build and run the Docker container
+`--root-path /api` (default) is for running behind the dashboard's nginx, which serves the API under `/api`.
+
+| Environment variable | Default | Meaning |
+|---|---|---|
+| `RTS_DB_PATH` | `./rtsnet.db` | Database file |
+| `RTS_LEGACY_DB` | – | v1 database imported on the first start (never modified) |
+| `RTS_LEASE_DURATION` | 15 | s without lease renewal until a job shows *No contact* |
+| `RTS_LOST_JOB_TIMEOUT` | 60 | s after which a job without contact is marked *interrupted* (it resumes if its worker comes back) |
+| `RTS_PENDING_TIMEOUT` | 300 | s a job may wait for a worker before it fails |
+| `RTS_LIVE_BUFFER_SECONDS` | 900 | Measurements per running job kept in memory |
+| `RTS_LOG_LEVEL` | INFO | |
+
+## Command line
 
 ```bash
-docker-compose up -d
+rtsapi serve [--host 0.0.0.0] [--port 8000] [--db FILE] [--root-path /api] [--access-log]
+rtsapi import-legacy <v1 database.db> [--db FILE]   # read-only, idempotent, verified
 ```
 
-The API should now be running on `http://localhost:8000`.
+## Design
 
-### Alternative Installation
+- **Storage**: SQLite in WAL mode. All writes go through one writer thread that combines concurrent write requests into one transaction; reads never wait. Measurements are stored clustered by `(job, seq)`; job statistics (count, time span) are maintained on insert. The schema is versioned (`rtsapi/schema.py`, `PRAGMA user_version`).
+- **Ingest**: workers stream batches over `/worker/stream`; each batch is acknowledged after the commit. `INSERT OR IGNORE` on `(job, seq)` makes resending harmless.
+- **Jobs**: `pending → running → finished | failed`, plus `cancelled` (stopped while pending), `lost` (no lease renewal, may come back) and `interrupted`. One active job per total station.
+- **Events**: `/events` (websocket) pushes live measurements, job changes, reload hints and the status board of the subscribed session. Slow clients are disconnected instead of buffering without limit.
+- **Status board**: computed every 2 s from memory (worker heartbeats, live buffers) and a few small queries, independent of the number of dashboards.
+- **Post-processing** (`rtsapi/processing.py`): time synchronization of the instrument clock, intrinsic delay correction, CSV and trajectory exports (unchanged from v1).
 
-If you don't want to use Docker, you can install the API manually. Make sure you have Python 3.13 installed on your system.
+The endpoints are documented at `/docs`.
 
-1. Clone the repository
+## Tests
 
 ```bash
-git clone https://github.com/Engineering-Geodesy-Bonn/rts-network
+uv run pytest
 ```
 
-2. Change into the project directory
+## Scripts
 
-```bash
-cd rts-api
-```
-
-3. Install the dependencies
-
-```bash
-pip install .
-```
-
-4. Run the API
-
-```bash
-python3 ./main.py
-```
+- `scripts/import_csv.py`: uploads a worker CSV log into an existing job (recovery, idempotent).
+- `scripts/intrinsic_calibration.py`: intrinsic calibration of a total station (research script).

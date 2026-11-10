@@ -9,8 +9,7 @@ from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
 from scipy.stats.distributions import chi2
 
-from rtsapi.dtos import MeasurementResponse
-from rtsapi.rts_observations import RTSObservations, RTSVarianceConfig
+from rts_observations import MeasurementResponse, RTSObservations, RTSVarianceConfig
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(asctime)s - %(message)s")
 
