@@ -29,7 +29,6 @@ class Core:
         self.settings = settings
         self.started_at = time.time()
         os.makedirs(os.path.dirname(os.path.abspath(settings.db_path)), exist_ok=True)
-        fresh = not os.path.exists(settings.db_path)
         self.db = Database(settings.db_path)
         self.hub = Hub()
         self.live = LiveStore(settings.live_buffer_seconds)
@@ -44,7 +43,9 @@ class Core:
         self._tasks: list[asyncio.Task] = []
         self.loop: asyncio.AbstractEventLoop | None = None
         self.legacy_import: dict | None = None
-        if fresh:
+        # Import the v1 database once. Without a stored report the import did not complete
+        # (e.g. the server was stopped during it): it is idempotent, so it simply runs again.
+        if repo.get_meta(self.db, "legacy_import") is None:
             self._auto_import()
         stored = repo.get_meta(self.db, "legacy_import")
         self.legacy_import = json.loads(stored) if stored else None

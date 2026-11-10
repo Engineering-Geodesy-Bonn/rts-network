@@ -206,3 +206,52 @@ def test_timed_out_job_resumes_when_worker_returns(client, setup, settings):
     assert client.post(f"/worker/jobs/{job_id}/renew?worker_id=w1").json() == {"status": "running", "stop": False}
     job = client.get(f"/jobs/{job_id}").json()
     assert job["status"] == "running" and job["error"] is None
+
+
+def test_auto_import_runs_once_and_resumes(tmp_path):
+    import sqlite3
+
+    from rtsapi import repo
+    from rtsapi.config import Settings
+    from rtsapi.core import Core
+
+    legacy = tmp_path / "v1.db"
+    c = sqlite3.connect(legacy)
+    c.executescript(
+        """
+        CREATE TABLE sessions (id CHAR(32), name, created_at);
+        CREATE TABLE devices (id CHAR(32), ip, last_seen);
+        CREATE TABLE rts (id CHAR(32), name, baudrate, port, timeout, parity, stopbits, bytesize, internal_delay,
+            external_delay, station_x, station_y, station_z, orientation, distance_std_dev, angle_std_dev,
+            distance_ppm, deleted, session_id, device_id);
+        CREATE TABLE rts_jobs (id CHAR(32), status, job_type, created_at, finished_at, duration, datarate,
+            num_measurements, payload, rts_id);
+        CREATE TABLE measurements (id INTEGER PRIMARY KEY, controller_timestamp, sensor_timestamp, response_length,
+            geocom_return_code, rpc_return_code, distance, horizontal_angle, vertical_angle, rts_id, rts_job_id);
+        INSERT INTO sessions VALUES ('11111111111111111111111111111111', 'S', 1.0);
+        INSERT INTO devices VALUES ('22222222222222222222222222222222', '10.0.0.2', 1.0);
+        INSERT INTO rts VALUES ('33333333333333333333333333333333', 'R', 115200, '/dev/ttyUSB0', 30, 'N', 1, 8, 0, 0,
+            1, 2, 3, 0, 0.001, 0.000005, 1, 0, '11111111111111111111111111111111', '22222222222222222222222222222222');
+        INSERT INTO rts_jobs VALUES ('44444444444444444444444444444444', 'running', 'track_prism', 5.0, NULL, NULL,
+            NULL, NULL, '{}', '33333333333333333333333333333333');
+        """
+    )
+    c.executemany(
+        "INSERT INTO measurements VALUES (NULL, ?, ?, 146, 0, 0, 10.0, 0.1, 1.5, ?, ?)",
+        [(10.0 + i, 1000.0 + i, "33333333333333333333333333333333", "44444444444444444444444444444444") for i in range(50)],
+    )
+    c.commit()
+    c.close()
+
+    settings = Settings(db_path=str(tmp_path / "v2.db"), legacy_db_path=str(legacy))
+    core = Core(settings)
+    assert core.legacy_import["ok"] and core.legacy_import["counts"]["measurements"] == 50
+    job = repo.get_job(core.db, "44444444-4444-4444-4444-444444444444")
+    assert job.status.value == "interrupted" and job.count == 50
+    # an interrupted import (no report) is resumed on the next start, without duplicates
+    repo.set_meta(core.db, "legacy_import", None)
+    core.db.execute("DELETE FROM meta WHERE key = 'legacy_import'")
+    core.db.close()
+    core = Core(settings)
+    assert core.legacy_import["ok"] and repo.get_job(core.db, job.id).count == 50
+    core.db.close()
