@@ -1,52 +1,94 @@
+"""Endpoints used by the workers.
+
+Measurements are streamed over the websocket /worker/stream:
+  worker → API  {"type": "batch", "job_id": ..., "rows": [[seq, t, ts, tr, len, grc, rrc, d, hz, v], ...]}
+  API → worker  {"type": "ack", "job_id": ..., "acked_seq": n, "inserted": k, "rejected": null | reason}
+An acknowledged measurement is committed to the database; the worker deletes it from its outbox.
+"""
+
+import asyncio
+import logging
 import time
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response, WebSocket, WebSocketDisconnect
+from pydantic import ValidationError
 
-from rtsapi.app_state import AppState
-from rtsapi.dependencies import get_app_state
-from rtsapi.dtos import HeartbeatAck, WorkerHeartbeat, WorkerRecord
-from rtsapi.services.device_service import DeviceService
-from rtsapi.services.status_service import prune_stale_workers
+from rtsapi import models as m
+from rtsapi import repo
+from rtsapi.core import Core
+from rtsapi.routers import client_ip, get_core
 
-router = APIRouter(tags=["Workers"])
+logger = logging.getLogger(__name__)
 
-
-@router.post(
-    "/workers/heartbeat",
-    response_model=HeartbeatAck,
-    summary="Report worker health.",
-    response_description="Server timestamps for the NTP-like clock comparison.",
-    responses={
-        200: {"description": "Heartbeat accepted."},
-        500: {"description": "Internal server error."},
-    },
-)
-async def worker_heartbeat(
-    request: Request,
-    heartbeat: WorkerHeartbeat,
-    app_state: AppState = Depends(get_app_state),
-    device_service: DeviceService = Depends(DeviceService),
-) -> HeartbeatAck:
-    received_at = getattr(request.state, "received_at", None) or time.time()
-    client_ip = request.client.host
-    device_service.upsert_device(client_ip)
-    app_state.workers[heartbeat.worker_id] = WorkerRecord(
-        ip=client_ip, received_at=received_at, heartbeat=heartbeat
-    )
-    prune_stale_workers(app_state, received_at)
-    return HeartbeatAck(server_receive_time=received_at, server_send_time=time.time())
+router = APIRouter(prefix="/worker", tags=["Worker"])
 
 
-@router.get(
-    "/workers",
-    response_model=list[WorkerRecord],
-    summary="List the latest heartbeat of all workers.",
-    response_description="Latest heartbeats.",
-    responses={
-        200: {"description": "Successfully retrieved worker heartbeats."},
-        500: {"description": "Internal server error."},
-    },
-)
-def get_workers(app_state: AppState = Depends(get_app_state)) -> list[WorkerRecord]:
-    prune_stale_workers(app_state, time.time())
-    return list(app_state.workers.values())
+@router.post("/heartbeat", response_model=m.HeartbeatAck, summary="Report worker health (doubles as clock comparison).")
+async def heartbeat(request: Request, data: m.WorkerHeartbeat, core: Core = Depends(get_core)) -> m.HeartbeatAck:
+    received_at = request.scope.get("state", {}).get("received_at") or time.time()
+    await asyncio.to_thread(core.heartbeat, client_ip(request), received_at, data)
+    return m.HeartbeatAck(server_receive_time=received_at, server_send_time=time.time())
+
+
+@router.get("/workers", response_model=list[m.WorkerRecord], summary="Latest heartbeat of every worker.")
+async def workers(core: Core = Depends(get_core)) -> list[m.WorkerRecord]:
+    return list(core.workers.values())
+
+
+@router.post("/claim", response_model=m.ClaimResponse, summary="Claim the next pending job of this device.",
+             responses={204: {"description": "No job available"}})
+def claim(request: Request, data: m.ClaimRequest, core: Core = Depends(get_core)):
+    device_id = core.device_for(client_ip(request), data.hostname)
+    result = core.jobs.claim(device_id, data)
+    if result is None:
+        return Response(status_code=204)
+    return result
+
+
+@router.post("/jobs/{job_id}/renew", response_model=m.RenewResponse, summary="Extend the lease of a running job.")
+def renew(job_id: str, worker_id: str, core: Core = Depends(get_core)) -> m.RenewResponse:
+    return core.jobs.renew(job_id, worker_id)
+
+
+@router.post("/jobs/{job_id}/complete", response_model=m.Job, summary="Report the end of a job.")
+def complete(job_id: str, worker_id: str, data: m.CompleteRequest, core: Core = Depends(get_core)) -> m.Job:
+    return core.jobs.complete(job_id, worker_id, data)
+
+
+@router.post("/measurements", response_model=m.IngestResult, summary="Store a batch of measurements (idempotent).")
+async def measurements(data: m.MeasurementBatch, core: Core = Depends(get_core)) -> m.IngestResult:
+    return await core.ingest_batch(data)
+
+
+@router.post("/rts/{rts_id}/instrument-report", status_code=204, summary="Store the result of an instrument check.")
+def instrument_report(rts_id: str, data: m.InstrumentReport, core: Core = Depends(get_core)) -> None:
+    record = m.InstrumentReportRecord(**data.model_dump(), received_at=time.time())
+    repo.set_instrument_report(core.db, rts_id, record)
+    core.hub.changed("rts", rts_id)
+
+
+@router.websocket("/stream")
+async def stream(websocket: WebSocket) -> None:
+    core: Core = websocket.app.state.core
+    await websocket.accept()
+    peer = websocket.client.host if websocket.client else "?"
+    logger.info("Measurement stream from %s connected", peer)
+    try:
+        while True:
+            message = await websocket.receive_json()
+            if not isinstance(message, dict) or message.get("type") != "batch":
+                continue
+            try:
+                batch = m.MeasurementBatch(job_id=message["job_id"], rows=message.get("rows", []))
+            except (KeyError, ValidationError) as e:
+                logger.warning("Malformed batch from %s: %s", peer, e)
+                await websocket.send_json({"type": "error", "message": f"Malformed batch: {e}"})
+                continue
+            result = await core.ingest_batch(batch)
+            await websocket.send_json({"type": "ack", **result.model_dump()})
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.warning("Measurement stream from %s failed: %r", peer, e)
+    finally:
+        logger.info("Measurement stream from %s disconnected", peer)

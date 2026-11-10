@@ -1,0 +1,289 @@
+"""The application core: owns the database, the in-memory state and the background tasks."""
+
+import asyncio
+import json
+import logging
+import os
+import time
+
+from rtsapi import __version__, legacy, repo
+from rtsapi import models as m
+from rtsapi.config import Settings
+from rtsapi.db import Database
+from rtsapi.hub import Hub
+from rtsapi.ingest import Ingest
+from rtsapi.jobs import JobManager
+from rtsapi.live import LiveStore, Station
+from rtsapi.status import BoardInput, build_board, prune_stale_workers
+from rtsapi.sync import SyncService
+
+logger = logging.getLogger(__name__)
+
+DEVICE_TOUCH_INTERVAL = 5.0  # s between last_seen updates of a device
+EXTERNAL_TOUCH_INTERVAL = 2.0
+STATUS_CACHE_AGE = 1.5  # s a computed board is reused for REST requests
+
+
+class Core:
+    def __init__(self, settings: Settings):
+        self.settings = settings
+        self.started_at = time.time()
+        os.makedirs(os.path.dirname(os.path.abspath(settings.db_path)), exist_ok=True)
+        fresh = not os.path.exists(settings.db_path)
+        self.db = Database(settings.db_path)
+        self.hub = Hub()
+        self.live = LiveStore(settings.live_buffer_seconds)
+        self.ingest = Ingest(self.db)
+        self.sync = SyncService(self.db)
+        self.jobs = JobManager(self.db, self.hub, settings, on_change=self._job_changed_threadsafe)
+        self.workers: dict[str, m.WorkerRecord] = {}
+        self._stations: dict[str, Station] = {}
+        self._device_touch: dict[tuple[str, str | None], tuple[str, float]] = {}
+        self._external: dict[str, tuple[str, bool, float]] = {}  # ip -> id, logging_active, last touch
+        self._boards: dict[str | None, m.StatusBoard] = {}
+        self._tasks: list[asyncio.Task] = []
+        self.loop: asyncio.AbstractEventLoop | None = None
+        self.legacy_import: dict | None = None
+        if fresh:
+            self._auto_import()
+        stored = repo.get_meta(self.db, "legacy_import")
+        self.legacy_import = json.loads(stored) if stored else None
+
+    # ── lifecycle ──────────────────────────────────────────────────────
+
+    def _auto_import(self) -> None:
+        path = self.settings.legacy_db_path
+        if not path or not legacy.is_legacy_database(path):
+            return
+        logger.info("First start: importing the v1 database %s (the file is not modified)", path)
+        try:
+            report = legacy.import_legacy(path, self.db)
+        except Exception as e:
+            logger.exception("Import of the v1 database failed")
+            report = {"source": path, "ok": False, "problems": [f"Import failed: {e!r}"]}
+        repo.set_meta(self.db, "legacy_import", json.dumps(report))
+
+    async def start(self) -> None:
+        self.loop = asyncio.get_running_loop()
+        self.hub.bind(self.loop)
+        await asyncio.to_thread(self.jobs.grant_grace)
+        for job in await asyncio.to_thread(repo.active_jobs, self.db):
+            info = await self.ingest.job_info(job.id)
+            self.live.start(job.id, job.rts_id, info.session_id if info else None)
+        self._tasks = [
+            asyncio.create_task(self._every(1.0, self._sweep), name="sweeper"),
+            asyncio.create_task(self._every(self.settings.live_flush_interval, self._flush_live), name="live"),
+            asyncio.create_task(self._every(self.settings.status_interval, self._publish_status), name="status"),
+            asyncio.create_task(self._purge_deleted_jobs(), name="purge"),
+        ]
+
+    async def stop(self) -> None:
+        for task in self._tasks:
+            task.cancel()
+        await asyncio.gather(*self._tasks, return_exceptions=True)
+        await asyncio.to_thread(self.db.close)
+
+    async def _every(self, interval: float, fn) -> None:
+        while True:
+            started = time.monotonic()
+            try:
+                result = fn()
+                if asyncio.iscoroutine(result):
+                    await result
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Background task %s failed", getattr(fn, "__name__", fn))
+            await asyncio.sleep(max(0.05, interval - (time.monotonic() - started)))
+
+    async def _sweep(self) -> None:
+        await asyncio.to_thread(self.jobs.sweep)
+        now = time.time()
+        self.live.prune(now)
+        prune_stale_workers(self.workers, now)
+
+    def _flush_live(self) -> None:
+        for message in self.live.flush():
+            self.hub.publish(message)
+
+    async def _purge_deleted_jobs(self) -> None:
+        for job_no in await asyncio.to_thread(repo.pending_job_deletions, self.db):
+            await asyncio.to_thread(repo.finish_job_deletion, self.db, job_no)
+
+    def delete_job(self, job_id: str) -> None:
+        """Hides the job immediately and deletes its measurements in the background."""
+        job_no = self.jobs.delete(job_id)
+        self.ingest.forget(job_id)
+        if self.loop is not None:
+            self.loop.call_soon_threadsafe(
+                lambda: asyncio.ensure_future(asyncio.to_thread(repo.finish_job_deletion, self.db, job_no))
+            )
+
+    # ── jobs ───────────────────────────────────────────────────────────
+
+    def _job_changed_threadsafe(self, job: m.Job) -> None:
+        if self.loop is None:
+            return
+        try:
+            self.loop.call_soon_threadsafe(self._job_changed, job)
+        except RuntimeError:
+            pass
+
+    def _job_changed(self, job: m.Job) -> None:
+        if job.status == m.JobStatus.RUNNING:
+            info = self.ingest._jobs.get(job.id)
+            self.live.start(job.id, job.rts_id, info.session_id if info else self._session_of(job.rts_id))
+        elif not job.active:
+            self.live.end(job.id)
+
+    def _session_of(self, rts_id: str) -> str | None:
+        row = self.db.query_one("SELECT session_id FROM rts WHERE id = ?", (rts_id,))
+        return row["session_id"] if row else None
+
+    # ── RTS cache ──────────────────────────────────────────────────────
+
+    def station(self, rts_id: str) -> Station:
+        station = self._stations.get(rts_id)
+        if station is None:
+            rts = repo.get_rts(self.db, rts_id)
+            station = Station(rts.station_x, rts.station_y, rts.station_z, rts.orientation)
+            self._stations[rts_id] = station
+        return station
+
+    def rts_changed(self, rts_id: str, session_id: str | None) -> None:
+        self._stations.pop(rts_id, None)
+        self.hub.changed("rts", rts_id, session_id)
+
+    # ── measurements ───────────────────────────────────────────────────
+
+    async def ingest_batch(self, batch: m.MeasurementBatch) -> m.IngestResult:
+        result, info, new_rows, total = await self.ingest.ingest(batch.job_id, batch.rows)
+        if info is not None and new_rows:
+            station = self._stations.get(info.rts_id) or await asyncio.to_thread(self.station, info.rts_id)
+            points = self.live.add(info.id, info.rts_id, info.session_id, station, new_rows, total)
+            self.sync.feed_rts(info.rts_id, points)
+        return result
+
+    def target_position(self) -> m.TargetPosition | None:
+        latest = self.live.latest()
+        if latest is None:
+            return None
+        job, point = latest
+        return m.TargetPosition(x=point.x, y=point.y, z=point.z, timestamp=point.t, rts_id=job.rts_id)
+
+    # ── workers & devices ──────────────────────────────────────────────
+
+    def device_for(self, ip: str, hostname: str | None) -> str:
+        key = (ip, hostname)
+        cached = self._device_touch.get(key)
+        now = time.time()
+        if cached is not None and now - cached[1] < DEVICE_TOUCH_INTERVAL:
+            return cached[0]
+        device_id = repo.upsert_device(self.db, ip, hostname)
+        if cached is None or cached[0] != device_id:
+            self.hub.changed("device", device_id)
+        self._device_touch[key] = (device_id, now)
+        return device_id
+
+    def heartbeat(self, ip: str, received_at: float, heartbeat: m.WorkerHeartbeat) -> None:
+        device_id = self.device_for(ip, heartbeat.system.hostname)
+        self.workers[heartbeat.worker_id] = m.WorkerRecord(
+            ip=ip, device_id=device_id, received_at=received_at, heartbeat=heartbeat
+        )
+
+    # ── external sensors ───────────────────────────────────────────────
+
+    def external_measurement(self, ip: str, measurement: m.ExternalMeasurement) -> None:
+        now = time.time()
+        cached = self._external.get(ip)
+        if cached is None or now - cached[2] > EXTERNAL_TOUCH_INTERVAL:
+            def write(conn) -> tuple[str, bool, bool]:
+                row = conn.execute("SELECT id, logging_active FROM external_sensors WHERE ip = ?", (ip,)).fetchone()
+                if row is None:
+                    sensor_id = repo.new_id()
+                    conn.execute(
+                        "INSERT INTO external_sensors (id, ip, name, created_at, last_seen) VALUES (?, ?, ?, ?, ?)",
+                        (sensor_id, ip, "External Sensor", now, now),
+                    )
+                    return sensor_id, False, True
+                conn.execute("UPDATE external_sensors SET last_seen = ? WHERE id = ?", (now, row["id"]))
+                return row["id"], bool(row["logging_active"]), False
+
+            sensor_id, active, created = self.db.write(write)
+            if created:
+                self.hub.changed("external_sensor", sensor_id)
+            cached = (sensor_id, active, now)
+            self._external[ip] = cached
+        sensor_id, active, _ = cached
+        if not active:
+            return
+        self.sync.feed_external(sensor_id, measurement)
+        self.db.submit(lambda conn: conn.execute(
+            "INSERT INTO external_measurements (sensor_id, t, x, y, z, vx, vy, vz, epsg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (sensor_id, measurement.t, measurement.x, measurement.y, measurement.z,
+             measurement.vx, measurement.vy, measurement.vz, measurement.epsg),
+        ))
+
+    def external_sensor_changed(self, sensor_id: str) -> None:
+        self._external = {ip: v for ip, v in self._external.items() if v[0] != sensor_id}
+        self.hub.changed("external_sensor", sensor_id)
+
+    # ── status board ───────────────────────────────────────────────────
+
+    def _board_input(self, session_id: str | None) -> BoardInput:
+        with self.db.read():
+            rts_list = repo.list_rts(self.db, session_id)
+            devices = repo.list_devices(self.db)
+            active = repo.active_jobs(self.db)
+            rts_ids = {r.id for r in rts_list}
+            active = [j for j in active if j.rts_id in rts_ids]
+            last_jobs = repo.last_completed_jobs(self.db, list(rts_ids))
+            sensors = [
+                m.ExternalSensor(
+                    id=r["id"], ip=r["ip"], name=r["name"], logging_active=bool(r["logging_active"]),
+                    created_at=r["created_at"], last_seen=r["last_seen"],
+                )
+                for r in self.db.query("SELECT * FROM external_sensors ORDER BY name")
+            ]
+        return BoardInput(session_id, rts_list, devices, list(self.workers.values()), active, last_jobs, sensors, self.live)
+
+    async def status_board(self, session_id: str | None, max_age: float = STATUS_CACHE_AGE) -> m.StatusBoard:
+        cached = self._boards.get(session_id)
+        if cached is not None and time.time() - cached.server_time <= max_age:
+            return cached
+        data = await asyncio.to_thread(self._board_input, session_id)
+        data.now = time.time()
+        board = build_board(data)  # on the event loop: reads the live store safely
+        self._boards[session_id] = board
+        return board
+
+    async def _publish_status(self) -> None:
+        sessions = {c.session_id for c in self.hub.clients if c.session_id}
+        for session_id in list(self._boards):
+            if session_id not in sessions:
+                del self._boards[session_id]
+        for session_id in sessions:
+            board = await self.status_board(session_id, max_age=0)
+            self.hub.publish({"type": "status", "board": board}, session_id=session_id)
+
+    # ── info ───────────────────────────────────────────────────────────
+
+    def info(self) -> m.ServerInfo:
+        size = 0
+        for suffix in ("", "-wal"):
+            try:
+                size += os.path.getsize(self.settings.db_path + suffix)
+            except OSError:
+                pass
+        schema = self.db.query_one("PRAGMA user_version")[0]
+        return m.ServerInfo(
+            version=__version__,
+            server_time=time.time(),
+            started_at=self.started_at,
+            db_path=os.path.abspath(self.settings.db_path),
+            db_size=size,
+            schema_version=schema,
+            writer={**self.db.stats, **self.ingest.stats},
+            event_clients=len(self.hub.clients),
+            legacy_import=self.legacy_import,
+        )
