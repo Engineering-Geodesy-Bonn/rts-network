@@ -14,14 +14,14 @@ from rtsapi.hub import Hub
 from rtsapi.ingest import Ingest
 from rtsapi.jobs import JobManager
 from rtsapi.live import LiveStore, Station
-from rtsapi.status import BoardInput, build_board, prune_stale_workers
+from rtsapi.health import HealthInput, evaluate, prune_stale_workers
 from rtsapi.sync import SyncService
 
 logger = logging.getLogger(__name__)
 
 DEVICE_TOUCH_INTERVAL = 5.0  # s between last_seen updates of a device
 EXTERNAL_TOUCH_INTERVAL = 2.0
-STATUS_CACHE_AGE = 1.5  # s a computed board is reused for REST requests
+HEALTH_CACHE_AGE = 1.5  # s a computed result is reused for REST requests
 
 
 class Core:
@@ -39,7 +39,7 @@ class Core:
         self._stations: dict[str, Station] = {}
         self._device_touch: dict[tuple[str, str | None], tuple[str, float]] = {}
         self._external: dict[str, tuple[str, bool, float]] = {}  # ip -> id, logging_active, last touch
-        self._boards: dict[str | None, m.StatusBoard] = {}
+        self._health: dict[str | None, m.Health] = {}
         self._tasks: list[asyncio.Task] = []
         self.loop: asyncio.AbstractEventLoop | None = None
         self.legacy_import: dict | None = None
@@ -74,7 +74,7 @@ class Core:
         self._tasks = [
             asyncio.create_task(self._every(1.0, self._sweep), name="sweeper"),
             asyncio.create_task(self._every(self.settings.live_flush_interval, self._flush_live), name="live"),
-            asyncio.create_task(self._every(self.settings.status_interval, self._publish_status), name="status"),
+            asyncio.create_task(self._every(self.settings.status_interval, self._publish_health), name="health"),
             asyncio.create_task(self._purge_deleted_jobs(), name="purge"),
         ]
 
@@ -229,15 +229,14 @@ class Core:
         self._external = {ip: v for ip, v in self._external.items() if v[0] != sensor_id}
         self.hub.changed("external_sensor", sensor_id)
 
-    # ── status board ───────────────────────────────────────────────────
+    # ── health ─────────────────────────────────────────────────────────
 
-    def _board_input(self, session_id: str | None) -> BoardInput:
+    def _health_input(self, session_id: str | None) -> HealthInput:
         with self.db.read():
             rts_list = repo.list_rts(self.db, session_id)
             devices = repo.list_devices(self.db)
-            active = repo.active_jobs(self.db)
             rts_ids = {r.id for r in rts_list}
-            active = [j for j in active if j.rts_id in rts_ids]
+            active = [j for j in repo.active_jobs(self.db) if j.rts_id in rts_ids]
             last_jobs = repo.last_completed_jobs(self.db, list(rts_ids))
             sensors = [
                 m.ExternalSensor(
@@ -246,26 +245,26 @@ class Core:
                 )
                 for r in self.db.query("SELECT * FROM external_sensors ORDER BY name")
             ]
-        return BoardInput(session_id, rts_list, devices, list(self.workers.values()), active, last_jobs, sensors, self.live)
+        return HealthInput(session_id, rts_list, devices, list(self.workers.values()), active, last_jobs, sensors, self.live)
 
-    async def status_board(self, session_id: str | None, max_age: float = STATUS_CACHE_AGE) -> m.StatusBoard:
-        cached = self._boards.get(session_id)
+    async def health(self, session_id: str | None, max_age: float = HEALTH_CACHE_AGE) -> m.Health:
+        cached = self._health.get(session_id)
         if cached is not None and time.time() - cached.server_time <= max_age:
             return cached
-        data = await asyncio.to_thread(self._board_input, session_id)
+        data = await asyncio.to_thread(self._health_input, session_id)
         data.now = time.time()
-        board = build_board(data)  # on the event loop: reads the live store safely
-        self._boards[session_id] = board
-        return board
+        result = evaluate(data)  # on the event loop: reads the live store safely
+        self._health[session_id] = result
+        return result
 
-    async def _publish_status(self) -> None:
+    async def _publish_health(self) -> None:
         sessions = {c.session_id for c in self.hub.clients if c.session_id}
-        for session_id in list(self._boards):
+        for session_id in list(self._health):
             if session_id not in sessions:
-                del self._boards[session_id]
+                del self._health[session_id]
         for session_id in sessions:
-            board = await self.status_board(session_id, max_age=0)
-            self.hub.publish({"type": "status", "board": board}, session_id=session_id)
+            result = await self.health(session_id, max_age=0)
+            self.hub.publish({"type": "health", "health": result}, session_id=session_id)
 
     # ── info ───────────────────────────────────────────────────────────
 

@@ -52,6 +52,7 @@ docker-compose up -d --scale worker=3
 - **Outbox**: every measurement is committed to `measurements/outbox.db` (SQLite) before anything else and deleted only after the API confirmed that it is stored. If the API or the network is down, the worker keeps measuring and uploads the backlog later. After a crash or reboot the remaining measurements are sent on start; the rows of a worker that stopped are adopted by the other workers of the device after 30 s.
 - **CSV log**: additionally, every measurement is appended to `measurements/<job_id>.csv` (columns of the API's CSV download, plus request time and sequence number). It can be uploaded again with `rts-api/scripts/import_csv.py`.
 - **Lease**: the worker renews the lease of its job every second. Network problems never stop a measurement; only a stop from the dashboard does.
+- **Shutdown**: on SIGTERM/SIGINT (`docker stop`, Ctrl+C) the running measurement is ended cleanly and reported, so its station is free again at once.
 - **Serial port**: opened exclusively, so two jobs can never talk to the same instrument.
 
 ## Simulated Total Station
@@ -60,7 +61,7 @@ A total station configured with the port `sim://<name>` is simulated (25 Hz, pri
 
 ## Health Reporting
 
-Every worker sends a heartbeat to the API every 2 seconds. The dashboard's **Health** page evaluates these heartbeats, so that an all-green board means that every device is reachable, synchronized and ready to measure. A heartbeat contains:
+Every worker sends a heartbeat to the API every 2 seconds. The API turns it into plain problem messages on the dashboard's **Measure** page (e.g. *Clock is synchronized over the network only*) and shows the state of each Raspberry Pi under **Setup**. A heartbeat contains:
 
 - **Clock synchronization**: `chronyc tracking` and `chronyc sources` of the host (reference clock, offset, estimated error, PPS source). The Docker image contains `chronyc`; thanks to host networking it queries the chrony daemon of the host (`CHRONY_HOST`, default `127.0.0.1`).
 - **GNSS receiver**: fix, satellites and DOP from gpsd (`GPSD_HOST`/`GPSD_PORT`, default `127.0.0.1:2947`).

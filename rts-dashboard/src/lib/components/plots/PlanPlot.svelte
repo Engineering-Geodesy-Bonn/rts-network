@@ -79,27 +79,21 @@
         const sx = (x: number) => width / 2 + (x - v.cx) * v.scale;
         const sy = (y: number) => height / 2 - (y - v.cy) * v.scale;
 
-        // grid with coordinates relative to a rounded origin (UTM numbers are too long for labels)
+        // light grid (scale bar and north arrow instead of coordinate labels)
         const grid = cssVar('--plot-grid');
         const axis = cssVar('--plot-axis');
         const step = niceStep(80 / v.scale);
         const x0 = v.cx - width / 2 / v.scale, x1 = v.cx + width / 2 / v.scale;
         const y0 = v.cy - height / 2 / v.scale, y1 = v.cy + height / 2 / v.scale;
-        const originStep = step * 10;
-        const ox = Math.floor(v.cx / originStep) * originStep;
-        const oy = Math.floor(v.cy / originStep) * originStep;
         ctx.strokeStyle = grid;
-        ctx.fillStyle = axis;
         ctx.lineWidth = 1;
-        ctx.font = '11px system-ui, sans-serif';
-        const decimals = Math.max(0, -Math.floor(Math.log10(step)));
+        ctx.font = '13px system-ui, sans-serif';
         for (let gx = Math.ceil(x0 / step) * step; gx <= x1; gx += step) {
             const px = Math.round(sx(gx)) + 0.5;
             ctx.beginPath();
             ctx.moveTo(px, 0);
             ctx.lineTo(px, height);
             ctx.stroke();
-            ctx.fillText((gx - ox).toFixed(decimals), px + 3, height - 4);
         }
         for (let gy = Math.ceil(y0 / step) * step; gy <= y1; gy += step) {
             const py = Math.round(sy(gy)) + 0.5;
@@ -107,9 +101,17 @@
             ctx.moveTo(0, py);
             ctx.lineTo(width, py);
             ctx.stroke();
-            ctx.fillText((gy - oy).toFixed(decimals), 3, py - 3);
         }
-        ctx.fillText(`E ${ox.toFixed(0)} / N ${oy.toFixed(0)} + grid ${step} m`, 6, 14);
+        // north arrow
+        ctx.fillStyle = axis;
+        ctx.beginPath();
+        ctx.moveTo(18, 10);
+        ctx.lineTo(24, 26);
+        ctx.lineTo(18, 22);
+        ctx.lineTo(12, 26);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillText('N', 14, 42);
 
         // stations
         for (const t of tracks) {
@@ -169,7 +171,7 @@
         ctx.lineTo(width - 12, height - 26);
         ctx.stroke();
         ctx.fillStyle = axis;
-        ctx.fillText(`${barM} m`, width - 12 - barPx, height - 31);
+        ctx.fillText(`${barM} m`, width - 12 - barPx, height - 32);
     }
 
     function schedule(): void {

@@ -3,7 +3,7 @@ import { api } from './api';
 import { events } from './events.svelte';
 import { live } from './live.svelte';
 import { toast } from './toast.svelte';
-import type { Device, Job, RTS, Session, StatusBoard } from './types';
+import type { Device, Health, Job, RTS, Session } from './types';
 import { ACTIVE_STATUSES, MEASURING_TYPES } from './types';
 
 class AppStore {
@@ -15,8 +15,8 @@ class AppStore {
     activeJobs = $state<Record<string, Job>>({});
     /** Most recent job with measurements per RTS (shown when the RTS is idle) */
     lastMeasuringJob = $state<Record<string, Job>>({});
-    board = $state<StatusBoard | null>(null);
-    boardReceivedAt = $state(0);
+    health = $state<Health | null>(null);
+    healthReceivedAt = $state(0);
     /** Incremented on every job event, for lists that show jobs */
     jobsVersion = $state(0);
     lastJobEvent = $state<Job | null>(null);
@@ -25,10 +25,10 @@ class AppStore {
     constructor() {
         events.on((event) => {
             switch (event.type) {
-                case 'status':
-                    if (event.board.session_id === this.session?.id) {
-                        this.board = event.board;
-                        this.boardReceivedAt = Date.now();
+                case 'health':
+                    if (event.health.session_id === this.session?.id) {
+                        this.health = event.health;
+                        this.healthReceivedAt = Date.now();
                     }
                     break;
                 case 'job':
@@ -112,7 +112,7 @@ class AppStore {
     async open(sessionId: string): Promise<void> {
         if (this.session?.id === sessionId) return;
         this.session = null;
-        this.board = null;
+        this.health = null;
         this.rts = [];
         this.activeJobs = {};
         this.lastMeasuringJob = {};
@@ -123,7 +123,7 @@ class AppStore {
 
     close(): void {
         this.session = null;
-        this.board = null;
+        this.health = null;
         events.subscribe(null);
     }
 
@@ -153,11 +153,11 @@ class AppStore {
             );
             this.lastMeasuringJob = last;
             this.sessionError = '';
-            api.status(sessionId)
-                .then((board) => {
+            api.health(sessionId)
+                .then((health) => {
                     if (this.session?.id === sessionId) {
-                        this.board = board;
-                        this.boardReceivedAt = Date.now();
+                        this.health = health;
+                        this.healthReceivedAt = Date.now();
                     }
                 })
                 .catch(() => {});

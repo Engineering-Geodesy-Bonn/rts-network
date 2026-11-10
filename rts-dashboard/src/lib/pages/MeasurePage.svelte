@@ -1,106 +1,62 @@
 <!--
-    Live view of the session: one card per RTS, the plan view and time series.
-    Running jobs follow the event stream (gaps are filled from the server); idle RTS show
-    their most recent measuring job, so past and current measurements are always visible.
+    Measure: problems (only if any), one row per station with its main action, and one plot.
+    Running jobs follow the event stream (gaps are filled from the server); idle stations show
+    their most recent measurement.
 -->
 <script lang="ts">
     import { api } from '../api';
     import { clock } from '../clock.svelte';
-    import PlanPlot, { type PlanTrack } from '../components/plots/PlanPlot.svelte';
-    import TimePlot, { type TimeSeries } from '../components/plots/TimePlot.svelte';
-    import RtsLiveCard from '../components/RtsLiveCard.svelte';
+    import PlotPanel, { type Trace } from '../components/PlotPanel.svelte';
+    import Problems from '../components/Problems.svelte';
+    import StationRow from '../components/StationRow.svelte';
     import Button from '../components/ui/Button.svelte';
-    import Icon from '../components/ui/Icon.svelte';
+    import Segmented from '../components/ui/Segmented.svelte';
     import { confirm } from '../confirm.svelte';
-    import { events } from '../events.svelte';
-    import { rtsColor, units } from '../format';
-    import { live, type Columns, type JobSeries } from '../live.svelte';
+    import { rtsColor } from '../format';
+    import { live, type Columns } from '../live.svelte';
+    import { loadPref, savePref, thin, type Plotted } from '../plotdata';
     import { href } from '../router.svelte';
     import { store } from '../store.svelte';
-    import type { Job, RTS } from '../types';
     import { MEASURING_TYPES, TRACKING_TYPES } from '../types';
 
-    type Window = 30 | 120 | 600 | 0; // seconds, 0 = whole job
-    const WINDOWS: { value: Window; label: string }[] = [
-        { value: 30, label: '30 s' },
-        { value: 120, label: '2 min' },
-        { value: 600, label: '10 min' },
-        { value: 0, label: 'Whole job' },
-    ];
+    type Window = 60 | 600 | 0;
+    let windowSeconds = $state<Window>(loadPref('rts-window-v2', 60));
+    $effect(() => savePref('rts-window-v2', windowSeconds));
 
-    function loadPref<T>(key: string, fallback: T): T {
-        try {
-            const v = localStorage.getItem(key);
-            return v === null ? fallback : (JSON.parse(v) as T);
-        } catch {
-            return fallback;
-        }
-    }
-    function savePref(key: string, value: unknown) {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch {
-            /* ignore */
-        }
-    }
-
-    let windowSeconds = $state<Window>(loadPref('rts-window', 120));
-    let quantity = $state<'xyz' | 'polar'>(loadPref('rts-quantity', 'xyz'));
-    $effect(() => savePref('rts-window', windowSeconds));
-    $effect(() => savePref('rts-quantity', quantity));
-
-    interface Display {
-        rts: RTS;
-        color: string;
-        job: Job | undefined;
-        running: boolean;
-        series: JobSeries | undefined;
-    }
-
-    let displays = $derived<Display[]>(
+    let rows = $derived(
         store.rts.map((rts, index) => {
-            const runningJob = store.runningJobOf(rts.id);
-            const runningMeasuring = runningJob && MEASURING_TYPES.includes(runningJob.type) ? runningJob : undefined;
-            const job = runningMeasuring ?? store.lastMeasuringJob[rts.id];
-            const isLive = !!runningMeasuring && TRACKING_TYPES.includes(runningMeasuring.type);
-            return {
-                rts,
-                color: rtsColor(index),
-                job,
-                running: isLive,
-                series: job ? live.get(job, isLive) : undefined,
-            };
+            const running = store.runningJobOf(rts.id);
+            const measuring = running && MEASURING_TYPES.includes(running.type) ? running : undefined;
+            const job = measuring ?? store.lastMeasuringJob[rts.id];
+            const isLive = !!measuring && TRACKING_TYPES.includes(measuring.type);
+            return { rts, color: rtsColor(index), job, live: isLive, series: job ? live.get(job, isLive) : undefined };
         }),
     );
+    let anyLive = $derived(rows.some((r) => r.live));
+    let idle = $derived(rows.filter((r) => store.activeJobsOf(r.rts.id).length === 0));
+    let measuring = $derived(rows.filter((r) => r.live));
 
-    let anyRunning = $derived(displays.some((d) => d.running));
-
-    // Redraw at a fixed rate (not on every message): at most 4 times per second, and only if
-    // new data arrived or the time window moved.
-    const MAX_PLOT_POINTS = 2000; // per station and plot: more than a plot has pixels
+    // Redraw at most 4× per second, not on every message
     let tick = $state(0);
     let lastVersions = '';
     $effect(() => {
         const timer = setInterval(() => {
-            const versions = displays.map((d) => d.series?.version ?? 0).join(',');
-            if (versions !== lastVersions || anyRunning) {
+            const versions = rows.map((r) => r.series?.version ?? 0).join(',');
+            if (versions !== lastVersions || anyLive) {
                 lastVersions = versions;
                 tick++;
             }
         }, 250);
         return () => clearInterval(timer);
     });
-    // first data of a newly shown job: draw immediately
-    let version = $derived(tick);
 
-    // Whole-job overviews of running jobs (refreshed periodically, live points appended)
+    // "All": overview of the whole running job, refreshed every 20 s, plus the live tail
     let overviews = $state.raw<Record<string, Columns>>({});
     $effect(() => {
         if (windowSeconds !== 0) return;
-        const running = displays.filter((d) => d.running && d.job);
+        const jobs = rows.filter((r) => r.live && r.job).map((r) => r.job!);
         const refresh = () => {
-            for (const d of running) {
-                const job = d.job!;
+            for (const job of jobs) {
                 api.measurements(job.id, { max_points: 4000 })
                     .then((s) => (overviews = { ...overviews, [job.id]: s }))
                     .catch(() => {});
@@ -110,29 +66,6 @@
         const timer = setInterval(refresh, 20000);
         return () => clearInterval(timer);
     });
-
-    type Plotted = { t: number[]; x: number[]; y: number[]; z: number[]; d: number[]; hz: number[]; v: number[] };
-    const PLOT_KEYS = ['t', 'x', 'y', 'z', 'd', 'hz', 'v'] as const;
-
-    /** Thins [from, to) of the columns to at most MAX_PLOT_POINTS (always keeping the last point). */
-    function thin(sources: { cols: Columns; from: number; to: number }[]): Plotted {
-        const total = sources.reduce((n, s) => n + Math.max(0, s.to - s.from), 0);
-        const stride = Math.max(1, Math.ceil(total / MAX_PLOT_POINTS));
-        const out: Plotted = { t: [], x: [], y: [], z: [], d: [], hz: [], v: [] };
-        let k = 0;
-        let last: { cols: Columns; i: number } | null = null;
-        for (const { cols, from, to } of sources) {
-            for (let i = from; i < to; i++, k++) {
-                last = { cols, i };
-                if (k % stride !== 0) continue;
-                for (const key of PLOT_KEYS) out[key].push(cols[key][i] as number);
-            }
-        }
-        if (last && (k - 1) % stride !== 0) {
-            for (const key of PLOT_KEYS) out[key].push(last.cols[key][last.i] as number);
-        }
-        return out;
-    }
 
     function firstSeqAfter(seq: number[], value: number): number {
         let lo = 0;
@@ -145,153 +78,92 @@
         return lo;
     }
 
-    /** The part of a job shown for the selected window. */
-    function visible(d: Display): Plotted | null {
-        const s = d.series;
+    function visible(r: (typeof rows)[number]): Plotted | null {
+        const s = r.series;
         if (!s || s.cols.t.length === 0) return null;
         const n = s.cols.t.length;
         if (windowSeconds === 0) {
-            const overview = d.running ? overviews[d.job!.id] : undefined;
+            const overview = r.live ? overviews[r.job!.id] : undefined;
             if (!overview || overview.seq.length === 0) return thin([{ cols: s.cols, from: 0, to: n }]);
-            const lastSeq = overview.seq[overview.seq.length - 1];
             return thin([
                 { cols: overview, from: 0, to: overview.seq.length },
-                { cols: s.cols, from: firstSeqAfter(s.cols.seq, lastSeq), to: n },
+                { cols: s.cols, from: firstSeqAfter(s.cols.seq, overview.seq[overview.seq.length - 1]), to: n },
             ]);
         }
-        const end = d.running ? clock.server : s.lastT!;
+        const end = r.live ? clock.server : s.lastT!;
         return thin([{ cols: s.cols, from: s.indexAt(end - windowSeconds - 1), to: n }]);
     }
 
-    let data = $derived.by(() => {
+    let traces = $derived.by<Trace[]>(() => {
         void tick;
         void overviews;
         void windowSeconds;
-        return displays.map((d) => ({ d, cols: visible(d) }));
+        return rows
+            .filter((r) => !anyLive || r.live || windowSeconds === 0)
+            .map((r) => ({
+                label: r.rts.name,
+                color: r.color,
+                station: { x: r.rts.station_x, y: r.rts.station_y },
+                live: r.live,
+                data: visible(r),
+            }));
     });
 
-    let tracks = $derived<PlanTrack[]>(
-        data.map(({ d, cols }) => ({
-            label: d.rts.name,
-            color: d.color,
-            x: cols?.x ?? [],
-            y: cols?.y ?? [],
-            station: { x: d.rts.station_x, y: d.rts.station_y },
-            current: d.running,
-            stale: !d.running,
-        })),
-    );
-
-    // In follow mode only running jobs are in the time window; idle RTS appear when nothing runs
-    let timeData = $derived(data.filter(({ d, cols }) => cols && (!anyRunning || d.running || windowSeconds === 0)));
-
-    function series(pick: (c: Plotted) => number[], scale?: (v: number) => number): TimeSeries[] {
-        return timeData.map(({ d, cols }) => ({
-            label: d.rts.name,
-            color: d.color,
-            t: cols!.t,
-            y: scale ? pick(cols!).map((v) => (v == null ? v : scale(v))) : pick(cols!),
-        }));
-    }
-
-    let plots = $derived(
-        quantity === 'xyz'
-            ? [
-                  { key: 'x', label: 'Easting (m)', series: series((c) => c.x) },
-                  { key: 'y', label: 'Northing (m)', series: series((c) => c.y) },
-                  { key: 'z', label: 'Height (m)', series: series((c) => c.z) },
-              ]
-            : [
-                  { key: 'hz', label: 'Hz (gon)', series: series((c) => c.hz, units.radToGon) },
-                  { key: 'v', label: 'V (gon)', series: series((c) => c.v, units.radToGon) },
-                  { key: 'd', label: 'Distance (m)', series: series((c) => c.d) },
-              ],
-    );
-
-    let follow = $derived(anyRunning && windowSeconds > 0 ? windowSeconds : 0);
-    let idleCount = $derived(displays.filter((d) => !store.runningJobOf(d.rts.id) && store.activeJobsOf(d.rts.id).length === 0).length);
-    let trackingCount = $derived(displays.filter((d) => d.running).length);
-
     async function startAll() {
-        for (const d of displays) {
-            if (store.activeJobsOf(d.rts.id).length === 0) await store.startJob(d.rts.id, 'track_prism');
-        }
+        for (const r of idle) await store.startJob(r.rts.id, 'track_prism');
     }
 
     async function stopAll() {
         const ok = await confirm({
-            title: 'Stop all tracking?',
-            message: `${trackingCount} total station${trackingCount === 1 ? '' : 's'} stop measuring. All measurements recorded so far are kept.`,
+            title: `Stop all ${measuring.length} stations?`,
+            message: 'The total stations stop measuring. Everything measured so far is kept.',
             confirm: 'Stop all',
             danger: true,
         });
         if (!ok) return;
-        for (const d of displays) {
-            const job = store.runningJobOf(d.rts.id);
-            if (job && TRACKING_TYPES.includes(job.type)) await store.stopJob(job);
+        for (const r of measuring) {
+            const job = store.runningJobOf(r.rts.id);
+            if (job) await store.stopJob(job);
         }
     }
 </script>
 
 {#if store.rts.length === 0}
-    <div class="mx-auto mt-10 max-w-md rounded-2xl border border-dashed border-line p-10 text-center">
-        <Icon name="crosshair" size={32} class="mx-auto text-muted" />
-        <p class="mt-3 font-semibold">No total stations in this session</p>
-        <p class="mt-1 text-sm text-muted">Add the total stations and their station setup first.</p>
-        <Button variant="primary" class="mt-5" href={href(store.session?.id ?? null, 'stations')} icon="plus">Add total station</Button>
+    <div class="mx-auto mt-12 max-w-md text-center">
+        <p class="text-xl font-semibold">No total stations yet</p>
+        <p class="mt-2 text-muted">Add the total stations of this session and their position first.</p>
+        <Button variant="primary" class="mt-6" href={href(store.session?.id ?? null, 'setup')}>Go to setup</Button>
     </div>
 {:else}
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-        <h1 class="mr-auto text-xl font-bold">Measure</h1>
-        {#if trackingCount > 0}
-            <Button variant="danger" icon="stop" onclick={stopAll}>Stop all</Button>
-        {/if}
-        {#if idleCount > 0 && store.rts.length > 1}
-            <Button variant="success" icon="play" onclick={startAll}>Start all ({idleCount})</Button>
-        {/if}
+    <div class="space-y-6">
+        <Problems />
+
+        <section>
+            <div class="mb-3 flex items-center gap-2">
+                <h1 class="mr-auto text-xl font-semibold">Stations</h1>
+                {#if measuring.length > 1}<Button variant="quiet" onclick={stopAll}>Stop all</Button>{/if}
+                {#if idle.length > 1}<Button variant="quiet" onclick={startAll}>Start all</Button>{/if}
+            </div>
+            <ul class="card">
+                {#each rows as r (r.rts.id)}
+                    <StationRow rts={r.rts} color={r.color} lastJob={store.lastMeasuringJob[r.rts.id]} series={r.series} />
+                {/each}
+            </ul>
+        </section>
+
+        <PlotPanel {traces} version={tick} follow={anyLive && windowSeconds > 0 ? windowSeconds : 0}>
+            {#snippet controls()}
+                <h2 class="mr-auto text-lg font-semibold">{anyLive ? 'Live' : 'Last measurements'}</h2>
+                <Segmented
+                    label="Time span"
+                    bind:value={windowSeconds}
+                    options={[
+                        { value: 60, label: '1 min' },
+                        { value: 600, label: '10 min' },
+                        { value: 0, label: 'All' },
+                    ]}
+                />
+            {/snippet}
+        </PlotPanel>
     </div>
-
-    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {#each displays as d (d.rts.id)}
-            <RtsLiveCard rts={d.rts} color={d.color} job={d.job} series={d.series} board={store.board?.rts.find((r) => r.rts_id === d.rts.id)} />
-        {/each}
-    </section>
-
-    <div class="mt-4 flex flex-wrap items-center gap-2">
-        <div class="inline-flex rounded-lg border border-line bg-surface p-0.5" role="group" aria-label="Time window">
-            {#each WINDOWS as w (w.value)}
-                <button
-                    class="rounded-md px-3 py-1.5 text-sm font-medium {windowSeconds === w.value ? 'bg-accent text-accent-fg' : 'text-muted hover:text-fg'}"
-                    onclick={() => (windowSeconds = w.value)}>{w.label}</button
-                >
-            {/each}
-        </div>
-        <div class="inline-flex rounded-lg border border-line bg-surface p-0.5" role="group" aria-label="Quantity">
-            <button class="rounded-md px-3 py-1.5 text-sm font-medium {quantity === 'xyz' ? 'bg-accent text-accent-fg' : 'text-muted hover:text-fg'}" onclick={() => (quantity = 'xyz')}>E / N / H</button>
-            <button class="rounded-md px-3 py-1.5 text-sm font-medium {quantity === 'polar' ? 'bg-accent text-accent-fg' : 'text-muted hover:text-fg'}" onclick={() => (quantity = 'polar')}>Hz / V / D</button>
-        </div>
-        <span class="ml-auto text-xs text-muted">
-            {#if events.state !== 'open'}
-                <span class="font-semibold text-fail">Not receiving live data</span>
-            {:else if anyRunning}
-                Live · updates 5× per second
-            {:else}
-                Showing the most recent measurements of each station
-            {/if}
-        </span>
-    </div>
-
-    <section class="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] [&>*]:min-w-0">
-        <div class="rounded-xl border border-line bg-surface p-3 shadow-sm">
-            <h2 class="mb-2 text-sm font-semibold text-muted">Plan view</h2>
-            <PlanPlot {tracks} {version} height={420} />
-        </div>
-        <div class="space-y-3">
-            {#each plots as p (p.key + quantity)}
-                <div class="rounded-xl border border-line bg-surface p-3 shadow-sm">
-                    <TimePlot series={p.series} {version} yLabel={p.label} height={150} {follow} now={() => clock.server} />
-                </div>
-            {/each}
-        </div>
-    </section>
 {/if}

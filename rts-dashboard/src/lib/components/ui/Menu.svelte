@@ -24,7 +24,7 @@
 
 <div class="relative" bind:this={root}>
     <button
-        class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-surface text-muted hover:bg-surface-2 hover:text-fg"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
         aria-label={label}
         title={label}
         aria-expanded={open}
@@ -37,15 +37,14 @@
             {#each items as item (item.label)}
                 <button
                     role="menuitem"
-                    class="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm hover:bg-surface-2 disabled:opacity-40 {item.danger ? 'text-fail' : ''}"
+                    class="flex w-full items-center px-4 py-2.5 text-left text-[15px] hover:bg-surface-2 disabled:opacity-40 {item.danger ? 'text-bad' : ''}"
                     disabled={item.disabled}
                     onclick={() => {
                         open = false;
                         item.onclick();
                     }}
                 >
-                    {#if item.icon}<Icon name={item.icon} size={16} class="text-muted" />{/if}
-                    {item.label}
+                                        {item.label}
                 </button>
             {/each}
         </div>

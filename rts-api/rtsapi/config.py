@@ -39,7 +39,7 @@ class Settings:
     # Live data
     live_buffer_seconds: float = field(default_factory=lambda: _env_float("RTS_LIVE_BUFFER_SECONDS", 900.0))
     live_flush_interval: float = 0.2  # s between live updates pushed to the dashboards
-    status_interval: float = 2.0  # s between status board evaluations
+    status_interval: float = 2.0  # s between health evaluations
 
     # Writer
     writer_max_batch: int = 500  # write tasks combined into one transaction

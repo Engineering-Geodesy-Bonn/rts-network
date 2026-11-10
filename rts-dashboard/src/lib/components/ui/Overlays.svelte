@@ -15,10 +15,10 @@
 {#if confirmStore.current}
     {@const c = confirmStore.current}
     <Modal bind:open title={c.title} onclose={() => confirmStore.answer(false)}>
-        <p class="text-sm leading-relaxed text-muted">{c.message}</p>
+        <p class="leading-relaxed text-muted">{c.message}</p>
         {#snippet footer()}
             <Button onclick={() => confirmStore.answer(false)}>Cancel</Button>
-            <Button variant={c.danger ? 'danger' : 'primary'} onclick={() => confirmStore.answer(true)}>{c.confirm ?? 'OK'}</Button>
+            <Button variant={c.danger ? 'stop' : 'primary'} onclick={() => confirmStore.answer(true)}>{c.confirm ?? 'OK'}</Button>
         {/snippet}
     </Modal>
 {/if}
@@ -27,10 +27,8 @@
     {#each toast.items as t (t.id)}
         <div
             class="pointer-events-auto flex max-w-md items-start gap-2.5 rounded-xl border px-4 py-3 text-sm shadow-lg {t.kind === 'error'
-                ? 'border-fail/40 bg-fail-bg text-fail'
-                : t.kind === 'ok'
-                  ? 'border-ok/40 bg-ok-bg text-ok'
-                  : 'border-line bg-surface text-fg'}"
+                ? 'border-bad/40 bg-bad-soft text-bad'
+                : 'border-line bg-surface text-fg'}"
         >
             <Icon name={t.kind === 'error' ? 'alert' : t.kind === 'ok' ? 'check' : 'info'} class="mt-0.5" />
             <span class="flex-1 break-words">{t.message}</span>

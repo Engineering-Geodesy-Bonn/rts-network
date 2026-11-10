@@ -8,8 +8,8 @@ This repository contains the code for the Robotic Total Station Network (RTSN). 
 
 | Component | Runs on | Purpose |
 |---|---|---|
-| [rts-api](rts-api) | laptop / server / Raspberry Pi | Stores configuration, jobs and measurements (SQLite), evaluates the health of the network, pushes live data to the dashboards |
-| [rts-dashboard](rts-dashboard) | served by nginx next to the API | Web app to set up stations, measure, monitor and download data (works on phones; Android wrapper in [rts-android](rts-android)) |
+| [rts-api](rts-api) | laptop / server / Raspberry Pi | Stores configuration, jobs and measurements (SQLite), detects problems, pushes live data to the dashboards |
+| [rts-dashboard](rts-dashboard) | served by nginx next to the API | Web app with three sections: **Measure** (stations, problems, live map and plot), **Data** (all measurements, downloads) and **Setup** (stations, Raspberry Pis, session). Works on phones; Android wrapper in [rts-android](rts-android) |
 | [rts-worker](rts-worker) | Raspberry Pi at the total station | Controls one total station via GeoCOM, timestamps the measurements (GNSS/PPS disciplined clock) and uploads them |
 | [external-sensors](external-sensors) | any device | Optional sensors (e.g. GNSS receivers) that stream positions to the API |
 
@@ -25,8 +25,10 @@ total station ──serial──▶ worker ──▶ outbox (SQLite on the worke
 
 - Every measurement gets a **sequence number** and is committed to the worker's **outbox** before anything else. It is deleted there only after the API confirmed that it is **committed to the database**. Network outages, API restarts and worker crashes therefore lose no data: the backlog is uploaded when the connection is back (the API ignores duplicates).
 - A worker holds a **lease** on its job and renews it every second. If the API does not hear from it, the job shows *No contact* (the worker keeps measuring). It is only stopped by the user, never by a network problem.
-- The API writes through a **single writer thread** (no lock contention), serves reads in a thread pool and never blocks its event loop. Live data, the target position and the health checks are computed from memory, so the cost of the dashboards does not grow with the size of a session.
-- Dashboards receive **pushed events** (live measurements 5× per second, job changes, the status board every 2 s) instead of polling. A dashboard that was offline or asleep detects the gap from the sequence numbers and fills it from the API.
+- The API writes through a **single writer thread** (no lock contention), serves reads in a thread pool and never blocks its event loop. Live data, the target position and the problem detection work from memory, so the cost of the dashboards does not grow with the size of a session.
+- **Problems** are reported only when something needs an action, in plain words (e.g. *TS60 North · Prism lost for 14 s*): device offline, clock not synchronized to GNSS, serial port missing, no data, no contact to the worker, low battery, disk full, overheating, measurements waiting for upload.
+- Stopping a worker (`docker stop`, Ctrl+C) ends its running measurement cleanly; nothing is lost.
+- Dashboards receive **pushed events** (live measurements 5× per second, job changes, problems every 2 s) instead of polling. A dashboard that was offline or asleep detects the gap from the sequence numbers and fills it from the API.
 
 ## Installation
 
@@ -42,7 +44,7 @@ The dashboard is available at `http://<host>:8050`, the API at `http://<host>:80
 
 ### Upgrading from version 1
 
-Version 2 uses a new database file (`data/rts-api/rtsnet.db`). On its **first start the API imports the version 1 database** (`data/rts-api/database.db`) automatically. The old file is opened read-only and stays untouched, so you can go back to version 1 at any time. Every imported job is verified (number of measurements and a checksum of the distances); the result is shown in the dashboard under *Settings*. A database can also be imported manually, e.g. a backup (`rtsapi import-legacy <file>`, idempotent).
+Version 2 uses a new database file (`data/rts-api/rtsnet.db`). On its **first start the API imports the version 1 database** (`data/rts-api/database.db`) automatically. The old file is opened read-only and stays untouched, so you can go back to version 1 at any time. Every imported job is verified (number of measurements and a checksum of the distances); the result is shown in the dashboard under *Settings*. An interrupted import is resumed on the next start. A database can also be imported manually, e.g. a backup (`rtsapi import-legacy <file>`, idempotent).
 
 All workers must be updated together with the API: the worker protocol changed.
 

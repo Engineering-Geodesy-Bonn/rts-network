@@ -3,24 +3,22 @@
     import Icon from './Icon.svelte';
 
     let {
-        variant = 'secondary',
+        variant = 'default',
         size = 'md',
         icon = '',
         busy = false,
         disabled = false,
-        type = 'button',
         title = '',
         href = '',
         class: className = '',
         onclick,
         children,
     }: {
-        variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
+        variant?: 'default' | 'primary' | 'start' | 'stop' | 'quiet' | 'danger';
         size?: 'sm' | 'md' | 'lg';
         icon?: string;
         busy?: boolean;
         disabled?: boolean;
-        type?: 'button' | 'submit';
         title?: string;
         href?: string;
         class?: string;
@@ -29,33 +27,30 @@
     } = $props();
 
     const variants = {
+        default: 'bg-surface text-fg border-line hover:bg-surface-2',
         primary: 'bg-accent text-accent-fg border-transparent hover:brightness-110',
-        success: 'bg-ok text-white border-transparent hover:brightness-110',
-        secondary: 'bg-surface text-fg border-line hover:bg-surface-2',
-        danger: 'bg-surface text-fail border-line hover:bg-fail-bg',
-        ghost: 'bg-transparent text-muted border-transparent hover:bg-surface-2 hover:text-fg',
+        start: 'bg-good text-surface border-transparent hover:brightness-110',
+        stop: 'bg-surface text-bad border-bad/50 hover:bg-bad-soft',
+        quiet: 'bg-transparent text-muted border-transparent hover:bg-surface-2 hover:text-fg',
+        danger: 'bg-transparent text-bad border-transparent hover:bg-bad-soft',
     };
-    const sizes = {
-        sm: 'h-8 px-2.5 text-sm gap-1.5',
-        md: 'h-10 px-3.5 text-sm gap-2',
-        lg: 'h-12 px-5 text-base gap-2',
-    };
+    const sizes = { sm: 'h-8 px-3 text-sm gap-1.5', md: 'h-10 px-4 text-[15px] gap-2', lg: 'h-12 px-5 text-base gap-2' };
     let classes = $derived(
-        `inline-flex items-center justify-center rounded-lg border font-medium transition select-none whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none ${variants[variant]} ${sizes[size]} ${className}`,
+        `inline-flex items-center justify-center rounded-lg border font-medium whitespace-nowrap transition select-none disabled:opacity-45 disabled:pointer-events-none ${variants[variant]} ${sizes[size]} ${className}`,
     );
 </script>
 
 {#if href}
     <a {href} class={classes} {title}>
-        {#if icon}<Icon name={icon} size={size === 'sm' ? 15 : 17} />{/if}
+        {#if icon}<Icon name={icon} size={17} />{/if}
         {@render children?.()}
     </a>
 {:else}
-    <button {type} class={classes} disabled={disabled || busy} {title} aria-label={title || undefined} {onclick}>
+    <button type="button" class={classes} disabled={disabled || busy} {title} aria-label={children ? undefined : title} {onclick}>
         {#if busy}
             <span class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
         {:else if icon}
-            <Icon name={icon} size={size === 'sm' ? 15 : 17} />
+            <Icon name={icon} size={17} />
         {/if}
         {@render children?.()}
     </button>

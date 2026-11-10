@@ -41,8 +41,8 @@ rtsapi import-legacy <v1 database.db> [--db FILE]   # read-only, idempotent, ver
 - **Storage**: SQLite in WAL mode. All writes go through one writer thread that combines concurrent write requests into one transaction; reads never wait. Measurements are stored clustered by `(job, seq)`; job statistics (count, time span) are maintained on insert. The schema is versioned (`rtsapi/schema.py`, `PRAGMA user_version`).
 - **Ingest**: workers stream batches over `/worker/stream`; each batch is acknowledged after the commit. `INSERT OR IGNORE` on `(job, seq)` makes resending harmless.
 - **Jobs**: `pending → running → finished | failed`, plus `cancelled` (stopped while pending), `lost` (no lease renewal, may come back) and `interrupted`. One active job per total station.
-- **Events**: `/events` (websocket) pushes live measurements, job changes, reload hints and the status board of the subscribed session. Slow clients are disconnected instead of buffering without limit.
-- **Status board**: computed every 2 s from memory (worker heartbeats, live buffers) and a few small queries, independent of the number of dashboards.
+- **Events**: `/events` (websocket) pushes live measurements, job changes, reload hints and the health of the subscribed session. Slow clients are disconnected instead of buffering without limit.
+- **Health** (`rtsapi/health.py`): every 2 s a short list of actionable problems (at most one per station) plus per-station and per-device state, computed from memory (worker heartbeats, live buffers) and a few small queries, independent of the number of dashboards.
 - **Post-processing** (`rtsapi/processing.py`): time synchronization of the instrument clock, intrinsic delay correction, CSV and trajectory exports (unchanged from v1).
 
 The endpoints are documented at `/docs`.

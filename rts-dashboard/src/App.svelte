@@ -1,16 +1,14 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import Overlays from './lib/components/ui/Overlays.svelte';
     import Shell from './lib/components/Shell.svelte';
+    import Overlays from './lib/components/ui/Overlays.svelte';
     import { events } from './lib/events.svelte';
-    import AdvancedPage from './lib/pages/AdvancedPage.svelte';
-    import HealthPage from './lib/pages/HealthPage.svelte';
-    import JobDetailPage from './lib/pages/JobDetailPage.svelte';
-    import JobsPage from './lib/pages/JobsPage.svelte';
+    import DataPage from './lib/pages/DataPage.svelte';
+    import JobPage from './lib/pages/JobPage.svelte';
     import MeasurePage from './lib/pages/MeasurePage.svelte';
     import SessionsPage from './lib/pages/SessionsPage.svelte';
     import SettingsPage from './lib/pages/SettingsPage.svelte';
-    import StationsPage from './lib/pages/StationsPage.svelte';
+    import SetupPage from './lib/pages/SetupPage.svelte';
     import { router } from './lib/router.svelte';
     import { store } from './lib/store.svelte';
     import './lib/theme.svelte';
@@ -33,18 +31,14 @@
     <Shell page={route.page}>
         {#if route.page === 'measure'}
             <MeasurePage />
-        {:else if route.page === 'stations'}
-            <StationsPage />
-        {:else if route.page === 'jobs'}
+        {:else if route.page === 'data'}
             {#if route.id}
-                {#key route.id}<JobDetailPage jobId={route.id} />{/key}
+                {#key route.id}<JobPage jobId={route.id} />{/key}
             {:else}
-                <JobsPage />
+                <DataPage />
             {/if}
-        {:else if route.page === 'health'}
-            <HealthPage />
-        {:else if route.page === 'advanced'}
-            <AdvancedPage />
+        {:else}
+            <SetupPage />
         {/if}
     </Shell>
 {/if}

@@ -1,77 +1,71 @@
 @import 'tailwindcss';
 
-/* Design tokens. Light theme is tuned for sunlight readability in the field, dark for indoors. */
+/*
+ * Design rules: one quiet neutral palette, color only for status and station identity,
+ * 16 px body text, generous spacing, one surface level (no cards inside cards).
+ */
 :root {
-    --bg: #f4f6f8;
+    --bg: #f4f5f7;
     --surface: #ffffff;
-    --surface-2: #eef1f4;
-    --border: #d5dbe1;
-    --fg: #0f1720;
-    --muted: #55606c;
-    --accent: #0b6bcb;
+    --surface-2: #f0f2f4;
+    --line: #e2e5e9;
+    --fg: #15191e;
+    --muted: #5e6874;
+    --faint: #8a939d;
+    --accent: #1f62d6;
     --accent-fg: #ffffff;
-    --ok: #15803d;
-    --warn: #b45309;
-    --fail: #c81e1e;
-    --info: #1d4ed8;
-    --unknown: #64748b;
-    --ok-bg: #dcfce7;
-    --warn-bg: #fef3c7;
-    --fail-bg: #fee2e2;
-    --info-bg: #dbeafe;
-    --unknown-bg: #e2e8f0;
-    --plot-grid: #e3e7eb;
-    --plot-axis: #55606c;
+    --good: #18794e;
+    --warn: #a35a00;
+    --bad: #c4291c;
+    --good-soft: #e7f5ec;
+    --warn-soft: #fdf3e1;
+    --bad-soft: #fdecea;
+    --plot-grid: #eceef1;
+    --plot-axis: #6b7580;
     color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme='light']) {
-        --bg: #0d1117;
-        --surface: #161b22;
-        --surface-2: #1f2630;
-        --border: #2d3743;
-        --fg: #e6edf3;
-        --muted: #8b98a5;
-        --accent: #4493f8;
-        --accent-fg: #0d1117;
-        --ok: #3fb950;
-        --warn: #d29922;
-        --fail: #f85149;
-        --info: #58a6ff;
-        --unknown: #8b98a5;
-        --ok-bg: #12261a;
-        --warn-bg: #2d220c;
-        --fail-bg: #2f1414;
-        --info-bg: #0f2240;
-        --unknown-bg: #1f2630;
-        --plot-grid: #222a33;
-        --plot-axis: #8b98a5;
+        --bg: #0f1216;
+        --surface: #171b21;
+        --surface-2: #1f242b;
+        --line: #2a3038;
+        --fg: #e8ebef;
+        --muted: #9aa4af;
+        --faint: #6f7883;
+        --accent: #5b9bff;
+        --accent-fg: #0f1216;
+        --good: #4cc27c;
+        --warn: #e0a339;
+        --bad: #f2695c;
+        --good-soft: #13281c;
+        --warn-soft: #2c2210;
+        --bad-soft: #321614;
+        --plot-grid: #232930;
+        --plot-axis: #8d97a2;
         color-scheme: dark;
     }
 }
 
 :root[data-theme='dark'] {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface-2: #1f2630;
-    --border: #2d3743;
-    --fg: #e6edf3;
-    --muted: #8b98a5;
-    --accent: #4493f8;
-    --accent-fg: #0d1117;
-    --ok: #3fb950;
-    --warn: #d29922;
-    --fail: #f85149;
-    --info: #58a6ff;
-    --unknown: #8b98a5;
-    --ok-bg: #12261a;
-    --warn-bg: #2d220c;
-    --fail-bg: #2f1414;
-    --info-bg: #0f2240;
-    --unknown-bg: #1f2630;
-    --plot-grid: #222a33;
-    --plot-axis: #8b98a5;
+    --bg: #0f1216;
+    --surface: #171b21;
+    --surface-2: #1f242b;
+    --line: #2a3038;
+    --fg: #e8ebef;
+    --muted: #9aa4af;
+    --faint: #6f7883;
+    --accent: #5b9bff;
+    --accent-fg: #0f1216;
+    --good: #4cc27c;
+    --warn: #e0a339;
+    --bad: #f2695c;
+    --good-soft: #13281c;
+    --warn-soft: #2c2210;
+    --bad-soft: #321614;
+    --plot-grid: #232930;
+    --plot-axis: #8d97a2;
     color-scheme: dark;
 }
 
@@ -79,23 +73,19 @@
     --color-bg: var(--bg);
     --color-surface: var(--surface);
     --color-surface-2: var(--surface-2);
-    --color-line: var(--border);
+    --color-line: var(--line);
     --color-fg: var(--fg);
     --color-muted: var(--muted);
+    --color-faint: var(--faint);
     --color-accent: var(--accent);
     --color-accent-fg: var(--accent-fg);
-    --color-ok: var(--ok);
+    --color-good: var(--good);
     --color-warn: var(--warn);
-    --color-fail: var(--fail);
-    --color-info: var(--info);
-    --color-unknown: var(--unknown);
-    --color-ok-bg: var(--ok-bg);
-    --color-warn-bg: var(--warn-bg);
-    --color-fail-bg: var(--fail-bg);
-    --color-info-bg: var(--info-bg);
-    --color-unknown-bg: var(--unknown-bg);
-    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', monospace;
+    --color-bad: var(--bad);
+    --color-good-soft: var(--good-soft);
+    --color-warn-soft: var(--warn-soft);
+    --color-bad-soft: var(--bad-soft);
+    --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
 html,
@@ -108,18 +98,19 @@ body {
 body {
     margin: 0;
     font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
     background: var(--bg);
     color: var(--fg);
     min-height: 100dvh;
     -webkit-tap-highlight-color: transparent;
-    font-feature-settings: 'tnum' 1;
 }
 
 #app {
     min-height: 100dvh;
 }
 
-.tabular {
+.num {
     font-variant-numeric: tabular-nums;
 }
 
@@ -128,15 +119,15 @@ body {
     outline-offset: 2px;
 }
 
-input,
+input:not([type='checkbox']):not([type='radio']),
 select,
 textarea {
     background: var(--surface);
     color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    padding: 0.5rem 0.65rem;
-    font-size: 0.95rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.55rem 0.7rem;
+    font-size: 1rem;
     width: 100%;
 }
 
@@ -145,36 +136,22 @@ select:focus,
 textarea:focus {
     outline: 2px solid var(--accent);
     outline-offset: -1px;
-    border-color: transparent;
 }
 
 input[type='checkbox'] {
-    width: 1.1rem;
-    height: 1.1rem;
-    padding: 0;
+    width: 1.15rem;
+    height: 1.15rem;
     accent-color: var(--accent);
 }
 
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+/* Section card: the only surface level */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
 }
 
-::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
-}
-
-/* uPlot */
-.u-legend {
-    font-size: 0.75rem;
-    color: var(--muted);
-}
-
-.u-legend .u-marker {
-    border-radius: 2px;
-}
-
+/* uPlot: legend is not used (stations are identified by their color in the list) */
 .u-select {
-    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
 }

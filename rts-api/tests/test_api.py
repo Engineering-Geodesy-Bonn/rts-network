@@ -123,7 +123,7 @@ def test_websocket_stream_and_events(client, setup):
     with client.websocket_connect("/events") as events:
         assert events.receive_json()["type"] == "hello"
         events.send_json({"type": "subscribe", "session_id": setup["session"]["id"]})
-        assert events.receive_json()["type"] == "status"
+        assert events.receive_json()["type"] == "health"
         with client.websocket_connect("/worker/stream") as ws:
             ws.send_json({"type": "batch", "job_id": job_id, "rows": rows(0, 20)})
             ack = ws.receive_json()
@@ -141,14 +141,24 @@ def test_websocket_stream_and_events(client, setup):
         assert live_seq == list(range(20))  # duplicates were not re-published
 
 
-def test_status_board(client, setup):
+def test_health(client, setup):
     job_id = start_tracking(client, setup["rts"]["id"])
     client.post("/worker/measurements", json={"job_id": job_id, "rows": rows(0, 50, t0=time.time() - 2)})
-    board = client.get(f"/status?session_id={setup['session']['id']}").json()
-    entry = board["rts"][0]
-    assert entry["state"] == "running"
-    assert entry["tracking"]["samples"] == 50
-    assert {c["key"] for c in entry["checks"]} >= {"device", "serial_port", "jobs", "data_flow", "timing"}
+    health = client.get(f"/health?session_id={setup['session']['id']}").json()
+    station = health["stations"][0]
+    assert station["state"] == "measuring" and station["rate_hz"] > 20
+    # no heartbeat from the device: it is reported offline, one problem per subject
+    assert any(p["severity"] == "error" and "offline" in p["message"].lower() for p in health["problems"])
+    assert len([p for p in health["problems"] if p["rts_id"] == setup["rts"]["id"]]) == 1
+
+
+def test_health_reports_missing_data(client, setup):
+    job_id = start_tracking(client, setup["rts"]["id"])
+    client.post("/worker/heartbeat", json={"worker_id": "w1", "sent_at": time.time(), "system": {"hostname": "pi-1"}})
+    client.post("/worker/measurements", json={"job_id": job_id, "rows": rows(0, 50, t0=time.time() - 30)})
+    health = client.get(f"/health?session_id={setup['session']['id']}").json()
+    messages = [p["message"] for p in health["problems"] if p["rts_id"] == setup["rts"]["id"]]
+    assert messages and "no new data" in messages[0].lower()
 
 
 def test_heartbeat(client):

@@ -73,6 +73,16 @@ class Worker:
         self.uploader = Uploader(self.client, self.outbox)
         self.heartbeat = HeartbeatSender(self.client, config.MEASUREMENT_LOG_DIR)
         self._last_resolve = 0.0
+        self.shutdown = threading.Event()
+        self._job_stop: threading.Event | None = None
+
+    def request_shutdown(self) -> None:
+        """Ends the current job cleanly (e.g. on docker stop) so that its station is free at once."""
+        if not self.shutdown.is_set():
+            logger.info("Shutting down: finishing the current job")
+        self.shutdown.set()
+        if self._job_stop is not None:
+            self._job_stop.set()
 
     def start(self) -> None:
         logger.info("Worker %s (%s) starting, API %s", STATE.worker_id, STATE.hostname, self.client.base_url)
@@ -85,7 +95,7 @@ class Worker:
 
     def run(self) -> None:
         self.start()
-        while True:
+        while not self.shutdown.is_set():
             STATE.touch()
             try:
                 claim = self.client.claim(STATE.worker_id, STATE.hostname, list(self.tasks))
@@ -94,23 +104,36 @@ class Worker:
                 if time.time() - self._last_resolve > RESOLVE_INTERVAL:
                     self._last_resolve = time.time()
                     self.client.resolve()
-                time.sleep(config.CLAIM_INTERVAL)
+                self.shutdown.wait(config.CLAIM_INTERVAL)
                 continue
             except Exception as e:
                 logger.error("Claiming a job failed: %r", e)
                 STATE.error(f"Claiming a job failed: {e!r}")
-                time.sleep(config.CLAIM_INTERVAL)
+                self.shutdown.wait(config.CLAIM_INTERVAL)
                 continue
             if claim is None:
-                time.sleep(config.CLAIM_INTERVAL)
+                self.shutdown.wait(config.CLAIM_INTERVAL)
                 continue
             self.run_job(claim)
+        self._drain()
+
+    def _drain(self, timeout: float = 10.0) -> None:
+        """Gives the uploader a moment to send the last measurements (the rest stays in the outbox)."""
+        deadline = time.time() + timeout
+        while time.time() < deadline and self.outbox.backlog()[0] > 0:
+            time.sleep(0.2)
+        backlog = self.outbox.backlog()[0]
+        if backlog:
+            logger.info("%d measurements stay in the outbox and are sent on the next start", backlog)
 
     def run_job(self, claim: Claim) -> None:
         job = claim.job
         logger.info("Running job %s (%s) on %s", job.id, job.type.value, claim.rts.name)
         STATE.job_started(job.id, job.type.value, job.rts_id)
         stop = threading.Event()
+        self._job_stop = stop
+        if self.shutdown.is_set():
+            stop.set()
         ctx = JobContext(job=job, rts=claim.rts, client=self.client, outbox=self.outbox, stop=stop)
         status, error = JobStatus.FINISHED, None
         with Lease(self.client, job.id, stop):
@@ -126,11 +149,14 @@ class Worker:
             finally:
                 ctx.close()
                 self.outbox.flush()
+                self._job_stop = None
+            if self.shutdown.is_set() and status == JobStatus.FINISHED and job.type in (JobType.TRACK_PRISM, JobType.DUMMY_TRACKING):
+                error = "Stopped because the worker was shut down"
             self._complete(job.id, status, error)
         STATE.job_ended(status == JobStatus.FAILED)
 
     def _complete(self, job_id: str, status: JobStatus, error: str | None) -> None:
-        deadline = time.time() + COMPLETE_RETRY_FOR
+        deadline = time.time() + (5.0 if self.shutdown.is_set() else COMPLETE_RETRY_FOR)
         while True:
             try:
                 self.client.complete(job_id, STATE.worker_id, status, error)

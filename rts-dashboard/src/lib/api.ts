@@ -11,7 +11,7 @@ import type {
     SensorRoles,
     ServerInfo,
     Session,
-    StatusBoard,
+    Health,
     SynchronizerState,
     TrackingSettings,
 } from './types';
@@ -147,7 +147,7 @@ export const api = {
     measurements: (id: string, params: { from_seq?: number; to_seq?: number; max_points?: number } = {}) =>
         request<MeasurementSeries>(`/jobs/${id}/measurements${query(params)}`, { timeout: 60000 }),
 
-    status: (sessionId: string) => request<StatusBoard>(`/status${query({ session_id: sessionId })}`),
+    health: (sessionId: string) => request<Health>(`/health${query({ session_id: sessionId })}`),
 
     externalSensors: () => request<ExternalSensor[]>('/external-sensors'),
     updateExternalSensor: (id: string, data: { name?: string; logging_active?: boolean }) =>

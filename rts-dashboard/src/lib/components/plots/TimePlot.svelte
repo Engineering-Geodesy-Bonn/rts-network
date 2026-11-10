@@ -25,7 +25,6 @@
         height = 220,
         follow = 0,
         now = () => Date.now() / 1000,
-        digits = 3,
         onzoom,
     }: {
         series: TimeSeries[];
@@ -34,7 +33,6 @@
         height?: number;
         follow?: number;
         now?: () => number;
-        digits?: number;
         onzoom?: (range: [number, number] | null) => void;
     } = $props();
 
@@ -54,13 +52,13 @@
             stroke: axis,
             grid: { stroke: grid, width: 1 },
             ticks: { stroke: grid, width: 1 },
-            font: '11px system-ui, sans-serif',
+            font: '12px system-ui, sans-serif',
         };
         const opts: uPlot.Options = {
             width,
             height,
             pxAlign: 0,
-            legend: { show: series.length > 1, live: false },
+            legend: { show: false },
             cursor: { drag: { x: true, y: false, setScale: true }, points: { size: 6 } },
             scales: { x: { time: true }, y: { auto: true } },
             axes: [
@@ -172,6 +170,7 @@
     $effect(() => {
         void theme.version;
         void height;
+        void yLabel;
         if (plot) build();
     });
 </script>

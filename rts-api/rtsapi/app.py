@@ -67,9 +67,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         logger.exception("Unhandled error in %s %s", request.method, request.url.path)
         return JSONResponse(status_code=500, content={"message": f"Internal error: {exc!r}"})
 
-    from rtsapi.routers import devices, events, external, jobs, rts, sessions, status, sync, system, worker
+    from rtsapi.routers import devices, events, external, health, jobs, rts, sessions, sync, system, worker
 
-    for module in (system, sessions, devices, rts, jobs, status, events, worker, external, sync):
+    for module in (system, sessions, devices, rts, jobs, health, events, worker, external, sync):
         app.include_router(module.router)
     app.add_middleware(ReceiveTimeMiddleware)
     return app

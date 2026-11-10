@@ -140,116 +140,42 @@ export interface MeasurementSeries {
     ok: boolean[];
 }
 
-export type CheckStatus = 'ok' | 'info' | 'unknown' | 'warn' | 'fail';
-
-export interface StatusCheck {
-    key: string;
-    label: string;
-    status: CheckStatus;
+export interface Problem {
+    severity: 'error' | 'warning';
+    subject: string;
     message: string;
-}
-
-export interface WorkerRuntime {
-    state: string;
-    job_id: string | null;
-    job_type: string | null;
-    uploader_connected: boolean;
-    outbox_backlog: number;
-    outbox_oldest_age: number | null;
-    measurements_logged: number;
-    measurements_acked: number;
-    last_error: string | null;
-    last_error_at: number | null;
-}
-
-export interface Heartbeat {
-    worker_id: string;
-    version: string;
-    sent_at: number;
-    started_at: number | null;
-    runtime: WorkerRuntime;
-    system: {
-        hostname: string | null;
-        cpu_temperature: number | null;
-        disk_free: number | null;
-        uptime: number | null;
-        load_average: number[];
-        serial_ports: { path: string; target: string }[];
-    };
-    gps: { available: boolean; mode: number | null; satellites_used: number | null; satellites_visible: number | null };
-}
-
-export interface WorkerBoardEntry {
-    worker_id: string;
-    online: boolean;
-    age: number;
-    status: CheckStatus;
-    checks: StatusCheck[];
-    heartbeat: Heartbeat;
-}
-
-export interface DeviceBoardEntry {
-    device_id: string;
-    ip: string;
-    hostname: string | null;
-    name: string | null;
-    in_session: boolean;
-    online: boolean;
-    last_seen_age: number | null;
-    rts_ids: string[];
-    status: CheckStatus;
-    checks: StatusCheck[];
-    workers: WorkerBoardEntry[];
-    clock: { offset: number; delay: number } | null;
-}
-
-export interface TrackingQuality {
-    samples: number;
-    rate_hz: number | null;
-    last_measurement_age: number | null;
-    error_ratio: number | null;
-    timing_residual_std: number | null;
-    timing_residual_max: number | null;
-    clock_drift_ppm: number | null;
-}
-
-export interface RTSBoardEntry {
-    rts_id: string;
-    name: string;
+    rts_id: string | null;
     device_id: string | null;
-    device_ip: string | null;
-    port: string;
-    baudrate: number;
-    state: 'idle' | 'pending' | 'running' | 'lost';
-    running_job: Job | null;
-    pending_jobs: number;
-    last_job: Job | null;
-    instrument: InstrumentReport | null;
-    tracking: TrackingQuality | null;
-    status: CheckStatus;
-    checks: StatusCheck[];
 }
 
-export interface ExternalSensorBoardEntry {
-    id: string;
+export interface StationHealth {
+    rts_id: string;
+    state: 'idle' | 'waiting' | 'measuring' | 'busy' | 'no_contact';
+    job_id: string | null;
+    rate_hz: number | null;
+    last_data_age: number | null;
+    battery: number | null;
+}
+
+export interface DeviceHealth {
+    device_id: string;
     name: string;
     ip: string;
     online: boolean;
-    logging_active: boolean;
     last_seen_age: number | null;
-    status: CheckStatus;
-    checks: StatusCheck[];
+    time_sync: 'gnss' | 'network' | 'none' | 'unknown';
+    time_error: number | null;
+    cpu_temperature: number | null;
+    disk_free: number | null;
+    unsent: number;
 }
 
-export interface StatusBoard {
+export interface Health {
     session_id: string | null;
     server_time: number;
-    overall: CheckStatus;
-    counts: Record<CheckStatus, number>;
-    network_checks: StatusCheck[];
-    devices: DeviceBoardEntry[];
-    rts: RTSBoardEntry[];
-    external_sensors: ExternalSensorBoardEntry[];
+    problems: Problem[];
+    stations: StationHealth[];
+    devices: DeviceHealth[];
 }
 
 export interface ExternalSensor {
@@ -316,7 +242,7 @@ export type ServerEvent =
     | { type: 'hello'; server_time: number; version: string }
     | { type: 'tick'; server_time: number }
     | { type: 'pong'; server_time: number }
-    | { type: 'status'; board: StatusBoard }
+    | { type: 'health'; health: Health }
     | LiveMessage
     | { type: 'job'; job: Job }
     | { type: 'job_deleted'; job_id: string; rts_id: string }

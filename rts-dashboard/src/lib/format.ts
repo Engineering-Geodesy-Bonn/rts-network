@@ -1,22 +1,6 @@
-import type { CheckStatus, JobStatus, JobType } from './types';
+import type { JobStatus, JobType } from './types';
 
-// ── Status ──────────────────────────────────────────────────────────────
-
-export const STATUS_RANK: Record<CheckStatus, number> = { info: 0, ok: 1, unknown: 2, warn: 3, fail: 4 };
-
-export const STATUS_LABEL: Record<CheckStatus, string> = {
-    ok: 'OK',
-    info: 'Info',
-    unknown: 'Unverified',
-    warn: 'Warning',
-    fail: 'Problem',
-};
-
-export function worst(statuses: CheckStatus[]): CheckStatus {
-    const relevant = statuses.filter((s) => s !== 'info');
-    if (relevant.length === 0) return 'ok';
-    return relevant.reduce((a, b) => (STATUS_RANK[b] > STATUS_RANK[a] ? b : a));
-}
+// ── Jobs ────────────────────────────────────────────────────────────────
 
 export const JOB_TYPE_LABEL: Record<JobType, string> = {
     test_connection: 'Beep test',
@@ -37,16 +21,6 @@ export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
     failed: 'Failed',
     cancelled: 'Cancelled',
     interrupted: 'Interrupted',
-};
-
-export const JOB_STATUS_TONE: Record<JobStatus, CheckStatus> = {
-    pending: 'info',
-    running: 'ok',
-    lost: 'fail',
-    finished: 'unknown',
-    failed: 'fail',
-    cancelled: 'unknown',
-    interrupted: 'warn',
 };
 
 // ── Numbers & time ──────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import logging
 import os
+import signal
 
 from rtsworker.worker import Worker
 
@@ -10,7 +11,10 @@ logging.basicConfig(
 
 
 def main():
-    Worker().run()
+    worker = Worker()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(sig, lambda *_: worker.request_shutdown())
+    worker.run()
 
 
 if __name__ == "__main__":

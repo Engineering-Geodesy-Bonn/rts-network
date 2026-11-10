@@ -3,13 +3,13 @@
 Server → client messages (JSON):
   hello    {server_time, version}                      after connecting
   tick     {server_time}                               every 5 s without other traffic
-  status   {board}                                     every 2 s for the subscribed session
+  health   {health}                                    every 2 s for the subscribed session
   live     {job_id, rts_id, session_id, count, seq[], t[], d[], hz[], v[], x[], y[], z[], ok[]}
   job      {job}                                       a job was created or changed state
   job_deleted {job_id, rts_id}
   changed  {entity, id, session_id}                    reload sessions / rts / devices / external sensors
 Client → server:
-  subscribe {session_id}                               select the session of the status board
+  subscribe {session_id}                               select the session of the health reports
   ping                                                 answered with pong
 """
 
@@ -55,8 +55,8 @@ async def events(websocket: WebSocket) -> None:
             if kind == "subscribe":
                 client.session_id = message.get("session_id") or None
                 if client.session_id:
-                    board = await core.status_board(client.session_id)
-                    core.hub.send(client, {"type": "status", "board": board})
+                    health = await core.health(client.session_id)
+                    core.hub.send(client, {"type": "health", "health": health})
             elif kind == "ping":
                 core.hub.send(client, {"type": "pong", "server_time": time.time()})
 

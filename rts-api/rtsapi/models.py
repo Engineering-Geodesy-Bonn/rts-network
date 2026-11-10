@@ -2,7 +2,7 @@
 
 import math
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -427,99 +427,47 @@ class WorkerRecord(BaseModel):
     heartbeat: WorkerHeartbeat
 
 
-# ── Status board ────────────────────────────────────────────────────────
+# ── Health ──────────────────────────────────────────────────────────────
 
 
-class CheckStatus(str, Enum):
-    OK = "ok"
-    INFO = "info"  # informative only, does not influence the overall status
-    UNKNOWN = "unknown"  # could not be verified
-    WARN = "warn"
-    FAIL = "fail"
+class Problem(BaseModel):
+    """Something that needs attention, phrased for the person in the field."""
 
-
-class StatusCheck(BaseModel):
-    key: str
-    label: str
-    status: CheckStatus
+    severity: Literal["error", "warning"]
+    subject: str  # station or device name
     message: str
+    rts_id: str | None = None
+    device_id: str | None = None
 
 
-class WorkerBoardEntry(BaseModel):
-    worker_id: str
-    online: bool
-    age: float
-    status: CheckStatus
-    checks: list[StatusCheck]
-    heartbeat: WorkerHeartbeat
-
-
-class DeviceBoardEntry(BaseModel):
-    device_id: str
-    ip: str
-    hostname: str | None
-    name: str | None
-    in_session: bool
-    online: bool
-    last_seen_age: float | None
-    rts_ids: list[str]
-    status: CheckStatus
-    checks: list[StatusCheck]
-    workers: list[WorkerBoardEntry]
-    clock: ClockSample | None
-    chrony: ChronyStatus | None
-    gps: GpsStatus | None
-    system: SystemInfo | None
-
-
-class TrackingQuality(BaseModel):
-    samples: int
-    rate_hz: float | None
-    last_measurement_age: float | None
-    no_distance_ratio: float | None
-    error_ratio: float | None
-    timing_residual_std: float | None
-    timing_residual_max: float | None
-    clock_drift_ppm: float | None
-
-
-class RTSBoardEntry(BaseModel):
+class StationHealth(BaseModel):
     rts_id: str
-    name: str
-    device_id: str | None
-    device_ip: str | None
-    port: str
-    baudrate: int
-    state: str  # idle | pending | running | lost
-    running_job: Job | None
-    pending_jobs: int
-    last_job: Job | None
-    instrument: InstrumentReportRecord | None
-    tracking: TrackingQuality | None
-    status: CheckStatus
-    checks: list[StatusCheck]
+    state: Literal["idle", "waiting", "measuring", "busy", "no_contact"]
+    job_id: str | None
+    rate_hz: float | None  # measurements per second over the last 10 s
+    last_data_age: float | None  # s since the last measurement (server time)
+    battery: int | None  # % from the last instrument check (if recent)
 
 
-class ExternalSensorBoardEntry(BaseModel):
-    id: str
+class DeviceHealth(BaseModel):
+    device_id: str
     name: str
     ip: str
     online: bool
-    logging_active: bool
     last_seen_age: float | None
-    status: CheckStatus
-    checks: list[StatusCheck]
+    time_sync: Literal["gnss", "network", "none", "unknown"]
+    time_error: float | None  # s, estimated maximum clock error
+    cpu_temperature: float | None
+    disk_free: int | None
+    unsent: int  # measurements waiting on the device for upload
 
 
-class StatusBoard(BaseModel):
+class Health(BaseModel):
     session_id: str | None
     server_time: float
-    overall: CheckStatus
-    counts: dict[str, int]
-    network_checks: list[StatusCheck]
-    devices: list[DeviceBoardEntry]
-    rts: list[RTSBoardEntry]
-    external_sensors: list[ExternalSensorBoardEntry]
+    problems: list[Problem]  # errors first
+    stations: list[StationHealth]
+    devices: list[DeviceHealth]  # devices used by the session (or online)
 
 
 # ── External sensors & synchronizer ─────────────────────────────────────
