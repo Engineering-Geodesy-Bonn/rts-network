@@ -7,6 +7,7 @@ testing the whole system without hardware.
 
 import logging
 import math
+import os
 import random
 import time
 from dataclasses import dataclass
@@ -56,10 +57,21 @@ class SerialInstrument:
 
 @dataclass
 class SimulatedTarget:
+    """A prism moving on a circle. Center in world coordinates (env SIM_TARGET="E,N,H"),
+    default 30 m north of the station, so that several simulated stations can observe the
+    same target."""
+
     radius: float = 10.0  # m
-    center_distance: float = 30.0  # m from the station
     period: float = 40.0  # s per revolution
-    height: float = -1.5  # m below the instrument
+    center: tuple[float, float, float] | None = None
+
+    @classmethod
+    def from_env(cls) -> "SimulatedTarget":
+        value = os.getenv("SIM_TARGET")
+        if value:
+            e, n, h = (float(v) for v in value.split(","))
+            return cls(center=(e, n, h))
+        return cls()
 
 
 class SimulatedGeoCom:
@@ -67,8 +79,9 @@ class SimulatedGeoCom:
 
     def __init__(self, rts: RTSConfig):
         self.rts = rts
-        self.target = SimulatedTarget()
-        self.started = time.time()
+        self.target = SimulatedTarget.from_env()
+        self.started = time.time() if self.target.center is None else 0.0  # shared phase for all stations
+        self.created = time.time()
         self.clock_offset = random.uniform(1e5, 1e6)  # s, instrument clock since power-on
         self.clock_drift = random.uniform(-20e-6, 20e-6)
         self.last_request_time = 0.0
@@ -77,7 +90,7 @@ class SimulatedGeoCom:
         self.tracking = False
 
     def _sensor_time_ms(self, t: float) -> float:
-        return round((t - self.started + self.clock_offset) * (1 + self.clock_drift) * 1000)
+        return round((t - self.created + self.clock_offset) * (1 + self.clock_drift) * 1000)
 
     def get_full_measurement(self, inclination_mode=None, wait_time: int = 1000) -> FullMeasurementResponse:
         self._next = max(self._next + 1 / SIMULATED_RATE_HZ, time.time() - 1.0)
@@ -85,13 +98,17 @@ class SimulatedGeoCom:
         self.last_request_time = time.time()
         t = time.time() - 0.004  # measurement epoch a few ms before the answer
         angle = 2 * math.pi * (t - self.started) / self.target.period
-        x = self.target.radius * math.cos(angle)
-        y = self.target.center_distance + self.target.radius * math.sin(angle)
-        z = self.target.height
-        horizontal = math.hypot(x, y)
-        distance = math.sqrt(horizontal**2 + z**2) + random.gauss(0, 0.001)
-        hz = (math.atan2(x, y) - self.rts.orientation) % (2 * math.pi) + random.gauss(0, 5e-6)
-        v = math.atan2(horizontal, z) + random.gauss(0, 5e-6)
+        if self.target.center is None:
+            cx, cy, cz = self.rts.station_x, self.rts.station_y + 30.0, self.rts.station_z - 1.5
+        else:
+            cx, cy, cz = self.target.center
+        dx = cx + self.target.radius * math.cos(angle) - self.rts.station_x
+        dy = cy + self.target.radius * math.sin(angle) - self.rts.station_y
+        dz = cz + 0.3 * math.sin(3 * angle) - self.rts.station_z
+        horizontal = math.hypot(dx, dy)
+        distance = math.sqrt(horizontal**2 + dz**2) + random.gauss(0, 0.001)
+        hz = (math.atan2(dx, dy) - self.rts.orientation) % (2 * math.pi) + random.gauss(0, 5e-6)
+        v = math.atan2(horizontal, dz) + random.gauss(0, 5e-6)
         resp_time = time.time()
         return FullMeasurementResponse(
             geocom_return_code=0,

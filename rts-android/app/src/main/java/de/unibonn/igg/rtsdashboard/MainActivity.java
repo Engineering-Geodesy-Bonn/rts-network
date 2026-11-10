@@ -238,14 +238,32 @@ public class MainActivity extends Activity {
         return url.isEmpty() ? DEFAULT_URL : url;
     }
 
-    /** Saves CSV downloads of the dashboard, since WebView ignores {@code <a download>}. */
+    /** Saves downloads of the dashboard, since WebView ignores {@code <a download>}. */
     private class DownloadBridge {
         @JavascriptInterface
         public void saveFile(String filename, String content) {
+            save(filename, content.getBytes(StandardCharsets.UTF_8), "text/csv");
+        }
+
+        /** Binary files (e.g. the ZIP export of a session), base64 encoded by the dashboard. */
+        @JavascriptInterface
+        public void saveBase64(String filename, String base64, String mimeType) {
+            byte[] data;
+            try {
+                data = android.util.Base64.decode(base64, android.util.Base64.DEFAULT);
+            } catch (IllegalArgumentException e) {
+                String toast = getString(R.string.download_failed, filename);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, toast, Toast.LENGTH_LONG).show());
+                return;
+            }
+            save(filename, data, mimeType == null || mimeType.isEmpty() ? "application/octet-stream" : mimeType);
+        }
+
+        private void save(String filename, byte[] data, String mimeType) {
             String name = filename.replaceAll("[\\\\/:*?\"<>|]", "_");
             ContentValues values = new ContentValues();
             values.put(MediaStore.Downloads.DISPLAY_NAME, name);
-            values.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
+            values.put(MediaStore.Downloads.MIME_TYPE, mimeType);
             values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/RTS");
 
             ContentResolver resolver = getContentResolver();
@@ -255,7 +273,7 @@ public class MainActivity extends Activity {
                 message = getString(R.string.download_failed, name);
             } else {
                 try (OutputStream out = resolver.openOutputStream(uri)) {
-                    out.write(content.getBytes(StandardCharsets.UTF_8));
+                    out.write(data);
                     message = getString(R.string.download_saved, name);
                 } catch (Exception e) {
                     resolver.delete(uri, null, null);
