@@ -7,7 +7,7 @@ judge whether this worker can produce correctly time-stamped measurements:
 - GNSS receiver state as reported by gpsd (fix, satellites)
 - an NTP-like clock offset measurement against the API server (cross-checks the devices)
 - system health (temperature, under-voltage, disk space, serial ports)
-- runtime state of the worker (current job, measurement stream backlog, last error)
+- runtime state of the worker (current job, unsent measurements in the outbox, last error)
 
 Every collector is best-effort: a failing collector reports the error instead of raising.
 """
@@ -22,15 +22,13 @@ import socket
 import subprocess
 import threading
 import time
-import uuid
-from dataclasses import dataclass, field
-from importlib import metadata
 
-import requests
+from rtsworker import config
+from rtsworker.state import STATE
 
-logger = logging.getLogger("root")
+logger = logging.getLogger(__name__)
 
-HEARTBEAT_INTERVAL = float(os.getenv("HEARTBEAT_INTERVAL", 2.0))
+HEARTBEAT_INTERVAL = config.HEARTBEAT_INTERVAL
 GPSD_HOST = os.getenv("GPSD_HOST", "127.0.0.1")
 GPSD_PORT = int(os.getenv("GPSD_PORT", 2947))
 CHRONY_HOST = os.getenv("CHRONY_HOST", "127.0.0.1")
@@ -44,112 +42,6 @@ SERIAL_PORT_PATTERNS = [
     "/dev/serial/by-id/*",
     "/dev/serial/by-path/*",
 ]
-
-
-def _worker_version() -> str:
-    try:
-        return metadata.version("rts-worker")
-    except metadata.PackageNotFoundError:
-        return "unknown"
-
-
-@dataclass
-class WorkerState:
-    """Runtime state shared between the job loop, the measurement stream and the heartbeat."""
-
-    worker_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    started_at: float = field(default_factory=time.time)
-    version: str = field(default_factory=_worker_version)
-
-    job_id: str | None = None
-    job_type: str | None = None
-    rts_id: str | None = None
-    job_started_at: float | None = None
-    last_activity_at: float = field(default_factory=time.time)
-    jobs_finished: int = 0
-    jobs_failed: int = 0
-    last_error: str | None = None
-    last_error_at: float | None = None
-
-    streaming: bool = False
-    stream_connected: bool = False
-    stream_backlog: int = 0
-    measurements_logged: int = 0
-    measurements_sent: int = 0
-    last_measurement_at: float | None = None
-
-    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
-
-    def touch(self) -> None:
-        self.last_activity_at = time.time()
-
-    def job_started(self, job_id: str, job_type: str, rts_id: str | None) -> None:
-        with self._lock:
-            self.job_id, self.job_type, self.rts_id = job_id, job_type, rts_id
-            self.job_started_at = time.time()
-        self.touch()
-
-    def job_ended(self, failed: bool) -> None:
-        with self._lock:
-            self.job_id = self.job_type = self.rts_id = self.job_started_at = None
-            if failed:
-                self.jobs_failed += 1
-            else:
-                self.jobs_finished += 1
-        self.touch()
-
-    def error(self, message: str) -> None:
-        with self._lock:
-            self.last_error = message[:500]
-            self.last_error_at = time.time()
-
-    def stream_started(self) -> None:
-        with self._lock:
-            self.streaming = True
-            self.stream_connected = False
-            self.stream_backlog = 0
-            self.measurements_logged = 0
-            self.measurements_sent = 0
-            self.last_measurement_at = None
-
-    def stream_stopped(self) -> None:
-        with self._lock:
-            self.streaming = False
-            self.stream_connected = False
-
-    def measurement_logged(self, backlog: int) -> None:
-        self.measurements_logged += 1
-        self.stream_backlog = backlog
-        self.last_measurement_at = time.time()
-        self.touch()
-
-    def measurement_sent(self, backlog: int) -> None:
-        self.measurements_sent += 1
-        self.stream_backlog = backlog
-
-    def snapshot(self) -> dict:
-        with self._lock:
-            return {
-                "state": "busy" if self.job_id else "idle",
-                "job_id": self.job_id,
-                "job_type": self.job_type,
-                "rts_id": self.rts_id,
-                "job_started_at": self.job_started_at,
-                "last_activity_at": self.last_activity_at,
-                "jobs_finished": self.jobs_finished,
-                "jobs_failed": self.jobs_failed,
-                "last_error": self.last_error,
-                "last_error_at": self.last_error_at,
-                "streaming": self.streaming,
-                "stream_connected": self.stream_connected,
-                "stream_backlog": self.stream_backlog,
-                "measurements_logged": self.measurements_logged,
-                "measurements_sent": self.measurements_sent,
-                "last_measurement_at": self.last_measurement_at,
-            }
-
-
-STATE = WorkerState()
 
 
 # ── chrony ──────────────────────────────────────────────────────────────
@@ -355,8 +247,8 @@ class HeartbeatSender:
     with the lowest round trip delay is reported, as it has the smallest uncertainty.
     """
 
-    def __init__(self, api_config, measurement_dir: str):
-        self.api_config = api_config
+    def __init__(self, client, measurement_dir: str):
+        self.client = client
         self.measurement_dir = measurement_dir
         self._samples: list[dict] = []
         self._thread = threading.Thread(target=self._run, daemon=True, name="heartbeat")
@@ -375,7 +267,7 @@ class HeartbeatSender:
             "worker_id": STATE.worker_id,
             "version": STATE.version,
             "started_at": STATE.started_at,
-            "api_host": f"{self.api_config.host}:{self.api_config.port}",
+            "api_host": f"{self.client.host}:{self.client.port}",
             "interval": HEARTBEAT_INTERVAL,
             "clock": self._best_clock_sample(),
             "chrony": collect_chrony(),
@@ -389,15 +281,8 @@ class HeartbeatSender:
         heartbeat["sent_at"] = time.time()
         body = json.dumps(heartbeat)  # encode before t0 so that encoding does not bias the offset
         t0 = time.time()
-        response = requests.post(
-            f"{self.api_config.api_url}/workers/heartbeat",
-            data=body,
-            headers={"Content-Type": "application/json"},
-            timeout=self.api_config.timeout,
-        )
+        ack = self.client.heartbeat(body)
         t3 = time.time()
-        response.raise_for_status()
-        ack = response.json()
         t1, t2 = ack["server_receive_time"], ack["server_send_time"]
         sample = {
             "offset": ((t1 - t0) + (t2 - t3)) / 2,  # server clock minus worker clock
@@ -412,5 +297,5 @@ class HeartbeatSender:
             try:
                 self.send()
             except Exception as e:
-                logger.debug(f"Heartbeat failed: {e}")
+                logger.debug("Heartbeat failed: %s", e)
             time.sleep(max(0.1, HEARTBEAT_INTERVAL - (time.time() - started)))

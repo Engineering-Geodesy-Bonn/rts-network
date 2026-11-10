@@ -2,7 +2,7 @@
 
 pending ──claim──▶ running ──complete──▶ finished | failed
    │                 │  ▲
-   │ stop/timeout    │  │ renew (worker is back)
+   │ stop/timeout    │  │ renew (worker is back, unless the user stopped the job)
    ▼                 ▼  │
 cancelled | failed   lost ──stop/timeout──▶ interrupted
 
@@ -122,11 +122,15 @@ class JobManager:
             status = m.JobStatus(row["status"])
             if row["worker_id"] not in (None, worker_id):
                 return status.value, True, False  # another worker owns it: stop
-            if status in (m.JobStatus.RUNNING, m.JobStatus.LOST):
+            # A job interrupted by timeout (not by the user) continues when its worker is back:
+            # a network outage must never end a measurement.
+            revivable = status == m.JobStatus.INTERRUPTED and not row["stop_requested"]
+            if status in (m.JobStatus.RUNNING, m.JobStatus.LOST) or revivable:
                 conn.execute(
-                    "UPDATE jobs SET status = 'running', lease_until = ? WHERE id = ?", (time.time() + lease, job_id)
+                    "UPDATE jobs SET status = 'running', lease_until = ?, finished_at = NULL, error = NULL WHERE id = ?",
+                    (time.time() + lease, job_id),
                 )
-                return "running", bool(row["stop_requested"]), status == m.JobStatus.LOST
+                return "running", bool(row["stop_requested"]), status != m.JobStatus.RUNNING
             return status.value, True, False
 
         status, stop, revived = self.db.write(write)
@@ -140,11 +144,12 @@ class JobManager:
             raise Conflict("A worker can only finish or fail a job")
 
         def write(conn: sqlite3.Connection) -> bool:
-            row = conn.execute("SELECT status FROM jobs WHERE id = ? AND deleted = 0", (job_id,)).fetchone()
+            row = conn.execute("SELECT status, stop_requested FROM jobs WHERE id = ? AND deleted = 0", (job_id,)).fetchone()
             if row is None:
                 raise NotFound(f"Job {job_id} not found")
             status = m.JobStatus(row["status"])
-            if status not in (m.JobStatus.RUNNING, m.JobStatus.LOST, m.JobStatus.PENDING):
+            timed_out = status == m.JobStatus.INTERRUPTED and not row["stop_requested"]
+            if status not in (m.JobStatus.RUNNING, m.JobStatus.LOST, m.JobStatus.PENDING) and not timed_out:
                 return False  # already terminal (e.g. interrupted by the user): keep that status
             conn.execute(
                 "UPDATE jobs SET status = ?, finished_at = ?, lease_until = NULL, error = ?, "

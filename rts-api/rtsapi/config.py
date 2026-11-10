@@ -34,7 +34,7 @@ class Settings:
     # Job lifecycle
     lease_duration: float = field(default_factory=lambda: _env_float("RTS_LEASE_DURATION", 15.0))
     pending_timeout: float = field(default_factory=lambda: _env_float("RTS_PENDING_TIMEOUT", 300.0))
-    lost_job_timeout: float = field(default_factory=lambda: _env_float("RTS_LOST_JOB_TIMEOUT", 3600.0))
+    lost_job_timeout: float = field(default_factory=lambda: _env_float("RTS_LOST_JOB_TIMEOUT", 60.0))
 
     # Live data
     live_buffer_seconds: float = field(default_factory=lambda: _env_float("RTS_LIVE_BUFFER_SECONDS", 900.0))

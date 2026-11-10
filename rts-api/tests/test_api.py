@@ -194,3 +194,15 @@ def test_external_sensor_and_sync(client, setup):
     roles = client.put("/synchronizer/roles", json={"primary_sensor_id": sensor["id"], "secondary_sensor_id": setup["rts"]["id"]}).json()
     assert roles["primary_sensor_id"] == sensor["id"]
     assert "delta_t" in client.get("/synchronizer/state").json()
+
+
+def test_timed_out_job_resumes_when_worker_returns(client, setup, settings):
+    job_id = start_tracking(client, setup["rts"]["id"])
+    client.app.state.core.settings.lost_job_timeout = 0.5
+    deadline = time.time() + 6
+    while client.get(f"/jobs/{job_id}").json()["status"] != "interrupted":
+        assert time.time() < deadline
+        time.sleep(0.2)
+    assert client.post(f"/worker/jobs/{job_id}/renew?worker_id=w1").json() == {"status": "running", "stop": False}
+    job = client.get(f"/jobs/{job_id}").json()
+    assert job["status"] == "running" and job["error"] is None

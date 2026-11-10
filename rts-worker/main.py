@@ -1,24 +1,16 @@
 import logging
-from rtsworker import tasks
-from rtsworker.dtos import RTSJobType
+import os
+
 from rtsworker.worker import Worker
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
-
-task_mapping = {
-    RTSJobType.CHANGE_FACE: tasks.change_face,
-    RTSJobType.DUMMY_TRACKING: tasks.dummy_tracking,
-    RTSJobType.TEST_CONNECTION: tasks.test_rts,
-    RTSJobType.TRACK_PRISM: tasks.track_prism,
-    RTSJobType.TURN_TO_TARGET: tasks.turn_to_target,
-    RTSJobType.ADD_STATIC_MEASUREMENT: tasks.add_single_measurement,
-    RTSJobType.HEALTH_CHECK: tasks.health_check,
-}
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
+)
 
 
 def main():
-    worker = Worker(task_mapping)
-    worker.run()
+    Worker().run()
 
 
 if __name__ == "__main__":

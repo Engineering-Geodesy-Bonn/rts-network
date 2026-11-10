@@ -5,10 +5,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:////data/database.db
+      - RTS_DB_PATH=/data/rtsnet.db
+      - RTS_LEGACY_DB=/data/database.db  # v1 database, imported once on the first start
     volumes:
       - ./data/rts-api:/data
     restart: always
+    stop_grace_period: 30s
   rtsdashboard:
     build:
       context: ./rts-dashboard

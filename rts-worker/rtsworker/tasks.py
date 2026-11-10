@@ -1,49 +1,92 @@
+"""Job implementations. Each task gets a JobContext and returns normally on success.
+
+Measuring tasks write every measurement through ctx.sink: it gets a sequence number, is
+appended to the local CSV log and stored in the outbox, from where it is uploaded.
+A task ends when ctx.stop is set (the user stopped the job) or on an error (raise).
+"""
+
 import logging
-import time
 import math
-from rtsworker.api import (
-    APIConfig,
-    get_latest_target_position,
-    get_rts,
-    get_tracking_settings,
-    post_instrument_report,
-    post_static_measurement,
-    update_job_status,
-)
-from rtsworker.dtos import (
-    AddMeasurementRequest,
-    RTSJobResponse,
-    RTSJobStatus,
-    TargetPosition,
-    TrackingSettings,
-)
-from rtsworker.pygeocom import PyGeoCom, Station, TMCInclinationMode, TMCMeasurementMode
-from rtsworker.rts import RTSSerialConnection
-from rtsworker.stream import JobStatusWatcher, MeasurementStream
+import os
+import threading
+import time
+from dataclasses import dataclass
 
-logger = logging.getLogger("root")
+from rtsworker import config
+from rtsworker.client import ApiClient
+from rtsworker.dtos import Job, JobType, RTSConfig, TargetPosition
+from rtsworker.instrument import open_instrument
+from rtsworker.outbox import Outbox
+from rtsworker.pygeocom import Station, TMCInclinationMode, TMCMeasurementMode
+from rtsworker.state import STATE
 
-ALARM_THRESHOLD = 10
+logger = logging.getLogger(__name__)
+
+ALARM_THRESHOLD = 10  # consecutive attempts without distance until the instrument beeps
 ALARM_EVERY_N_SECONDS = 6
 
-
-def angles_from_position(station: Station, target: TargetPosition) -> tuple[float, float]:
-    dx = target.x - station.e0
-    dy = target.y - station.n0
-    dz = target.z - station.h0
-
-    distance = math.sqrt(dx**2 + dy**2)
-
-    h_angle = math.atan2(dx, dy)
-    v_angle = math.pi / 2 - math.atan2(dz, distance)
-    return h_angle, v_angle
+# Same columns as the API's CSV download, plus the request time and the sequence number
+LOG_HEADER = "ref_time,ts_time,h_angle,v_angle,distance,num_chars,geocom_return_code,rpc_return_code,request_time,seq\n"
 
 
-def collect_instrument_report(rts_serial: PyGeoCom, latency_samples: int = 10) -> dict:
-    """Reads identification, power and temperature of the total station and measures the GeoCOM latency.
+class MeasurementSink:
+    def __init__(self, job_id: str, outbox: Outbox):
+        self.job_id = job_id
+        self.outbox = outbox
+        self.seq = 0
+        os.makedirs(config.MEASUREMENT_LOG_DIR, exist_ok=True)
+        self.log_path = os.path.join(config.MEASUREMENT_LOG_DIR, f"{job_id}.csv")
+        self._log = open(self.log_path, "a", buffering=1)  # line buffered: survives crashes
+        if self._log.tell() == 0:
+            self._log.write(LOG_HEADER)
 
-    Every query is optional, so that instruments not supporting a request still yield a report.
-    """
+    def put(self, response, request_time: float | None = None) -> None:
+        row = [
+            self.seq, response.resp_time, response.time, request_time, response.resp_len,
+            response.geocom_return_code, response.rpc_return_code,
+            response.distance, response.h_angle, response.v_angle,
+        ]
+        self.outbox.put(self.job_id, self.seq, row)  # first: a logged row is always in the outbox
+        self._log.write(
+            f"{response.resp_time},{response.time},{response.h_angle},{response.v_angle},{response.distance},"
+            f"{response.resp_len},{response.geocom_return_code},{response.rpc_return_code},{request_time or ''},{self.seq}\n"
+        )
+        self.seq += 1
+        STATE.measurement_logged()
+
+    def close(self) -> None:
+        self._log.close()
+
+
+@dataclass
+class JobContext:
+    job: Job
+    rts: RTSConfig
+    client: ApiClient
+    outbox: Outbox
+    stop: threading.Event
+
+    _sink: MeasurementSink | None = None
+
+    @property
+    def sink(self) -> MeasurementSink:
+        if self._sink is None:
+            self._sink = MeasurementSink(self.job.id, self.outbox)
+            STATE.streaming = True
+        return self._sink
+
+    def close(self) -> None:
+        if self._sink is not None:
+            self._sink.close()
+        STATE.streaming = False
+
+
+# ── instrument checks ───────────────────────────────────────────────────
+
+
+def collect_instrument_report(instrument, latency_samples: int = 10) -> dict:
+    """Identification, power and temperature of the instrument and the GeoCOM latency.
+    Every query is optional, so that instruments not supporting a request still yield a report."""
     report = {"ok": True, "source": "health_check", "errors": [], "collected_at": time.time()}
 
     def query(key: str, request):
@@ -52,23 +95,23 @@ def collect_instrument_report(rts_serial: PyGeoCom, latency_samples: int = 10) -
         except Exception as e:
             report["errors"].append(f"{key}: {e!r}")
 
-    query("instrument_name", rts_serial.get_instrument_name)
-    query("serial_number", rts_serial.get_instrument_number)
-    query("software_version", lambda: ".".join(str(v) for v in rts_serial.get_software_version()))
+    query("instrument_name", instrument.get_instrument_name)
+    query("serial_number", instrument.get_instrument_number)
+    query("software_version", lambda: ".".join(str(v) for v in instrument.get_software_version()))
     try:
-        capacity, active_power, _ = rts_serial.check_power()
+        capacity, active_power, _ = instrument.check_power()
         report["battery_capacity"] = capacity
         report["power_source"] = active_power.name.lower()
     except Exception as e:
         report["errors"].append(f"battery: {e!r}")
-    query("internal_temperature", rts_serial.get_internal_temperature)
-    query("face", rts_serial.get_face)
+    query("internal_temperature", instrument.get_internal_temperature)
+    query("face", instrument.get_face)
 
     latencies = []
     for _ in range(latency_samples):
         try:
             started = time.time()
-            rts_serial.get_instrument_number()
+            instrument.get_instrument_number()
             latencies.append(time.time() - started)
         except Exception as e:
             report["errors"].append(f"latency: {e!r}")
@@ -77,185 +120,130 @@ def collect_instrument_report(rts_serial: PyGeoCom, latency_samples: int = 10) -
         report["latency_mean"] = sum(latencies) / len(latencies)
         report["latency_max"] = max(latencies)
         report["latency_samples"] = len(latencies)
-
-    # The instrument did not answer anything meaningful
     if "serial_number" not in report and not latencies:
         report["ok"] = False
     return report
 
 
-def health_check(job: RTSJobResponse, api_config: APIConfig) -> None:
-    rts = get_rts(job.rts_id, api_config)
+def health_check(ctx: JobContext) -> None:
     try:
-        with RTSSerialConnection(rts) as rts_serial:
-            report = collect_instrument_report(rts_serial)
+        with open_instrument(ctx.rts) as instrument:
+            report = collect_instrument_report(instrument)
     except Exception as e:
         report = {"ok": False, "source": "health_check", "errors": [f"Serial connection failed: {e!r}"], "collected_at": time.time()}
-    post_instrument_report(job.rts_id, report, api_config)
-
+    ctx.client.instrument_report(ctx.rts.id, report)
     if not report["ok"]:
         raise RuntimeError(f"Instrument check failed: {'; '.join(report['errors'])}")
-    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
 
 
-def report_instrument_state(rts_serial: PyGeoCom, rts_id: str, api_config: APIConfig) -> None:
-    """Best-effort instrument report before tracking starts, never interrupts the job."""
+def report_instrument_state(instrument, ctx: JobContext) -> None:
+    """Best effort report before tracking starts, never interrupts the job."""
     try:
-        report = collect_instrument_report(rts_serial, latency_samples=3)
+        report = collect_instrument_report(instrument, latency_samples=3)
         report["source"] = "tracking_start"
-        post_instrument_report(rts_id, report, api_config)
+        ctx.client.instrument_report(ctx.rts.id, report)
     except Exception as e:
-        logger.warning(f"Could not report instrument state: {e}")
+        logger.warning("Could not report the instrument state: %r", e)
 
 
-def turn_to_target(job: RTSJobResponse, api_config: APIConfig) -> None:
-    rts = get_rts(job.rts_id, api_config)
-    target_position = get_latest_target_position(api_config)
-
-    if target_position is None:
-        raise ValueError("No target position available")
-
-    with RTSSerialConnection(rts) as rts_serial:
-        logger.info("Setting station")
-        station = rts_serial.get_station()
-        h_angle, v_angle = angles_from_position(station, target_position)
-        rts_serial.position(horizontal=h_angle, vertical=v_angle)
-
-    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
+# ── simple commands ─────────────────────────────────────────────────────
 
 
-def test_rts(job: RTSJobResponse, api_config: APIConfig) -> None:
-    rts = get_rts(job.rts_id, api_config)
-    with RTSSerialConnection(rts) as rts_serial:
-        rts_serial.beep_alarm_normal()
+def test_connection(ctx: JobContext) -> None:
+    with open_instrument(ctx.rts) as instrument:
+        instrument.beep_alarm_normal()
         time.sleep(1)
 
-    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
+
+def change_face(ctx: JobContext) -> None:
+    with open_instrument(ctx.rts) as instrument:
+        instrument.change_face()
 
 
-def change_face(job: RTSJobResponse, api_config: APIConfig) -> None:
-    rts = get_rts(job.rts_id, api_config)
-    with RTSSerialConnection(rts) as rts_serial:
-        logger.info("Changing face")
-        rts_serial.change_face()
-    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
+def angles_from_position(station: Station, target: TargetPosition) -> tuple[float, float]:
+    dx, dy, dz = target.x - station.e0, target.y - station.n0, target.z - station.h0
+    horizontal = math.sqrt(dx**2 + dy**2)
+    return math.atan2(dx, dy), math.pi / 2 - math.atan2(dz, horizontal)
 
 
-def dummy_tracking(job: RTSJobResponse, api_config: APIConfig):
-    logger.info("Starting measurement")
-    with MeasurementStream(job.job_id, api_config) as stream, JobStatusWatcher(job.job_id, api_config) as job_status:
-        while job_status.running:
-            timestamp = time.time()
-            distance = math.cos(timestamp) * 100
-            horizontal_angle = math.sin(timestamp)
-            vertical_angle = math.sin(timestamp) * math.cos(timestamp)
-            add_measurement = AddMeasurementRequest(
-                rts_job_id=job.job_id,
-                controller_timestamp=timestamp,
-                sensor_timestamp=timestamp * 1000,
-                distance=distance,
-                horizontal_angle=horizontal_angle,
-                vertical_angle=vertical_angle,
-                response_length=10,
-                geocom_return_code=0,
-                rpc_return_code=0,
-            )
-            stream.put(add_measurement)
-            time.sleep(0.01)
-    logger.info("Stopped logging")
+def turn_to_target(ctx: JobContext) -> None:
+    target = ctx.client.target()
+    if target is None:
+        raise ValueError("No target position available (no RTS is tracking)")
+    with open_instrument(ctx.rts) as instrument:
+        station = instrument.get_station()
+        h_angle, v_angle = angles_from_position(station, target)
+        instrument.position(horizontal=h_angle, vertical=v_angle)
 
 
-def track_prism(job: RTSJobResponse, api_config: APIConfig) -> None:
-    rts = get_rts(job.rts_id, api_config)
-    tracking_settings_response = get_tracking_settings(job.rts_id, api_config)
-    tracking_settings = TrackingSettings.from_response(tracking_settings_response)
+# ── measuring ───────────────────────────────────────────────────────────
 
-    with MeasurementStream(job.job_id, api_config) as stream, RTSSerialConnection(rts) as rts_serial:
-        report_instrument_state(rts_serial, job.rts_id, api_config)
-        rts_serial.stop_tracking()
-        rts_serial.start_tracking(tracking_settings)
-        logger.info("Starting measurement loop...")
-        no_distance_count = 0
-        last_alarm = 0
 
-        with JobStatusWatcher(job.job_id, api_config) as job_status:
-            while job_status.running:
-                response = rts_serial.get_full_measurement(TMCInclinationMode.AUTOMATIC, 1000)
-
-                # Without a distance the instrument also reports sensor time 0.
-                # Such a sample is no measurement and must not be stored: it would
-                # be a point at the station position and corrupt the time sync.
+def track(ctx: JobContext, simulate: bool) -> None:
+    rts = ctx.rts
+    if simulate and not rts.port.startswith("sim://"):
+        rts = rts.model_copy(update={"port": f"sim://{rts.name}"})
+    settings = rts.tracking
+    with open_instrument(rts) as instrument:
+        report_instrument_state(instrument, ctx)
+        instrument.stop_tracking()
+        instrument.start_tracking(settings)
+        logger.info("Tracking with %s on %s", rts.name, rts.port)
+        no_distance = 0
+        last_alarm = 0.0
+        try:
+            while not ctx.stop.is_set():
+                response = instrument.get_full_measurement(TMCInclinationMode.AUTOMATIC, 1000)
+                request_time = instrument.last_request_time
+                # Without a distance the instrument also reports sensor time 0. Such a sample is
+                # no measurement: it would be a point at the station and corrupt the time sync.
                 if response.distance == 0 or response.time == 0:
-                    no_distance_count += 1
-                    logger.info(f"No distance measurement available ({no_distance_count})")
-                    if no_distance_count > ALARM_THRESHOLD and (time.time() - last_alarm) > ALARM_EVERY_N_SECONDS:
-                        rts_serial.beep_alarm_normal()
+                    no_distance += 1
+                    STATE.no_distance()
+                    if no_distance > ALARM_THRESHOLD and time.time() - last_alarm > ALARM_EVERY_N_SECONDS:
+                        logger.warning("Prism lost (%d attempts without distance)", no_distance)
+                        instrument.beep_alarm_normal()
                         last_alarm = time.time()
-                        logger.warning("Triggering alarm")
-                        rts_serial.do_measure(
-                            TMCMeasurementMode(tracking_settings.tmc_measurement_mode),
-                            TMCInclinationMode(tracking_settings.tmc_inclination_mode),
+                        instrument.do_measure(
+                            TMCMeasurementMode(settings.tmc_measurement_mode),
+                            TMCInclinationMode(settings.tmc_inclination_mode),
                         )
                     continue
-
-                new_measurement = AddMeasurementRequest(
-                    rts_job_id=job.job_id,
-                    controller_timestamp=response.resp_time,
-                    sensor_timestamp=response.time,
-                    horizontal_angle=response.h_angle,
-                    vertical_angle=response.v_angle,
-                    distance=response.distance,
-                    response_length=response.resp_len,
-                    geocom_return_code=response.geocom_return_code,
-                    rpc_return_code=response.rpc_return_code,
-                )
-                stream.put(new_measurement, request_time=rts_serial.last_request_time)
-                no_distance_count = 0
-
-        rts_serial.stop_tracking()
-        logger.info("Tracking loop finished.")
+                no_distance = 0
+                ctx.sink.put(response, request_time)
+        finally:
+            try:
+                instrument.stop_tracking()
+            except Exception as e:
+                logger.warning("Could not stop tracking on the instrument: %r", e)
+    logger.info("Tracking stopped after %d measurements", ctx.sink.seq)
 
 
-def add_single_measurement(job: RTSJobResponse, api_config: APIConfig) -> None:
-    rts = get_rts(job.rts_id, api_config)
-    tracking_settings_response = get_tracking_settings(job.rts_id, api_config)
-    tracking_settings = TrackingSettings.from_response(tracking_settings_response)
-    with RTSSerialConnection(rts) as rts_serial:
-        rts_serial.stop_tracking()
-        rts_serial.prepare_static_measurement(tracking_settings)
-        response = rts_serial.get_full_measurement(TMCInclinationMode.AUTOMATIC, 300)
-        new_measurement = AddMeasurementRequest(
-            rts_job_id=job.job_id,
-            controller_timestamp=response.resp_time,
-            sensor_timestamp=response.time,
-            horizontal_angle=response.h_angle,
-            vertical_angle=response.v_angle,
-            distance=response.distance,
-            response_length=response.resp_len,
-            geocom_return_code=response.geocom_return_code,
-            rpc_return_code=response.rpc_return_code,
-        )
-        post_static_measurement(new_measurement, api_config)
-        rts_serial.stop_tracking()
-
-    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
+def track_prism(ctx: JobContext) -> None:
+    track(ctx, simulate=False)
 
 
-def add_single_measurement_dummy(job: RTSJobResponse, api_config: APIConfig) -> None:
-    timestamp = time.time()
-    distance = math.cos(timestamp) * 100
-    horizontal_angle = math.sin(timestamp)
-    vertical_angle = math.sin(timestamp) * math.cos(timestamp)
-    add_measurement = AddMeasurementRequest(
-        rts_job_id=job.job_id,
-        controller_timestamp=timestamp,
-        sensor_timestamp=timestamp,
-        distance=distance,
-        horizontal_angle=horizontal_angle,
-        vertical_angle=vertical_angle,
-        response_length=10,
-        geocom_return_code=0,
-        rpc_return_code=0,
-    )
-    post_static_measurement(add_measurement, api_config)
-    update_job_status(job.job_id, RTSJobStatus.FINISHED, api_config)
+def dummy_tracking(ctx: JobContext) -> None:
+    track(ctx, simulate=True)
+
+
+def add_static_measurement(ctx: JobContext) -> None:
+    with open_instrument(ctx.rts) as instrument:
+        instrument.stop_tracking()
+        instrument.prepare_static_measurement(ctx.rts.tracking)
+        response = instrument.get_full_measurement(TMCInclinationMode.AUTOMATIC, 300)
+        instrument.stop_tracking()
+    if response.distance == 0 or response.time == 0:
+        raise RuntimeError("No distance measured (prism not found?)")
+    ctx.sink.put(response, None)
+
+
+TASKS = {
+    JobType.TEST_CONNECTION: test_connection,
+    JobType.TRACK_PRISM: track_prism,
+    JobType.CHANGE_FACE: change_face,
+    JobType.DUMMY_TRACKING: dummy_tracking,
+    JobType.TURN_TO_TARGET: turn_to_target,
+    JobType.ADD_STATIC_MEASUREMENT: add_static_measurement,
+    JobType.HEALTH_CHECK: health_check,
+}

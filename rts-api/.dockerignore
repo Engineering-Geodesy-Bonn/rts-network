@@ -1,6 +1,7 @@
-test
 .venv
-logs/
+__pycache__
 *.db
 *.db-shm
 *.db-wal
+tests
+.pytest_cache
