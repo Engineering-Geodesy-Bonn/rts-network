@@ -74,10 +74,27 @@
     );
 
     let anyRunning = $derived(displays.some((d) => d.running));
-    let version = $derived(displays.reduce((sum, d) => sum + (d.series?.version ?? 0), 0));
+
+    // Redraw at a fixed rate (not on every message): at most 4 times per second, and only if
+    // new data arrived or the time window moved.
+    const MAX_PLOT_POINTS = 2000; // per station and plot: more than a plot has pixels
+    let tick = $state(0);
+    let lastVersions = '';
+    $effect(() => {
+        const timer = setInterval(() => {
+            const versions = displays.map((d) => d.series?.version ?? 0).join(',');
+            if (versions !== lastVersions || anyRunning) {
+                lastVersions = versions;
+                tick++;
+            }
+        }, 250);
+        return () => clearInterval(timer);
+    });
+    // first data of a newly shown job: draw immediately
+    let version = $derived(tick);
 
     // Whole-job overviews of running jobs (refreshed periodically, live points appended)
-    let overviews = $state<Record<string, { cols: Columns; at: number }>>({});
+    let overviews = $state.raw<Record<string, Columns>>({});
     $effect(() => {
         if (windowSeconds !== 0) return;
         const running = displays.filter((d) => d.running && d.job);
@@ -85,7 +102,7 @@
             for (const d of running) {
                 const job = d.job!;
                 api.measurements(job.id, { max_points: 4000 })
-                    .then((s) => (overviews[job.id] = { cols: s, at: Date.now() }))
+                    .then((s) => (overviews = { ...overviews, [job.id]: s }))
                     .catch(() => {});
             }
         };
@@ -94,37 +111,62 @@
         return () => clearInterval(timer);
     });
 
-    const KEYS: (keyof Columns)[] = ['seq', 't', 'x', 'y', 'z', 'd', 'hz', 'v', 'ok'];
+    type Plotted = { t: number[]; x: number[]; y: number[]; z: number[]; d: number[]; hz: number[]; v: number[] };
+    const PLOT_KEYS = ['t', 'x', 'y', 'z', 'd', 'hz', 'v'] as const;
 
-    function slice(cols: Columns, from: number): Columns {
-        if (from <= 0) return cols;
-        const out = {} as Columns;
-        for (const key of KEYS) (out[key] as unknown[]) = cols[key].slice(from);
+    /** Thins [from, to) of the columns to at most MAX_PLOT_POINTS (always keeping the last point). */
+    function thin(sources: { cols: Columns; from: number; to: number }[]): Plotted {
+        const total = sources.reduce((n, s) => n + Math.max(0, s.to - s.from), 0);
+        const stride = Math.max(1, Math.ceil(total / MAX_PLOT_POINTS));
+        const out: Plotted = { t: [], x: [], y: [], z: [], d: [], hz: [], v: [] };
+        let k = 0;
+        let last: { cols: Columns; i: number } | null = null;
+        for (const { cols, from, to } of sources) {
+            for (let i = from; i < to; i++, k++) {
+                last = { cols, i };
+                if (k % stride !== 0) continue;
+                for (const key of PLOT_KEYS) out[key].push(cols[key][i] as number);
+            }
+        }
+        if (last && (k - 1) % stride !== 0) {
+            for (const key of PLOT_KEYS) out[key].push(last.cols[key][last.i] as number);
+        }
         return out;
     }
 
+    function firstSeqAfter(seq: number[], value: number): number {
+        let lo = 0;
+        let hi = seq.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (seq[mid] <= value) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
     /** The part of a job shown for the selected window. */
-    function visible(d: Display): Columns | null {
+    function visible(d: Display): Plotted | null {
         const s = d.series;
         if (!s || s.cols.t.length === 0) return null;
+        const n = s.cols.t.length;
         if (windowSeconds === 0) {
             const overview = d.running ? overviews[d.job!.id] : undefined;
-            if (!overview) return s.cols;
-            const lastSeq = overview.cols.seq[overview.cols.seq.length - 1] ?? -1;
-            const tail = s.cols.seq.findIndex((q) => q > lastSeq);
-            if (tail < 0) return overview.cols;
-            const out = {} as Columns;
-            for (const key of KEYS) (out[key] as unknown[]) = [...overview.cols[key], ...s.cols[key].slice(tail)];
-            return out;
+            if (!overview || overview.seq.length === 0) return thin([{ cols: s.cols, from: 0, to: n }]);
+            const lastSeq = overview.seq[overview.seq.length - 1];
+            return thin([
+                { cols: overview, from: 0, to: overview.seq.length },
+                { cols: s.cols, from: firstSeqAfter(s.cols.seq, lastSeq), to: n },
+            ]);
         }
         const end = d.running ? clock.server : s.lastT!;
-        return slice(s.cols, s.indexAt(end - windowSeconds - 1));
+        return thin([{ cols: s.cols, from: s.indexAt(end - windowSeconds - 1), to: n }]);
     }
 
     let data = $derived.by(() => {
-        void version;
-        void clock.now;
+        void tick;
         void overviews;
+        void windowSeconds;
         return displays.map((d) => ({ d, cols: visible(d) }));
     });
 
@@ -143,12 +185,12 @@
     // In follow mode only running jobs are in the time window; idle RTS appear when nothing runs
     let timeData = $derived(data.filter(({ d, cols }) => cols && (!anyRunning || d.running || windowSeconds === 0)));
 
-    function series(pick: (c: Columns) => (number | null)[], scale = (v: number) => v): TimeSeries[] {
+    function series(pick: (c: Plotted) => number[], scale?: (v: number) => number): TimeSeries[] {
         return timeData.map(({ d, cols }) => ({
             label: d.rts.name,
             color: d.color,
             t: cols!.t,
-            y: pick(cols!).map((v) => (v == null ? (null as unknown as number) : scale(v))),
+            y: scale ? pick(cols!).map((v) => (v == null ? v : scale(v))) : pick(cols!),
         }));
     }
 

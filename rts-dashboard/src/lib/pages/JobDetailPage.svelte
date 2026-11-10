@@ -23,7 +23,7 @@
     let savingNote = $state(false);
     let busy = $state('');
     let quantity = $state<'xyz' | 'polar'>('xyz');
-    let detail = $state<Columns | null>(null);
+    let detail = $state.raw<Columns | null>(null);
     let detailStride = $state(1);
 
     onMount(async () => {
