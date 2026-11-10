@@ -147,6 +147,7 @@ def test_health(client, setup):
     health = client.get(f"/health?session_id={setup['session']['id']}").json()
     station = health["stations"][0]
     assert station["state"] == "measuring" and station["rate_hz"] > 20
+    assert station["timing_jitter"] is not None and station["timing_jitter"] < 1e-3
     # no heartbeat from the device: it is reported offline, one problem per subject
     assert any(p["severity"] == "error" and "offline" in p["message"].lower() for p in health["problems"])
     assert len([p for p in health["problems"] if p["rts_id"] == setup["rts"]["id"]]) == 1

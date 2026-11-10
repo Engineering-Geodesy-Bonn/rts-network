@@ -447,6 +447,8 @@ class StationHealth(BaseModel):
     rate_hz: float | None  # measurements per second over the last 10 s
     last_data_age: float | None  # s since the last measurement (server time)
     battery: int | None  # % from the last instrument check (if recent)
+    timing_jitter: float | None = None  # s, std of controller time vs. instrument time residuals
+    clock_drift_ppm: float | None = None  # instrument clock vs. controller clock
 
 
 class DeviceHealth(BaseModel):
@@ -460,6 +462,9 @@ class DeviceHealth(BaseModel):
     cpu_temperature: float | None
     disk_free: int | None
     unsent: int  # measurements waiting on the device for upload
+    clock_offset: float | None = None  # s, API server clock minus device clock (network measurement)
+    workers: int = 0  # workers reporting from this device
+    version: str | None = None  # worker version
 
 
 class Health(BaseModel):

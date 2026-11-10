@@ -7,6 +7,8 @@ pushed to the dashboards. Nothing is reported that does not require an action.
 import time
 from dataclasses import dataclass
 
+import numpy as np
+
 from rtsapi import models as m
 from rtsapi.live import LiveStore
 
@@ -24,6 +26,7 @@ CPU_TEMPERATURE_ERROR = 80.0  # °C, the Raspberry Pi throttles
 DISK_FREE_WARN = 1024**3  # bytes
 UPLOAD_DELAY_WARN = 60.0  # s age of the oldest measurement waiting on a device
 SENSOR_TIMEOUT = 10.0
+TIMING_MIN_SAMPLES = 20
 
 SERIAL_PREFIXES = ("/dev/ttyUSB", "/dev/ttyACM", "/dev/ttyAMA", "/dev/serial")
 
@@ -83,6 +86,20 @@ def time_sync(hb: m.WorkerHeartbeat) -> tuple[str, float | None]:
     return ("gnss" if selected.mode == "#" else "network"), error
 
 
+def timing(points: list) -> tuple[float | None, float | None]:
+    """Jitter of the timestamps (std of the residuals of controller time vs. instrument time
+    after removing offset and drift) and the drift of the instrument clock in ppm."""
+    sensor = np.array([p.ts for p in points]) / 1000
+    controller = np.array([p.t for p in points])
+    _, unique = np.unique(sensor, return_index=True)
+    if len(unique) < TIMING_MIN_SAMPLES or np.ptp(sensor[unique]) <= 0:
+        return None, None
+    x = sensor[unique] - sensor[unique][0]
+    y = controller[unique] - sensor[unique]
+    slope, intercept = np.polyfit(x, y, 1)
+    return float(np.std(y - (slope * x + intercept))), float(slope * 1e6)
+
+
 def evaluate(data: HealthInput) -> m.Health:
     now = data.now or time.time()
     problems: list[m.Problem] = []
@@ -115,6 +132,9 @@ def evaluate(data: HealthInput) -> m.Health:
             cpu_temperature=latest.system.cpu_temperature if latest else None,
             disk_free=latest.system.disk_free if latest else None,
             unsent=unsent,
+            clock_offset=latest.clock.offset if latest and latest.clock else None,
+            workers=len(workers),
+            version=latest.version if latest else None,
         )
         device_entries[device.id] = entry
         if latest:
@@ -162,10 +182,11 @@ def evaluate(data: HealthInput) -> m.Health:
         device_entry = device_entries.get(rts.device_id) if rts.device_id else None
         hb = heartbeats.get(rts.device_id) if rts.device_id else None
 
-        rate = age = None
+        rate = age = jitter = drift = None
         if running is not None and running.type in m.TRACKING_JOB_TYPES:
             points = data.live.recent(running.id, 300)
             if points:
+                jitter, drift = timing(points)
                 age = now - points[-1].t
                 recent = [p.t for p in points if p.t >= points[-1].t - 10.0]
                 if age <= DATA_MISSING and len(recent) > 1 and recent[-1] > recent[0]:
@@ -221,6 +242,8 @@ def evaluate(data: HealthInput) -> m.Health:
             rate_hz=rate,
             last_data_age=age,
             battery=battery,
+            timing_jitter=jitter,
+            clock_drift_ppm=drift,
         ))
 
     # ── external sensors ───────────────────────────────────────────────
