@@ -15,7 +15,7 @@
 {#if confirmStore.current}
     {@const c = confirmStore.current}
     <Modal bind:open title={c.title} onclose={() => confirmStore.answer(false)}>
-        <p class="leading-relaxed text-muted">{c.message}</p>
+        <p class="leading-relaxed">{c.message}</p>
         {#snippet footer()}
             <Button onclick={() => confirmStore.answer(false)}>Cancel</Button>
             <Button variant={c.danger ? 'stop' : 'primary'} onclick={() => confirmStore.answer(true)}>{c.confirm ?? 'OK'}</Button>
@@ -26,7 +26,7 @@
 <div class="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-6" aria-live="polite">
     {#each toast.items as t (t.id)}
         <div
-            class="pointer-events-auto flex max-w-md items-start gap-2.5 rounded-xl border px-4 py-3 text-sm shadow-lg {t.kind === 'error'
+            class="pointer-events-auto flex max-w-md items-start gap-2.5 rounded-[6px] border px-3 py-2.5 text-[13px] shadow-lg {t.kind === 'error'
                 ? 'border-bad/40 bg-bad-soft text-bad'
                 : 'border-line bg-surface text-fg'}"
         >

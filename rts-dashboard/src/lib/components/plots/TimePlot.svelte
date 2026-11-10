@@ -26,6 +26,8 @@
         follow = 0,
         now = () => Date.now() / 1000,
         onzoom,
+        syncKey = '',
+        showX = true,
     }: {
         series: TimeSeries[];
         version?: number;
@@ -34,6 +36,8 @@
         follow?: number;
         now?: () => number;
         onzoom?: (range: [number, number] | null) => void;
+        syncKey?: string;
+        showX?: boolean;
     } = $props();
 
     let container: HTMLDivElement;
@@ -52,23 +56,27 @@
             stroke: axis,
             grid: { stroke: grid, width: 1 },
             ticks: { stroke: grid, width: 1 },
-            font: '12px system-ui, sans-serif',
+            font: '11px ui-monospace, Menlo, Consolas, monospace',
         };
         const opts: uPlot.Options = {
             width,
             height,
             pxAlign: 0,
             legend: { show: false },
-            cursor: { drag: { x: true, y: false, setScale: true }, points: { size: 6 } },
+            cursor: { drag: { x: true, y: false, setScale: true }, points: { size: 5 }, ...(syncKey ? { sync: { key: syncKey } } : {}) },
             scales: { x: { time: true }, y: { auto: true } },
             axes: [
-                { ...axisStyle, space: 70 },
+                showX ? { ...axisStyle, space: 80, values: timeLabels } : { ...axisStyle, size: 4, values: (_u: uPlot, splits: number[]) => splits.map(() => '') },
                 {
                     ...axisStyle,
                     label: yLabel,
-                    labelFont: '11px system-ui, sans-serif',
+                    labelFont: '600 10px system-ui, sans-serif',
                     labelSize: 16,
-                    size: (_u: uPlot, values: string[]) => 18 + 7 * Math.max(4, ...(values ?? []).map((v) => v.length)),
+                    size: 92,
+                    values: (_u: uPlot, splits: number[], _axis: number, _space: number, increment: number) => {
+                        const decimals = Math.max(0, Math.min(6, -Math.floor(Math.log10(increment || 1) + 1e-9)));
+                        return splits.map((v) => v.toFixed(decimals));
+                    },
                 },
             ],
             series: [
@@ -76,7 +84,7 @@
                 ...series.map((s) => ({
                     label: s.label,
                     stroke: s.color,
-                    width: 1.5,
+                    width: 1.25,
                     spanGaps: false,
                     points: { show: false },
                 })),
@@ -94,9 +102,24 @@
                 ],
             },
         };
-        plot = new uPlot(opts, data(), container);
+        lastSeries = series;
+        lastData = data();
+        plot = new uPlot(opts, lastData, container);
         signature = series.map((s) => s.label + s.color).join('|');
         apply();
+    }
+
+    /** 24 h clock labels; seconds (and tenths) when zoomed in, date on the first tick */
+    function timeLabels(_u: uPlot, splits: number[], _axis: number, _space: number, increment: number): string[] {
+        const pad = (v: number) => String(v).padStart(2, '0');
+        return splits.map((v, i) => {
+            const d = new Date(v * 1000);
+            let text = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            if (increment < 60) text += `:${pad(d.getSeconds())}`;
+            if (increment < 1) text += `.${Math.floor(d.getMilliseconds() / 100)}`;
+            if (i === 0 && increment >= 3600) text = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${text}`;
+            return text;
+        });
     }
 
     function data(): uPlot.AlignedData {
@@ -105,13 +128,24 @@
         return uPlot.join(series.map((s) => [s.t, s.y] as uPlot.AlignedData));
     }
 
+    let lastData: uPlot.AlignedData | null = null;
+    let lastSeries: TimeSeries[] | null = null;
+
     function apply(): void {
         if (!plot) return;
-        plot.setData(data(), !follow || zoomed);
-        if (follow > 0 && !zoomed) {
-            const t = now();
-            plot.setScale('x', { min: t - follow, max: t });
-        }
+        const u = plot;
+        // one redraw for new data and the moving time axis
+        u.batch(() => {
+            if (series !== lastSeries || !lastData) {
+                lastSeries = series;
+                lastData = data();
+                u.setData(lastData, !follow || zoomed);
+            }
+            if (follow > 0 && !zoomed) {
+                const t = now();
+                u.setScale('x', { min: t - follow, max: t });
+            }
+        });
     }
 
     function schedule(): void {

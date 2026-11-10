@@ -41,17 +41,17 @@
 
 <main class="mx-auto max-w-2xl px-4 pt-[max(2rem,env(safe-area-inset-top))] pb-16">
     <button class="mb-6 inline-flex items-center gap-1 text-muted hover:text-fg" onclick={() => history.back()}><Icon name="chevronLeft" size={18} /> Back</button>
-    <h1 class="mb-8 text-2xl font-semibold">Settings</h1>
+    <h1 class="mb-5 text-[17px] font-semibold">Settings</h1>
 
-    <div class="space-y-8">
+    <div class="panel space-y-6 p-4">
         <section>
-            <h2 class="mb-3 font-semibold">Appearance</h2>
+            <h2 class="label mb-2">Appearance</h2>
             <Segmented label="Theme" bind:value={themeValue} options={[{ value: 'system', label: 'Automatic' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]} />
-            <p class="mt-2 text-sm text-muted">Light is easiest to read in sunlight.</p>
+            <p class="mt-1.5 text-xs text-muted">Light is easiest to read in sunlight.</p>
         </section>
 
         <section>
-            <h2 class="mb-3 font-semibold">Server</h2>
+            <h2 class="label mb-2">Server</h2>
             <div class="flex items-end gap-2">
                 <Field label="Address" hint="Keep /api unless the dashboard runs on another machine than the server." class="flex-1"><input bind:value={url} placeholder="/api" /></Field>
             </div>

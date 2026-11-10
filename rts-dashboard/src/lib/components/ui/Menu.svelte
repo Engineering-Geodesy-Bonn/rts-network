@@ -1,3 +1,7 @@
+<!--
+    Dropdown menu. The list is positioned relative to the window (position: fixed), so that
+    scroll containers such as tables never clip it. It opens upwards when there is no room below.
+-->
 <script lang="ts" module>
     export interface MenuItem {
         label: string;
@@ -11,42 +15,75 @@
 <script lang="ts">
     import Icon from './Icon.svelte';
 
-    let { items, label = 'More actions' }: { items: MenuItem[]; label?: string } = $props();
+    let { items, label = 'More actions', note = '' }: { items: MenuItem[]; label?: string; note?: string } = $props();
     let open = $state(false);
-    let root: HTMLDivElement;
+    let button: HTMLButtonElement;
+    let list = $state<HTMLDivElement>();
+    let position = $state('');
+
+    const WIDTH = 290;
+    const GAP = 4;
+
+    function place() {
+        const rect = button.getBoundingClientRect();
+        const height = list?.offsetHeight ?? items.length * 36 + 8;
+        const left = Math.max(8, Math.min(rect.right - WIDTH, window.innerWidth - WIDTH - 8));
+        const below = rect.bottom + GAP + height <= window.innerHeight - 8;
+        const top = below ? rect.bottom + GAP : Math.max(8, rect.top - GAP - height);
+        position = `top: ${top}px; left: ${left}px; width: ${WIDTH}px;`;
+    }
+
+    function toggle() {
+        open = !open;
+        if (open) {
+            place();
+            requestAnimationFrame(place); // again with the measured height of the list
+        }
+    }
+
+    function close() {
+        open = false;
+    }
 
     function onwindowclick(e: MouseEvent) {
-        if (open && !root.contains(e.target as Node)) open = false;
+        const target = e.target as Node;
+        if (open && !button.contains(target) && !list?.contains(target)) close();
     }
 </script>
 
-<svelte:window onclick={onwindowclick} onkeydown={(e) => e.key === 'Escape' && (open = false)} />
+<svelte:window
+    onclick={onwindowclick}
+    onkeydown={(e) => e.key === 'Escape' && close()}
+    onresize={close}
+    onscrollcapture={(e) => open && !list?.contains(e.target as Node) && close()}
+/>
 
-<div class="relative" bind:this={root}>
-    <button
-        class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
-        aria-label={label}
-        title={label}
-        aria-expanded={open}
-        onclick={() => (open = !open)}
-    >
-        <Icon name="more" />
-    </button>
-    {#if open}
-        <div class="absolute right-0 z-30 mt-1 min-w-52 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-xl" role="menu">
-            {#each items as item (item.label)}
-                <button
-                    role="menuitem"
-                    class="flex w-full items-center px-4 py-2.5 text-left text-[15px] hover:bg-surface-2 disabled:opacity-40 {item.danger ? 'text-bad' : ''}"
-                    disabled={item.disabled}
-                    onclick={() => {
-                        open = false;
-                        item.onclick();
-                    }}
-                >
-                                        {item.label}
-                </button>
-            {/each}
-        </div>
-    {/if}
-</div>
+<button
+    bind:this={button}
+    class="inline-flex h-8 w-8 items-center justify-center rounded-[5px] border border-line-strong text-muted hover:bg-surface-2 hover:text-fg"
+    aria-label={label}
+    title={label}
+    aria-haspopup="menu"
+    aria-expanded={open}
+    onclick={toggle}
+>
+    <Icon name="more" size={16} />
+</button>
+{#if open}
+    <div bind:this={list} class="fixed z-[70] overflow-hidden rounded-[6px] border border-line-strong bg-surface py-1 shadow-lg" style={position} role="menu">
+        {#if note}<p class="border-b border-line px-3 pt-1 pb-2 text-xs text-muted">{note}</p>{/if}
+        {#each items as item (item.label)}
+            <button
+                role="menuitem"
+                class="flex w-full items-center px-3 py-2 text-left text-[13px] hover:bg-surface-2 disabled:opacity-40 {item.danger ? 'text-bad' : ''}"
+                disabled={item.disabled}
+                onclick={() => {
+                    close();
+                    item.onclick();
+                }}
+            >
+                {item.label}
+            </button>
+        {/each}
+    </div>
+{/if}

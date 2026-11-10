@@ -56,7 +56,7 @@
         const [minX, minY, maxX, maxY] = b;
         const spanX = Math.max(maxX - minX, 1);
         const spanY = Math.max(maxY - minY, 1);
-        const scale = Math.min((width - 60) / spanX, (height - 60) / spanY);
+        const scale = Math.min((width - 160) / spanX, (height - 70) / spanY);
         return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, scale };
     }
 
@@ -87,7 +87,7 @@
         const y0 = v.cy - height / 2 / v.scale, y1 = v.cy + height / 2 / v.scale;
         ctx.strokeStyle = grid;
         ctx.lineWidth = 1;
-        ctx.font = '13px system-ui, sans-serif';
+        ctx.font = '11px ui-monospace, Menlo, Consolas, monospace';
         for (let gx = Math.ceil(x0 / step) * step; gx <= x1; gx += step) {
             const px = Math.round(sx(gx)) + 0.5;
             ctx.beginPath();

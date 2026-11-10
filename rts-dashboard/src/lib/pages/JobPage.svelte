@@ -4,10 +4,13 @@
     import PlotPanel, { type Trace } from '../components/PlotPanel.svelte';
     import Button from '../components/ui/Button.svelte';
     import Icon from '../components/ui/Icon.svelte';
+    import Panel from '../components/ui/Panel.svelte';
+    import Segmented from '../components/ui/Segmented.svelte';
+    import Tag from '../components/ui/Tag.svelte';
     import { confirm } from '../confirm.svelte';
-    import { fmtCount, fmtDateTime, fmtShortDuration, JOB_STATUS_LABEL, JOB_TYPE_LABEL, rtsColor } from '../format';
+    import { fmtCount, JOB_STATUS_LABEL, JOB_TYPE_LABEL, rtsColor } from '../format';
     import { live, type Columns } from '../live.svelte';
-    import { thin } from '../plotdata';
+    import { loadPref, savePref, thin } from '../plotdata';
     import { href, navigate } from '../router.svelte';
     import { store } from '../store.svelte';
     import { toast } from '../toast.svelte';
@@ -21,6 +24,9 @@
     let note = $state('');
     let busy = $state('');
     let detail = $state.raw<Columns | null>(null);
+    let mode = $state<'position' | 'polar'>(loadPref('rts-mode', 'position'));
+    $effect(() => savePref('rts-mode', mode));
+
     onMount(() => {
         api.job(jobId)
             .then((j) => ((job = j), (note = j.note)))
@@ -43,9 +49,9 @@
     let version = $derived((series?.version ?? 0) + (detail ? 1_000_000 : 0));
     let traces = $derived.by<Trace[]>(() => {
         void version;
-        const cols = detail ?? series?.cols;
-        if (!cols || !rts) return [];
-        return [{ label: rts.name, color, station: { x: rts.station_x, y: rts.station_y }, live: isLive, data: thin([{ cols, from: 0, to: cols.t.length }], 5000) }];
+        if (!rts || !series || (!detail && series.cols.t.length === 0)) return [];
+        const ranges = detail ? [{ cols: detail, from: 0, to: detail.t.length }] : series.whole();
+        return [{ label: rts.name, color, station: { x: rts.station_x, y: rts.station_y }, live: isLive, data: thin(ranges, 5000) }];
     });
 
     async function zoom(range: [number, number] | null) {
@@ -101,75 +107,77 @@
             toast.error((e as Error).message);
         }
     }
+
+    const pad = (v: number) => String(v).padStart(2, '0');
+    function stamp(epoch: number | null | undefined): string {
+        if (epoch == null) return '–';
+        const d = new Date(epoch * 1000);
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3, '0')}`;
+    }
+    function hms(seconds: number | null): string {
+        if (seconds == null) return '–';
+        const s = Math.round(seconds);
+        return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+    }
 </script>
 
-<a href={href(store.session?.id ?? null, 'data')} class="mb-4 inline-flex items-center gap-1 text-muted hover:text-fg"><Icon name="chevronLeft" size={18} /> Data</a>
+<a href={href(store.session?.id ?? null, 'data')} class="mb-3 inline-flex items-center gap-1 text-[13px] text-muted hover:text-fg"><Icon name="chevronLeft" size={15} /> Measurements</a>
 
 {#if error}
-    <p class="rounded-lg bg-bad-soft p-4 text-bad">{error}</p>
+    <p class="rounded-[5px] bg-bad-soft px-3 py-2 text-bad">{error}</p>
 {:else if job}
-    <div class="space-y-6">
-        <header class="flex items-start gap-3">
-            <span class="mt-1.5 h-9 w-1.5 shrink-0 rounded-full" style="background: {color}"></span>
-            <div>
-                <h1 class="text-2xl font-semibold">{rts?.name ?? 'Removed station'} · {JOB_TYPE_LABEL[job.type]}</h1>
-                <p class="num mt-1 text-muted">
-                    {fmtDateTime(job.started_at ?? job.created_at)}
-                    {#if measured}
-                        <span class="mx-1 text-faint">·</span>{fmtCount(job.count)} points
-                        {#if duration && duration >= 1}<span class="mx-1 text-faint">·</span>{fmtShortDuration(duration)}<span class="mx-1 text-faint">·</span>{((job.count - 1) / duration).toFixed(0)} Hz{/if}
-                    {/if}
-                </p>
-            </div>
-        </header>
+    <div class="space-y-3">
+        <div class="flex flex-wrap items-center gap-3">
+            <span class="h-6 w-1 rounded-sm" style="background: {color}"></span>
+            <h1 class="text-[17px] font-semibold">{rts?.name ?? 'Removed station'} · {JOB_TYPE_LABEL[job.type]}</h1>
+            <Tag tone={job.status === 'running' ? 'good' : job.status === 'failed' || job.status === 'lost' ? 'bad' : job.status === 'interrupted' ? 'warn' : 'neutral'} text={JOB_STATUS_LABEL[job.status]} />
+            <span class="ml-auto flex flex-wrap gap-2">
+                {#if active}<Button variant="stop" icon="stop" onclick={() => store.stopJob(job!)}>Stop</Button>{/if}
+                {#if measured && job.count > 0}
+                    <Button variant="primary" icon="download" busy={busy === 'corrected'} disabled={busy !== ''} onclick={() => get('corrected')}>Corrected CSV</Button>
+                    <Button icon="download" busy={busy === 'trajectory'} disabled={busy !== ''} onclick={() => get('trajectory')}>Trajectory (.traj)</Button>
+                    <Button icon="download" busy={busy === 'raw'} disabled={busy !== ''} onclick={() => get('raw')}>Raw CSV</Button>
+                {/if}
+            </span>
+        </div>
 
-        {#if job.status !== 'finished'}
-            <div class="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3 {job.status === 'running' ? 'bg-good-soft text-good' : job.status === 'failed' || job.status === 'lost' ? 'bg-bad-soft text-bad' : 'bg-surface-2'}">
-                <span class="font-semibold">{JOB_STATUS_LABEL[job.status]}</span>
-                {#if job.error}<span>{job.error}</span>{/if}
-                {#if active}<Button variant="stop" size="sm" class="ml-auto" onclick={() => store.stopJob(job!)}>Stop</Button>{/if}
-            </div>
+        {#if job.error}
+            <p class="rounded-[5px] border border-bad/40 bg-bad-soft px-3 py-2 text-[13px] text-bad">{job.error}</p>
         {/if}
 
-        {#if measured && job.count > 0}
-            <section class="card p-5">
-                <h2 class="mb-3 text-lg font-semibold">Download</h2>
-                <div class="grid gap-3 sm:grid-cols-3">
-                    <button class="rounded-xl border border-line p-4 text-left hover:bg-surface-2 disabled:opacity-50" disabled={busy !== ''} onclick={() => get('corrected')}>
-                        <span class="flex items-center gap-2 font-semibold"><Icon name="download" size={18} /> Corrected CSV</span>
-                        <span class="mt-1 block text-sm text-muted">Recommended. Synchronized timestamps, delays corrected.</span>
-                    </button>
-                    <button class="rounded-xl border border-line p-4 text-left hover:bg-surface-2 disabled:opacity-50" disabled={busy !== ''} onclick={() => get('trajectory')}>
-                        <span class="flex items-center gap-2 font-semibold"><Icon name="download" size={18} /> Trajectory</span>
-                        <span class="mt-1 block text-sm text-muted">Positions for trajectopy (.traj).</span>
-                    </button>
-                    <button class="rounded-xl border border-line p-4 text-left hover:bg-surface-2 disabled:opacity-50" disabled={busy !== ''} onclick={() => get('raw')}>
-                        <span class="flex items-center gap-2 font-semibold"><Icon name="download" size={18} /> Raw CSV</span>
-                        <span class="mt-1 block text-sm text-muted">As recorded by the instrument.</span>
-                    </button>
-                </div>
-                {#if busy}<p class="mt-3 text-sm text-muted">Preparing the file…</p>{/if}
-            </section>
-        {/if}
+        <Panel title="Details" flush>
+            <dl class="grid grid-cols-2 gap-px bg-line sm:grid-cols-4 lg:grid-cols-6 [&>div]:bg-surface [&>div]:px-3 [&>div]:py-2">
+                <div><dt class="label">First measurement</dt><dd class="num">{stamp(job.first_t)}</dd></div>
+                <div><dt class="label">Last measurement</dt><dd class="num">{stamp(job.last_t)}</dd></div>
+                <div><dt class="label">Duration</dt><dd class="num">{hms(duration)}</dd></div>
+                <div><dt class="label">Points</dt><dd class="num">{fmtCount(job.count)}</dd></div>
+                <div><dt class="label">Mean rate [Hz]</dt><dd class="num">{duration && duration > 1 ? ((job.count - 1) / duration).toFixed(2) : '–'}</dd></div>
+                <div><dt class="label">Created</dt><dd class="num">{stamp(job.created_at)}</dd></div>
+                <div><dt class="label">Station E / N / H [m]</dt><dd class="num">{rts ? `${rts.station_x.toFixed(3)} / ${rts.station_y.toFixed(3)} / ${rts.station_z.toFixed(3)}` : '–'}</dd></div>
+                <div><dt class="label">Port · baud</dt><dd class="num">{rts ? `${rts.port} · ${rts.baudrate}` : '–'}</dd></div>
+                <div><dt class="label">Delays int / ext [ms]</dt><dd class="num">{rts ? `${(rts.internal_delay * 1000).toFixed(2)} / ${(rts.external_delay * 1000).toFixed(2)}` : '–'}</dd></div>
+                <div><dt class="label">Worker</dt><dd class="num truncate">{job.worker_id ?? '–'}</dd></div>
+                <div class="col-span-2"><dt class="label">Job ID</dt><dd class="num truncate">{job.id}</dd></div>
+            </dl>
+        </Panel>
 
         {#if measured}
-            <PlotPanel {traces} {version} onzoom={zoom}>
+            <PlotPanel {traces} {version} {mode} onzoom={zoom} title={isLive ? 'Measurements (live)' : 'Measurements'}>
                 {#snippet controls()}
-                    <h2 class="mr-auto text-lg font-semibold">Measurements</h2>
-                    <span class="text-sm text-muted">{isLive ? 'Live' : 'Drag across the plot over time to zoom in'}</span>
+                    {#if !isLive}<span class="text-xs text-muted">Drag in a time plot to zoom to full resolution</span>{/if}
+                    <Segmented label="Values" bind:value={mode} options={[{ value: 'position', label: 'E/N/H' }, { value: 'polar', label: 'Hz/V/D' }]} />
                 {/snippet}
             </PlotPanel>
         {/if}
 
-        <section class="card p-5">
-            <label for="note" class="mb-2 block text-lg font-semibold">Note</label>
-            <textarea id="note" rows="2" bind:value={note} onblur={saveNote} placeholder="What was measured? (saved automatically)"></textarea>
-        </section>
+        <Panel title="Note">
+            <textarea rows="2" bind:value={note} onblur={saveNote} placeholder="What was measured? Saved when you leave the field."></textarea>
+        </Panel>
 
         {#if !active}
-            <div class="text-right"><Button variant="danger" icon="trash" onclick={remove}>Delete this measurement</Button></div>
+            <div class="text-right"><Button variant="danger" icon="trash" onclick={remove}>Delete measurement</Button></div>
         {/if}
     </div>
 {:else}
-    <div class="mt-16 flex justify-center"><span class="h-6 w-6 animate-spin rounded-full border-2 border-faint border-t-transparent"></span></div>
+    <div class="mt-16 flex justify-center"><span class="h-5 w-5 animate-spin rounded-full border-2 border-faint border-t-transparent"></span></div>
 {/if}

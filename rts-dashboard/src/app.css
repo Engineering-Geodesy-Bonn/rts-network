@@ -1,70 +1,85 @@
 @import 'tailwindcss';
 
 /*
- * Design rules: one quiet neutral palette, color only for status and station identity,
- * 16 px body text, generous spacing, one surface level (no cards inside cards).
+ * Instrument-panel style: dense but strictly ordered.
+ * - numbers in a monospaced face, right aligned, fixed decimals
+ * - small uppercase labels for columns and panel titles
+ * - panels with a header strip, thin rules, 6 px corners
+ * - color only for status and station identity
  */
 :root {
-    --bg: #f4f5f7;
+    --bg: #eceef1;
     --surface: #ffffff;
-    --surface-2: #f0f2f4;
-    --line: #e2e5e9;
-    --fg: #15191e;
-    --muted: #5e6874;
-    --faint: #8a939d;
-    --accent: #1f62d6;
+    --surface-2: #f5f6f8;
+    --line: #d8dce2;
+    --line-strong: #c3c9d1;
+    --fg: #14181d;
+    --muted: #5a6470;
+    --faint: #8c95a0;
+    --accent: #1d5fc9;
     --accent-fg: #ffffff;
-    --good: #18794e;
-    --warn: #a35a00;
-    --bad: #c4291c;
-    --good-soft: #e7f5ec;
-    --warn-soft: #fdf3e1;
-    --bad-soft: #fdecea;
-    --plot-grid: #eceef1;
-    --plot-axis: #6b7580;
+    --good: #137547;
+    --warn: #9a5800;
+    --bad: #c0261a;
+    --good-soft: #e3f3ea;
+    --warn-soft: #fbf0dc;
+    --bad-soft: #fbe6e3;
+    --bar: #1a1f26;
+    --bar-fg: #e9ecef;
+    --bar-muted: #98a2ad;
+    --plot-grid: #e8ebee;
+    --plot-axis: #66707b;
     color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme='light']) {
-        --bg: #0f1216;
-        --surface: #171b21;
-        --surface-2: #1f242b;
-        --line: #2a3038;
-        --fg: #e8ebef;
-        --muted: #9aa4af;
-        --faint: #6f7883;
+        --bg: #0d1014;
+        --surface: #151a20;
+        --surface-2: #1b2128;
+        --line: #283039;
+        --line-strong: #36404b;
+        --fg: #e6e9ed;
+        --muted: #98a2ad;
+        --faint: #6c7682;
         --accent: #5b9bff;
-        --accent-fg: #0f1216;
-        --good: #4cc27c;
-        --warn: #e0a339;
-        --bad: #f2695c;
-        --good-soft: #13281c;
-        --warn-soft: #2c2210;
-        --bad-soft: #321614;
-        --plot-grid: #232930;
+        --accent-fg: #0d1014;
+        --good: #49c07a;
+        --warn: #e2a33a;
+        --bad: #f1675a;
+        --good-soft: #112619;
+        --warn-soft: #2a200e;
+        --bad-soft: #2f1512;
+        --bar: #090b0e;
+        --bar-fg: #e6e9ed;
+        --bar-muted: #8a949f;
+        --plot-grid: #21282f;
         --plot-axis: #8d97a2;
         color-scheme: dark;
     }
 }
 
 :root[data-theme='dark'] {
-    --bg: #0f1216;
-    --surface: #171b21;
-    --surface-2: #1f242b;
-    --line: #2a3038;
-    --fg: #e8ebef;
-    --muted: #9aa4af;
-    --faint: #6f7883;
+    --bg: #0d1014;
+    --surface: #151a20;
+    --surface-2: #1b2128;
+    --line: #283039;
+    --line-strong: #36404b;
+    --fg: #e6e9ed;
+    --muted: #98a2ad;
+    --faint: #6c7682;
     --accent: #5b9bff;
-    --accent-fg: #0f1216;
-    --good: #4cc27c;
-    --warn: #e0a339;
-    --bad: #f2695c;
-    --good-soft: #13281c;
-    --warn-soft: #2c2210;
-    --bad-soft: #321614;
-    --plot-grid: #232930;
+    --accent-fg: #0d1014;
+    --good: #49c07a;
+    --warn: #e2a33a;
+    --bad: #f1675a;
+    --good-soft: #112619;
+    --warn-soft: #2a200e;
+    --bad-soft: #2f1512;
+    --bar: #090b0e;
+    --bar-fg: #e6e9ed;
+    --bar-muted: #8a949f;
+    --plot-grid: #21282f;
     --plot-axis: #8d97a2;
     color-scheme: dark;
 }
@@ -74,6 +89,7 @@
     --color-surface: var(--surface);
     --color-surface-2: var(--surface-2);
     --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
     --color-fg: var(--fg);
     --color-muted: var(--muted);
     --color-faint: var(--faint);
@@ -85,7 +101,11 @@
     --color-good-soft: var(--good-soft);
     --color-warn-soft: var(--warn-soft);
     --color-bad-soft: var(--bad-soft);
+    --color-bar: var(--bar);
+    --color-bar-fg: var(--bar-fg);
+    --color-bar-muted: var(--bar-muted);
     --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
 html,
@@ -98,8 +118,8 @@ body {
 body {
     margin: 0;
     font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.45;
     background: var(--bg);
     color: var(--fg);
     min-height: 100dvh;
@@ -110,13 +130,26 @@ body {
     min-height: 100dvh;
 }
 
+/* Numbers: monospaced, tabular */
 .num {
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+    font-size: 0.93em;
+    letter-spacing: -0.01em;
+}
+
+/* Small uppercase label (column headers, panel titles, field labels) */
+.label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
 }
 
 :focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    outline-offset: 1px;
 }
 
 input:not([type='checkbox']):not([type='radio']),
@@ -124,11 +157,15 @@ select,
 textarea {
     background: var(--surface);
     color: var(--fg);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 0.55rem 0.7rem;
-    font-size: 1rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    padding: 0.4rem 0.55rem;
+    font-size: 14px;
     width: 100%;
+}
+
+input[type='number'] {
+    font-family: var(--font-mono);
 }
 
 input:focus,
@@ -139,19 +176,57 @@ textarea:focus {
 }
 
 input[type='checkbox'] {
-    width: 1.15rem;
-    height: 1.15rem;
+    width: 1rem;
+    height: 1rem;
     accent-color: var(--accent);
 }
 
-/* Section card: the only surface level */
-.card {
+/* Panel: bordered surface with an optional header strip */
+.panel {
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 14px;
+    border-radius: 6px;
 }
 
-/* uPlot: legend is not used (stations are identified by their color in the list) */
+/* Data tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+    background: var(--surface-2);
+}
+
+.data-table td {
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.data-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.data-table .r {
+    text-align: right;
+}
+
+.data-table tbody tr.link:hover td {
+    background: var(--surface-2);
+    cursor: pointer;
+}
+
 .u-select {
     background: color-mix(in srgb, var(--accent) 14%, transparent);
 }

@@ -6,6 +6,7 @@
     import DataPage from './lib/pages/DataPage.svelte';
     import JobPage from './lib/pages/JobPage.svelte';
     import MeasurePage from './lib/pages/MeasurePage.svelte';
+    import PlotPage from './lib/pages/PlotPage.svelte';
     import SessionsPage from './lib/pages/SessionsPage.svelte';
     import SettingsPage from './lib/pages/SettingsPage.svelte';
     import SetupPage from './lib/pages/SetupPage.svelte';
@@ -31,6 +32,8 @@
     <Shell page={route.page}>
         {#if route.page === 'measure'}
             <MeasurePage />
+        {:else if route.page === 'plot'}
+            <PlotPage />
         {:else if route.page === 'data'}
             {#if route.id}
                 {#key route.id}<JobPage jobId={route.id} />{/key}

@@ -136,8 +136,8 @@
 </script>
 
 <Modal bind:open title={rts ? `Edit ${rts.name}` : 'Add total station'} wide>
-    <div class="space-y-7">
-        <section class="grid gap-4 sm:grid-cols-2">
+    <div class="space-y-5">
+        <section class="grid gap-3 sm:grid-cols-2">
             <Field label="Name"><input bind:value={form.name} maxlength="100" /></Field>
             <Field label="Raspberry Pi" hint={store.devices.length === 0 ? 'Start the worker on the Pi; it appears here automatically.' : ''}>
                 <select bind:value={form.device_id}>
@@ -155,8 +155,8 @@
         </section>
 
         <section>
-            <h3 class="mb-3 font-semibold">Station position</h3>
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <h3 class="label mb-2 border-b border-line pb-1">Station position</h3>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Field label="Easting" unit="m"><input type="number" step="any" bind:value={form.station_x} /></Field>
                 <Field label="Northing" unit="m"><input type="number" step="any" bind:value={form.station_y} /></Field>
                 <Field label="Height" unit="m"><input type="number" step="any" bind:value={form.station_z} /></Field>
@@ -165,8 +165,8 @@
         </section>
 
         <section>
-            <h3 class="mb-3 font-semibold">Timing</h3>
-            <div class="grid gap-4 sm:grid-cols-3">
+            <h3 class="label mb-2 border-b border-line pb-1">Timing</h3>
+            <div class="grid gap-3 sm:grid-cols-3">
                 <Field label="Instrument model">
                     <select value={model} onchange={(e) => {
                         const v = (e.currentTarget as HTMLSelectElement).value;
@@ -182,20 +182,20 @@
         </section>
 
         <details class="group">
-            <summary class="cursor-pointer font-semibold text-muted group-open:text-fg">Tracking settings</summary>
-            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <summary class="label cursor-pointer border-b border-line pb-1 group-open:!text-fg">Tracking settings</summary>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
                 <Field label="Prism"><select bind:value={form.tracking.prism_type}>{#each Object.entries(PRISM_TYPES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
                 <Field label="Distance mode"><select bind:value={form.tracking.edm_measurement_mode}>{#each Object.entries(EDM_MEASUREMENT_MODES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
                 <Field label="Measurement mode"><select bind:value={form.tracking.tmc_measurement_mode}>{#each Object.entries(TMC_MEASUREMENT_MODES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
                 <Field label="Inclination"><select bind:value={form.tracking.tmc_inclination_mode}>{#each Object.entries(TMC_INCLINATION_MODES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
                 <Field label="Fine adjust mode"><select bind:value={form.tracking.fine_adjust_position_mode}>{#each Object.entries(FINE_ADJUST_POSITION_MODES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3">
                     <Field label="Search Hz" unit="gon"><input type="number" step="any" bind:value={form.tracking.fine_adjust_horizontal_search_range} /></Field>
                     <Field label="Search V" unit="gon"><input type="number" step="any" bind:value={form.tracking.fine_adjust_vertical_search_range} /></Field>
                 </div>
                 <label class="flex items-center gap-2 sm:col-span-2"><input type="checkbox" bind:checked={form.tracking.power_search as boolean} /> Power search when the prism is lost</label>
                 {#if form.tracking.power_search}
-                    <div class="grid grid-cols-2 gap-4 sm:col-span-2 sm:grid-cols-4">
+                    <div class="grid grid-cols-2 gap-3 sm:col-span-2 sm:grid-cols-4">
                         <Field label="Min range" unit="m"><input type="number" bind:value={form.tracking.power_search_min_range} /></Field>
                         <Field label="Max range" unit="m"><input type="number" bind:value={form.tracking.power_search_max_range} /></Field>
                         <Field label="Area center Hz" unit="gon"><input type="number" step="any" bind:value={form.tracking.power_search_area_dcenterhz} /></Field>
@@ -209,8 +209,8 @@
         </details>
 
         <details class="group">
-            <summary class="cursor-pointer font-semibold text-muted group-open:text-fg">Accuracy and serial details</summary>
-            <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <summary class="label cursor-pointer border-b border-line pb-1 group-open:!text-fg">Accuracy and serial details</summary>
+            <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <Field label="Distance σ" unit="mm"><input type="number" step="any" bind:value={form.distance_std} /></Field>
                 <Field label="Distance" unit="ppm"><input type="number" step="any" bind:value={form.distance_ppm} /></Field>
                 <Field label="Angle σ" unit="mgon"><input type="number" step="any" bind:value={form.angle_std} /></Field>

@@ -155,6 +155,8 @@ export interface StationHealth {
     rate_hz: number | null;
     last_data_age: number | null;
     battery: number | null;
+    timing_jitter: number | null;
+    clock_drift_ppm: number | null;
 }
 
 export interface DeviceHealth {
@@ -168,6 +170,9 @@ export interface DeviceHealth {
     cpu_temperature: number | null;
     disk_free: number | null;
     unsent: number;
+    clock_offset: number | null;
+    workers: number;
+    version: string | null;
 }
 
 export interface Health {

@@ -13,6 +13,7 @@ import type { Job, LiveMessage, MeasurementSeries } from './types';
 const LIVE_CAPACITY = 25 * 60 * 20; // 20 min at 25 Hz in memory per running job
 const OVERVIEW_POINTS = 6000; // points of a whole-job overview
 const MAX_SERIES = 16;
+const OVERVIEW_REFRESH = 20000; // ms between refreshes of the whole-job overview of a running job
 
 export interface Columns {
     seq: number[];
@@ -57,6 +58,24 @@ function merge(a: Columns, b: Columns): Columns {
     return out;
 }
 
+/** Index of the first element of the sorted array that is greater than value */
+function firstAfter(sorted: number[], value: number): number {
+    let lo = 0;
+    let hi = sorted.length;
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (sorted[mid] <= value) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+}
+
+export interface Range {
+    cols: Columns;
+    from: number;
+    to: number;
+}
+
 export class JobSeries {
     jobId: string;
     rtsId: string;
@@ -73,6 +92,12 @@ export class JobSeries {
     lastUsed = Date.now();
     private filling = false;
     private pendingGap: [number, number | undefined] | null = null;
+    // A running job keeps only its latest LIVE_CAPACITY points in memory. For the whole job,
+    // an overview (every n-th point) is loaded from the server and the live points after it
+    // are appended.
+    private overview: Columns | null = null;
+    private overviewAt = 0;
+    private overviewLoading = false;
 
     constructor(job: Job, live: boolean) {
         this.jobId = job.id;
@@ -115,6 +140,7 @@ export class JobSeries {
                 this.stride = 1;
             } else {
                 const data = await api.measurements(this.jobId, { max_points: OVERVIEW_POINTS });
+                this.overview = null; // the whole job is in cols now
                 this.cols = fromSeries(data);
                 this.total = data.total;
                 this.stride = data.stride;
@@ -125,6 +151,34 @@ export class JobSeries {
             this.error = (e as Error).message;
         } finally {
             this.loading = false;
+        }
+    }
+
+    /** Ranges of columns that together cover the whole job, from its first measurement on. */
+    whole(): Range[] {
+        const n = this.cols.t.length;
+        if (!this.live) return [{ cols: this.cols, from: 0, to: n }];
+        if (!this.overviewLoading && Date.now() - this.overviewAt > OVERVIEW_REFRESH) void this.loadOverview();
+        const overview = this.overview;
+        if (!overview || overview.seq.length === 0) return [{ cols: this.cols, from: 0, to: n }];
+        const lastSeq = overview.seq[overview.seq.length - 1];
+        return [
+            { cols: overview, from: 0, to: overview.seq.length },
+            { cols: this.cols, from: firstAfter(this.cols.seq, lastSeq), to: n },
+        ];
+    }
+
+    private async loadOverview(): Promise<void> {
+        this.overviewLoading = true;
+        this.overviewAt = Date.now();
+        await Promise.resolve(); // may be triggered while a component derives its state
+        try {
+            this.overview = fromSeries(await api.measurements(this.jobId, { max_points: OVERVIEW_POINTS }));
+            this.bump();
+        } catch {
+            this.overviewAt = Date.now() - OVERVIEW_REFRESH + 3000; // retry in 3 s
+        } finally {
+            this.overviewLoading = false;
         }
     }
 
@@ -179,6 +233,12 @@ export class JobSeries {
             else hi = mid;
         }
         return lo;
+    }
+
+    /** The last `seconds` of the job (up to `end`), or the whole job if seconds is 0. */
+    window(seconds: number, end: number): Range[] {
+        if (seconds <= 0) return this.whole();
+        return [{ cols: this.cols, from: this.indexAt(end - seconds - 1), to: this.cols.t.length }];
     }
 }
 
