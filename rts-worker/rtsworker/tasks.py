@@ -17,7 +17,7 @@ from rtsworker.client import ApiClient
 from rtsworker.dtos import Job, JobType, RTSConfig, TargetPosition
 from rtsworker.instrument import open_instrument
 from rtsworker.outbox import Outbox
-from rtsworker.pygeocom import Station, TMCInclinationMode, TMCMeasurementMode
+from rtsworker.pygeocom import TMCInclinationMode, TMCMeasurementMode
 from rtsworker.state import STATE
 
 logger = logging.getLogger(__name__)
@@ -47,15 +47,30 @@ class MeasurementSink:
             response.distance, response.h_angle, response.v_angle,
         ]
         self.outbox.put(self.job_id, self.seq, row)  # first: a logged row is always in the outbox
-        self._log.write(
-            f"{response.resp_time},{response.time},{response.h_angle},{response.v_angle},{response.distance},"
-            f"{response.resp_len},{response.geocom_return_code},{response.rpc_return_code},{request_time or ''},{self.seq}\n"
-        )
+        if self._log is not None:
+            try:
+                self._log.write(
+                    f"{response.resp_time},{response.time},{response.h_angle},{response.v_angle},{response.distance},"
+                    f"{response.resp_len},{response.geocom_return_code},{response.rpc_return_code},{request_time or ''},{self.seq}\n"
+                )
+            except OSError as e:
+                # e.g. disk full: the outbox keeps the measurements, the CSV copy is given up
+                logger.error("CSV log %s cannot be written (%r), continuing without it", self.log_path, e)
+                STATE.error(f"CSV log: {e!r}")
+                self._close_log()
         self.seq += 1
         STATE.measurement_logged()
 
+    def _close_log(self) -> None:
+        log, self._log = self._log, None
+        if log is not None:
+            try:
+                log.close()
+            except OSError:
+                pass
+
     def close(self) -> None:
-        self._log.close()
+        self._close_log()
 
 
 @dataclass
@@ -160,19 +175,20 @@ def change_face(ctx: JobContext) -> None:
         instrument.change_face()
 
 
-def angles_from_position(station: Station, target: TargetPosition) -> tuple[float, float]:
-    dx, dy, dz = target.x - station.e0, target.y - station.n0, target.z - station.h0
+def angles_from_position(rts: RTSConfig, target: TargetPosition) -> tuple[float, float]:
+    """Instrument angles towards a target in the coordinate frame of the API (station and
+    orientation of the RTS, as used to compute positions from the measurements)."""
+    dx, dy, dz = target.x - rts.station_x, target.y - rts.station_y, target.z - rts.station_z
     horizontal = math.sqrt(dx**2 + dy**2)
-    return math.atan2(dx, dy), math.pi / 2 - math.atan2(dz, horizontal)
+    return (math.atan2(dx, dy) - rts.orientation) % (2 * math.pi), math.pi / 2 - math.atan2(dz, horizontal)
 
 
 def turn_to_target(ctx: JobContext) -> None:
     target = ctx.client.target()
     if target is None:
         raise ValueError("No target position available (no RTS is tracking)")
+    h_angle, v_angle = angles_from_position(ctx.rts, target)
     with open_instrument(ctx.rts) as instrument:
-        station = instrument.get_station()
-        h_angle, v_angle = angles_from_position(station, target)
         instrument.position(horizontal=h_angle, vertical=v_angle)
 
 
