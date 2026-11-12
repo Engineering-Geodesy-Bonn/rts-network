@@ -215,7 +215,7 @@ def collect_system(measurement_dir: str) -> dict:
         disk_total = disk_free = None
     try:
         load_average = list(os.getloadavg())
-    except OSError:
+    except (OSError, AttributeError):  # AttributeError: not available on Windows
         load_average = []
 
     return {
@@ -251,6 +251,7 @@ class HeartbeatSender:
         self.client = client
         self.measurement_dir = measurement_dir
         self._samples: list[dict] = []
+        self._last_error: str | None = None
         self._thread = threading.Thread(target=self._run, daemon=True, name="heartbeat")
 
     def start(self) -> None:
@@ -296,6 +297,12 @@ class HeartbeatSender:
             started = time.time()
             try:
                 self.send()
+                if self._last_error is not None:
+                    logger.info("Heartbeat works again")
+                    self._last_error = None
             except Exception as e:
-                logger.debug("Heartbeat failed: %s", e)
+                # Without heartbeats the dashboard shows the device as offline: say why, once per cause
+                if repr(e) != self._last_error:
+                    logger.warning("Heartbeat failed: %r", e)
+                    self._last_error = repr(e)
             time.sleep(max(0.1, HEARTBEAT_INTERVAL - (time.time() - started)))
