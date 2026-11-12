@@ -1,5 +1,8 @@
+import math
 import os
 import queue
+import time
+from datetime import datetime, timezone
 import struct
 import threading
 import asyncio
@@ -47,18 +50,43 @@ def parse_ubx_bytes(data):
     # Die ersten 23 Bytes der Payload entpacken
     unpacked = struct.unpack(unpack_format, payload[:23])
     
-    return {"itow": unpacked[4], "ecefX": unpacked[5] + unpacked[8] / 100, "ecefY": unpacked[6] + unpacked[9] / 100, "ecefZ": unpacked[7] + unpacked[10] / 100}
+    # ecefX/Y/Z in cm, the high precision parts in 0.1 mm: converted to m (EPSG:4978)
+    return {
+        "itow": unpacked[4],
+        "ecefX": (unpacked[5] + unpacked[8] / 100) / 100,
+        "ecefY": (unpacked[6] + unpacked[9] / 100) / 100,
+        "ecefZ": (unpacked[7] + unpacked[10] / 100) / 100,
+    }
+
+
+def ned_to_ecef(lat_deg: float, lon_deg: float, v_n: float, v_e: float, v_d: float) -> tuple[float, float, float]:
+    """Rotates a velocity from the local north/east/down frame into ECEF."""
+    lat, lon = math.radians(lat_deg), math.radians(lon_deg)
+    sin_lat, cos_lat, sin_lon, cos_lon = math.sin(lat), math.cos(lat), math.sin(lon), math.cos(lon)
+    return (
+        -sin_lat * cos_lon * v_n - sin_lon * v_e - cos_lat * cos_lon * v_d,
+        -sin_lat * sin_lon * v_n + cos_lon * v_e - cos_lat * sin_lon * v_d,
+        cos_lat * v_n - sin_lat * v_d,
+    )
+
+
+def utc_timestamp(message) -> float | None:
+    """Unix time of a NAV-PVT epoch, None while the receiver has no valid UTC date and time."""
+    if not (message.validDate and message.validTime and message.fullyResolved):
+        return None
+    t = datetime(message.year, message.month, message.day, message.hour, message.min, message.second, tzinfo=timezone.utc)
+    return t.timestamp() + message.nano * 1e-9  # nano may be negative
 
 
 def combine_to_dto(pvt_data: dict, hp_data: dict) -> AddExternalSensorMeasurementRequest:
     return AddExternalSensorMeasurementRequest(
-        t=pvt_data["itow"] / 1000.0,
+        t=pvt_data["t"],
         x=hp_data["ecefX"],
         y=hp_data["ecefY"],
         z=hp_data["ecefZ"],
-        vx=pvt_data["velN"],
-        vy=pvt_data["velE"],
-        vz=pvt_data["velD"],
+        vx=pvt_data["vx"],
+        vy=pvt_data["vy"],
+        vz=pvt_data["vz"],
         epsg=4978
     )
 
@@ -143,15 +171,14 @@ def post_ublox_positions():
 
                 itow = None
                 if message.identity == 'NAV-PVT':
+                    t = utc_timestamp(message)
+                    if t is None:
+                        continue  # no valid UTC time yet: positions could not be synchronized
                     itow = message.iTOW
                     if itow not in epoch_data:
                         epoch_data[itow] = {}
-                    epoch_data[itow]["PVT"] = {
-                        "itow": message.iTOW,
-                        "velN": message.velN / 1000.0,
-                        "velE": message.velE / 1000.0,
-                        "velD": message.velD / 1000.0,
-                    }
+                    vx, vy, vz = ned_to_ecef(message.lat, message.lon, message.velN / 1000.0, message.velE / 1000.0, message.velD / 1000.0)
+                    epoch_data[itow]["PVT"] = {"itow": message.iTOW, "t": t, "vx": vx, "vy": vy, "vz": vz}
                 elif message.identity == 'NAV-HPPOSECEF':
                     itow = message.iTOW
                     if itow not in epoch_data:
@@ -164,6 +191,9 @@ def post_ublox_positions():
                     position = combine_to_dto(pvt_data, hp_data)
                     measurement_queue.put(position.model_dump())
                     epoch_data.pop(itow, None)
+                # epochs of which only one message arrived are never completed
+                for old in [k for k in epoch_data if itow is not None and k < itow]:
+                    del epoch_data[old]
 
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received. Shutting down...")
@@ -172,13 +202,16 @@ def post_ublox_positions():
     except Exception as e:
         print(f"Error in main loop: {e}")
     finally:
-        print("Signaling sender thread to shut down...")
-        shutdown_event.set()
-
-        # Wait for the queue to be empty
+        # Give the sender a few seconds to drain the queue (it stops sending once shutdown is set)
+        deadline = time.time() + 5.0
         if not measurement_queue.empty():
             print(f"Waiting for measurement queue to drain ({measurement_queue.qsize()} items left)...")
-            measurement_queue.join()
+        while not measurement_queue.empty() and time.time() < deadline and sender_thread.is_alive():
+            time.sleep(0.1)
+        if not measurement_queue.empty():
+            print(f"{measurement_queue.qsize()} measurements were not sent.")
+        print("Signaling sender thread to shut down...")
+        shutdown_event.set()
 
         sender_thread.join(timeout=10.0)  # Wait for thread to exit
         if sender_thread.is_alive():
