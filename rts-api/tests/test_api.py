@@ -312,3 +312,58 @@ def test_internal_delay_needs_a_circle(client, setup):
     r = client.post(f"/jobs/{job_id}/internal-delay")
     assert r.status_code == 400 and "circle" in r.json()["message"]
 
+
+def test_late_batch_after_session_delete_is_rejected(client, setup):
+    job_id = start_tracking(client, setup["rts"]["id"])
+    client.post("/worker/measurements", json={"job_id": job_id, "rows": rows(0, 5)})
+    client.post(f"/worker/jobs/{job_id}/complete?worker_id=w1", json={"status": "finished"})
+    assert client.delete(f"/sessions/{setup['session']['id']}").status_code == 204
+    # a new job may get the number of the deleted one
+    session = client.post("/sessions", json={"name": "B"}).json()
+    rts = client.post("/rts", json={"session_id": session["id"], "device_id": setup["device"]["id"], "name": "TS60"}).json()
+    other = client.post("/jobs", json={"rts_id": rts["id"], "type": "track_prism"}).json()
+    r = client.post("/worker/measurements", json={"job_id": job_id, "rows": rows(5, 5)})
+    assert r.status_code == 200 and r.json()["rejected"] == "unknown_job"
+    assert client.get(f"/jobs/{other['id']}").json()["count"] == 0
+
+
+def test_claim_retry_returns_the_same_job(client, setup):
+    job = client.post("/jobs", json={"rts_id": setup["rts"]["id"], "type": "track_prism"}).json()
+    first = client.post("/worker/claim", json={"worker_id": "w1", "hostname": "pi-1"}).json()
+    # the response was lost: the worker asks again
+    again = client.post("/worker/claim", json={"worker_id": "w1", "hostname": "pi-1"})
+    assert again.status_code == 200 and again.json()["job"]["id"] == first["job"]["id"] == job["id"]
+    # another worker does not get it
+    assert client.post("/worker/claim", json={"worker_id": "w2", "hostname": "pi-1"}).status_code == 204
+
+
+def test_complete_requires_the_owner(client, setup):
+    pending = client.post("/jobs", json={"rts_id": setup["rts"]["id"], "type": "track_prism"}).json()
+    r = client.post(f"/worker/jobs/{pending['id']}/complete?worker_id=nobody", json={"status": "finished"})
+    assert r.json()["status"] == "pending"
+    claimed = client.post("/worker/claim", json={"worker_id": "w1", "hostname": "pi-1"}).json()["job"]["id"]
+    assert client.post(f"/worker/jobs/{claimed}/complete?worker_id=w2", json={"status": "finished"}).json()["status"] == "running"
+    assert client.post(f"/worker/jobs/{claimed}/complete?worker_id=w1", json={"status": "finished"}).json()["status"] == "finished"
+
+
+def test_infinite_seq_is_dropped_not_fatal(client, setup):
+    job_id = start_tracking(client, setup["rts"]["id"])
+    bad = rows(0, 2)
+    bad[0][0] = float("inf")
+    body = __import__("json").dumps({"job_id": job_id, "rows": bad})
+    r = client.post("/worker/measurements", content=body, headers={"Content-Type": "application/json"})
+    assert r.status_code == 200 and r.json()["inserted"] == 1
+
+
+def test_job_pages_with_equal_created_at(client, setup):
+    ids = {client.post("/jobs", json={"rts_id": setup["rts"]["id"], "type": "test_connection"}).json()["id"] for _ in range(5)}
+    client.app.state.core.db.execute("UPDATE jobs SET created_at = 1000.0")
+    seen, before, before_no = [], None, None
+    while True:
+        params = {"limit": 2, **({"before": before, "before_no": before_no} if before is not None else {})}
+        page = client.get("/jobs", params=params).json()
+        seen += [j["id"] for j in page["items"]]
+        if page["next_before"] is None:
+            break
+        before, before_no = page["next_before"], page["next_before_no"]
+    assert len(seen) == 5 and set(seen) == ids

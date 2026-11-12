@@ -39,7 +39,7 @@ def parse_row(row: list) -> tuple | None:
         tr = float(row[3]) if row[3] is not None else None
         length, grc, rrc = int(row[4]), int(row[5]), int(row[6])
         d, hz, v = float(row[7]), float(row[8]), float(row[9])
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):  # OverflowError: int(Infinity)
         return None
     if seq < 0 or not all(math.isfinite(x) for x in (t, ts, d, hz, v)):
         return None
@@ -56,6 +56,9 @@ class Ingest:
 
     def forget(self, job_id: str) -> None:
         self._jobs.pop(job_id, None)
+
+    def cached(self, job_id: str) -> JobInfo | None:
+        return self._jobs.get(job_id)
 
     def job_info_sync(self, job_id: str) -> JobInfo | None:
         info = self._jobs.get(job_id)
@@ -79,8 +82,15 @@ class Ingest:
         return await asyncio.to_thread(self.job_info_sync, job_id)
 
     def _writer(self, info: JobInfo, rows: list[tuple]):
-        def write(conn: sqlite3.Connection) -> tuple[int, int, int]:
-            prev_max = conn.execute("SELECT max_seq FROM jobs WHERE no = ?", (info.no,)).fetchone()[0]
+        def write(conn: sqlite3.Connection) -> tuple[int, int, int] | None:
+            # The cached job may have been deleted since (e.g. with its session) and its number
+            # reused by a new job, so the id is checked in the same transaction as the insert.
+            row = conn.execute(
+                "SELECT max_seq FROM jobs WHERE no = ? AND id = ? AND deleted = 0", (info.no, info.id)
+            ).fetchone()
+            if row is None:
+                return None
+            prev_max = row[0]
             before = conn.total_changes
             conn.executemany(
                 "INSERT OR IGNORE INTO measurements (job_no, seq, t, ts, tr, len, grc, rrc, d, hz, v) "
@@ -116,7 +126,11 @@ class Ingest:
             return m.IngestResult(job_id=job_id, acked_seq=acked, inserted=0), info, [], 0
 
         rows = sorted({r[0]: r for r in rows}.values(), key=lambda r: r[0])  # unique seq
-        inserted, prev_max, total = await asyncio.wrap_future(self.db.submit(self._writer(info, rows)))
+        written = await asyncio.wrap_future(self.db.submit(self._writer(info, rows)))
+        if written is None:
+            self.forget(job_id)
+            return m.IngestResult(job_id=job_id, acked_seq=acked, inserted=0, rejected="unknown_job"), None, [], 0
+        inserted, prev_max, total = written
         self.stats["batches"] += 1
         self.stats["inserted"] += inserted
         self.stats["duplicates"] += len(rows) - inserted
@@ -128,5 +142,5 @@ def _is_int_like(row) -> bool:
     try:
         int(row[0])
         return True
-    except (TypeError, ValueError, IndexError, KeyError):
+    except (TypeError, ValueError, OverflowError, IndexError, KeyError):
         return False

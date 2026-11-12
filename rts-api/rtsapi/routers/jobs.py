@@ -25,10 +25,11 @@ def list_jobs(
     type: list[m.JobType] = Query(default=[]),
     with_measurements: bool = False,
     before: float | None = Query(default=None, description="created_at of the last job of the previous page"),
+    before_no: int | None = Query(default=None, description="next_before_no of the previous page (tie breaker)"),
     limit: int = Query(default=50, ge=1, le=500),
     core: Core = Depends(get_core),
 ) -> m.JobPage:
-    return repo.list_jobs(core.db, session_id, rts_id, status, type, with_measurements, before, limit)
+    return repo.list_jobs(core.db, session_id, rts_id, status, type, with_measurements, before, limit, before_no)
 
 
 @router.post("/jobs", response_model=m.Job, summary="Queue a job for an RTS.")

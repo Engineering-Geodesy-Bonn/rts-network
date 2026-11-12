@@ -132,7 +132,7 @@ class Core:
 
     def _job_changed(self, job: m.Job) -> None:
         if job.status == m.JobStatus.RUNNING:
-            info = self.ingest._jobs.get(job.id)
+            info = self.ingest.cached(job.id)
             self.live.start(job.id, job.rts_id, info.session_id if info else self._session_of(job.rts_id))
         elif not job.active:
             self.live.end(job.id)

@@ -90,7 +90,12 @@ class LiveStore:
         total_count: int,
     ) -> list[LivePoint]:
         """rows: [seq, t, ts, tr, len, grc, rrc, d, hz, v], new measurements in seq order."""
-        job = self._job(job_id, rts_id, session_id)
+        job = self.jobs.get(job_id)
+        if job is None:
+            # Late measurements of a job that is not running (worker backlog after its end or
+            # after a restart): shown, but not current, and removed after a while.
+            job = self._job(job_id, rts_id, session_id)
+            self.end(job_id)
         added = []
         for seq, t, ts, _tr, _len, grc, rrc, d, hz, v in rows:
             x, y, z = polar_to_xyz(station, d, hz, v)
@@ -113,7 +118,7 @@ class LiveStore:
     def latest(self) -> tuple[LiveJob, LivePoint] | None:
         best = None
         for job in self.jobs.values():
-            if job.points and (best is None or job.points[-1].t > best[1].t):
+            if job.active and job.points and (best is None or job.points[-1].t > best[1].t):
                 best = (job, job.points[-1])
         return best
 

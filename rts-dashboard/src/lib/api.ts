@@ -126,6 +126,7 @@ export const api = {
         type?: JobType[];
         with_measurements?: boolean;
         before?: number | null;
+        before_no?: number | null;
         limit?: number;
     }) =>
         request<JobPage>(
@@ -136,6 +137,7 @@ export const api = {
                 type: params.type,
                 with_measurements: params.with_measurements || undefined,
                 before: params.before,
+                before_no: params.before_no,
                 limit: params.limit,
             })}`,
         ),

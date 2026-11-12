@@ -282,6 +282,7 @@ def list_jobs(
     with_measurements: bool = False,
     before: float | None = None,
     limit: int = 50,
+    before_no: int | None = None,
 ) -> m.JobPage:
     sql = "SELECT j.* FROM jobs j JOIN rts r ON r.id = j.rts_id WHERE j.deleted = 0"
     params: list = []
@@ -300,14 +301,22 @@ def list_jobs(
     if with_measurements:
         sql += " AND j.count > 0"
     if before is not None:
-        sql += " AND j.created_at < ?"
-        params.append(before)
-    sql += " ORDER BY j.created_at DESC LIMIT ?"
+        if before_no is None:
+            sql += " AND j.created_at < ?"
+            params.append(before)
+        else:  # keyset on (created_at, no): jobs with the same created_at are not skipped
+            sql += " AND (j.created_at < ? OR (j.created_at = ? AND j.no < ?))"
+            params += [before, before, before_no]
+    sql += " ORDER BY j.created_at DESC, j.no DESC LIMIT ?"
     params.append(limit + 1)
     rows = db.query(sql, tuple(params))
     items = [job_from_row(r) for r in rows[:limit]]
-    next_before = items[-1].created_at if len(rows) > limit else None
-    return m.JobPage(items=items, next_before=next_before)
+    more = len(rows) > limit
+    return m.JobPage(
+        items=items,
+        next_before=items[-1].created_at if more else None,
+        next_before_no=rows[limit - 1]["no"] if more else None,
+    )
 
 
 def active_jobs(db: Database) -> list[m.Job]:

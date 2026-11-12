@@ -35,7 +35,10 @@ def connect(path: str, readonly: bool = False) -> sqlite3.Connection:
     conn.execute("PRAGMA busy_timeout=30000")
     if not readonly:
         conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
+        # FULL: a commit is on disk before the measurements are acknowledged to the worker
+        # (with NORMAL the last transactions can be lost on power loss). Writes are batched,
+        # so this costs one fsync per batch.
+        conn.execute("PRAGMA synchronous=FULL")
     conn.execute("PRAGMA temp_store=MEMORY")
     conn.execute("PRAGMA cache_size=-32000")  # 32 MB
     return conn

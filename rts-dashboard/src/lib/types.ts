@@ -121,6 +121,7 @@ export interface Job {
 export interface JobPage {
     items: Job[];
     next_before: number | null;
+    next_before_no: number | null;
 }
 
 export interface MeasurementSeries {

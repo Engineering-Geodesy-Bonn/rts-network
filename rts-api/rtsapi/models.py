@@ -225,7 +225,8 @@ class Job(BaseModel):
 
 class JobPage(BaseModel):
     items: list[Job]
-    next_before: float | None  # pass as ?before= to load older jobs
+    next_before: float | None  # pass as ?before= (and next_before_no as ?before_no=) to load older jobs
+    next_before_no: int | None = None
 
 
 class MeasurementSeries(BaseModel):

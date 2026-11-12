@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from rtsapi import models as m
 from rtsapi import repo
 from rtsapi.core import Core
+from rtsapi.errors import Conflict
 from rtsapi.exports import job_exports
 from rtsapi.routers import get_core
 
@@ -43,8 +44,6 @@ def update_session(session_id: str, data: m.SessionUpdate, core: Core = Depends(
 def delete_session(session_id: str, core: Core = Depends(get_core)) -> None:
     active = [j for j in repo.active_jobs(core.db) if j.rts_id in {r.id for r in repo.list_rts(core.db, session_id, True)}]
     if active:
-        from rtsapi.errors import Conflict
-
         raise Conflict(f"{len(active)} job(s) of this session are still active, stop them first")
     repo.delete_session(core.db, session_id)
     core.hub.changed("session", session_id)
@@ -60,9 +59,11 @@ def export_session(session_id: str, core: Core = Depends(get_core)) -> Streaming
     rts_by_id = {r.id: r for r in repo.list_rts(core.db, session_id, include_deleted=True)}
     buffer = SpooledTemporaryFile(max_size=64 * 1024 * 1024)
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        before = None
+        before, before_no = None, None
         while True:
-            page = repo.list_jobs(core.db, session_id=session_id, with_measurements=True, before=before, limit=200)
+            page = repo.list_jobs(
+                core.db, session_id=session_id, with_measurements=True, before=before, before_no=before_no, limit=200
+            )
             for job in page.items:
                 if job.type not in m.MEASURING_JOB_TYPES:
                     continue
@@ -72,7 +73,7 @@ def export_session(session_id: str, core: Core = Depends(get_core)) -> Streaming
                     archive.writestr(f"{folder}/{filename}", content)
             if page.next_before is None:
                 break
-            before = page.next_before
+            before, before_no = page.next_before, page.next_before_no
     size = buffer.tell()
     buffer.seek(0)
     stamp = datetime.fromtimestamp(session.created_at).strftime("%Y-%m-%d")

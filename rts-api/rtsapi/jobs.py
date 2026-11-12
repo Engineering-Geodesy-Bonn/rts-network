@@ -82,6 +82,17 @@ class JobManager:
         lease = self.settings.lease_duration
 
         def write(conn: sqlite3.Connection) -> str | None:
+            now = time.time()
+            # A retried claim (the response got lost) returns the job this worker just claimed,
+            # as long as nothing was measured yet. Otherwise the job is orphaned and blocks the RTS.
+            retried = conn.execute(
+                "SELECT id FROM jobs WHERE worker_id = ? AND status IN ('running', 'lost') AND deleted = 0 "
+                "AND count = 0 AND started_at > ? ORDER BY started_at DESC LIMIT 1",
+                (request.worker_id, now - 2 * lease),
+            ).fetchone()
+            if retried is not None:
+                conn.execute("UPDATE jobs SET status = 'running', lease_until = ? WHERE id = ?", (now + lease, retried["id"]))
+                return retried["id"]
             sql = """
                 SELECT j.id FROM jobs j JOIN rts r ON r.id = j.rts_id
                 WHERE j.status = 'pending' AND j.deleted = 0 AND r.deleted = 0 AND r.device_id = ?
@@ -96,7 +107,6 @@ class JobManager:
             row = conn.execute(sql + " ORDER BY j.created_at LIMIT 1", tuple(params)).fetchone()
             if row is None:
                 return None
-            now = time.time()
             conn.execute(
                 "UPDATE jobs SET status = 'running', worker_id = ?, started_at = ?, lease_until = ? WHERE id = ?",
                 (request.worker_id, now, now + lease, row["id"]),
@@ -115,7 +125,7 @@ class JobManager:
 
         def write(conn: sqlite3.Connection) -> tuple[str, bool, bool]:
             row = conn.execute(
-                "SELECT status, stop_requested, worker_id FROM jobs WHERE id = ? AND deleted = 0", (job_id,)
+                "SELECT status, stop_requested, worker_id, rts_id FROM jobs WHERE id = ? AND deleted = 0", (job_id,)
             ).fetchone()
             if row is None:
                 raise NotFound(f"Job {job_id} not found")
@@ -124,7 +134,15 @@ class JobManager:
                 return status.value, True, False  # another worker owns it: stop
             # A job interrupted by timeout (not by the user) continues when its worker is back:
             # a network outage must never end a measurement.
-            revivable = status == m.JobStatus.INTERRUPTED and not row["stop_requested"]
+            # ... unless another job was started on the RTS in the meantime.
+            revivable = (
+                status == m.JobStatus.INTERRUPTED
+                and not row["stop_requested"]
+                and conn.execute(
+                    "SELECT 1 FROM jobs WHERE rts_id = ? AND id != ? AND deleted = 0 AND status IN ('running', 'lost')",
+                    (row["rts_id"], job_id),
+                ).fetchone() is None
+            )
             if status in (m.JobStatus.RUNNING, m.JobStatus.LOST) or revivable:
                 conn.execute(
                     "UPDATE jobs SET status = 'running', lease_until = ?, finished_at = NULL, error = NULL WHERE id = ?",
@@ -144,17 +162,21 @@ class JobManager:
             raise Conflict("A worker can only finish or fail a job")
 
         def write(conn: sqlite3.Connection) -> bool:
-            row = conn.execute("SELECT status, stop_requested FROM jobs WHERE id = ? AND deleted = 0", (job_id,)).fetchone()
+            row = conn.execute(
+                "SELECT status, stop_requested, worker_id FROM jobs WHERE id = ? AND deleted = 0", (job_id,)
+            ).fetchone()
             if row is None:
                 raise NotFound(f"Job {job_id} not found")
+            if row["worker_id"] != worker_id:
+                logger.warning("Worker %s tried to complete job %s of worker %s", worker_id, job_id, row["worker_id"])
+                return False
             status = m.JobStatus(row["status"])
             timed_out = status == m.JobStatus.INTERRUPTED and not row["stop_requested"]
-            if status not in (m.JobStatus.RUNNING, m.JobStatus.LOST, m.JobStatus.PENDING) and not timed_out:
+            if status not in (m.JobStatus.RUNNING, m.JobStatus.LOST) and not timed_out:
                 return False  # already terminal (e.g. interrupted by the user): keep that status
             conn.execute(
-                "UPDATE jobs SET status = ?, finished_at = ?, lease_until = NULL, error = ?, "
-                "worker_id = COALESCE(worker_id, ?) WHERE id = ?",
-                (request.status.value, time.time(), request.error, worker_id, job_id),
+                "UPDATE jobs SET status = ?, finished_at = ?, lease_until = NULL, error = ? WHERE id = ?",
+                (request.status.value, time.time(), request.error, job_id),
             )
             return True
 

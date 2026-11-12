@@ -15,6 +15,7 @@
     let showAll = $state(false);
     let jobs = $state<Job[]>([]);
     let nextBefore = $state<number | null>(null);
+    let nextBeforeNo = $state<number | null>(null);
     let loading = $state(false);
     let error = $state('');
     let exporting = $state(false);
@@ -29,10 +30,12 @@
                 type: showAll ? undefined : MEASURING_TYPES,
                 with_measurements: !showAll,
                 before: more ? nextBefore : null,
+                before_no: more ? nextBeforeNo : null,
                 limit: 100,
             });
             jobs = more ? [...jobs, ...page.items] : page.items;
             nextBefore = page.next_before;
+            nextBeforeNo = page.next_before_no;
             error = '';
         } catch (e) {
             error = (e as Error).message;
