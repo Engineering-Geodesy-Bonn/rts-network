@@ -174,7 +174,7 @@ def main():
                 worker_killed = True
             t0 = time.time()
             try:
-                http("GET", f"{cluster.base}/status?session_id={session['id']}")
+                http("GET", f"{cluster.base}/health?session_id={session['id']}")
                 http("GET", f"{cluster.base}/jobs?session_id={session['id']}")
                 latencies.append(time.time() - t0)
             except (urllib.error.URLError, ConnectionError, TimeoutError):
