@@ -247,6 +247,36 @@ class MeasurementSeries(BaseModel):
     ok: list[bool]  # GeoCOM and RPC return code are 0
 
 
+class DelayResiduals(BaseModel):
+    """Distance of the measured points to the fitted sphere (thinned out for plotting)."""
+
+    t: list[float]  # controller time, s
+    before: list[float]  # m, sphere fit without delay
+    after: list[float]  # m, sphere fit with the estimated delay
+
+
+class InternalDelayEstimate(BaseModel):
+    """Result of the extended sphere fit of a job (prism moving on a circle)."""
+
+    job_id: str
+    rts_id: str
+    internal_delay: float  # s, estimated delay between angle and distance measurement
+    sigma: float  # s, standard deviation of the estimate
+    current_internal_delay: float  # s, configured for the RTS before this request
+    applied: bool = False  # the estimate was stored as internal delay of the RTS
+    radius: float  # m, radius of the fitted sphere
+    sigma_radius: float
+    rms_before: float  # m, RMS distance of the points to the sphere without delay
+    rms_after: float  # m, with the estimated delay
+    variance_factor: float  # a posteriori; 1 = residuals match the configured accuracies
+    points_used: int
+    points_total: int
+    iterations: int
+    converged: bool
+    warnings: list[str]
+    residuals: DelayResiduals
+
+
 # ── Worker protocol ─────────────────────────────────────────────────────
 
 

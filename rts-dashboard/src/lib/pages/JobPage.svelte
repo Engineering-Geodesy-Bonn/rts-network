@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { api, download } from '../api';
+    import DelayCalibration from '../components/DelayCalibration.svelte';
     import PlotPanel, { type Trace } from '../components/PlotPanel.svelte';
     import Button from '../components/ui/Button.svelte';
     import Icon from '../components/ui/Icon.svelte';
@@ -168,6 +169,10 @@
                     <Segmented label="Values" bind:value={mode} options={[{ value: 'position', label: 'E/N/H' }, { value: 'polar', label: 'Hz/V/D' }]} />
                 {/snippet}
             </PlotPanel>
+        {/if}
+
+        {#if !active && TRACKING_TYPES.includes(job.type) && job.count >= 30}
+            <DelayCalibration {job} {rts} />
         {/if}
 
         <Panel title="Note">

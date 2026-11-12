@@ -44,6 +44,7 @@ rtsapi import-legacy <v1 database.db> [--db FILE]   # read-only, idempotent, ver
 - **Events**: `/events` (websocket) pushes live measurements, job changes, reload hints and the health of the subscribed session. Slow clients are disconnected instead of buffering without limit.
 - **Health** (`rtsapi/health.py`): every 2 s a short list of actionable problems (at most one per station) plus per-station and per-device state, computed from memory (worker heartbeats, live buffers) and a few small queries, independent of the number of dashboards.
 - **Post-processing** (`rtsapi/processing.py`): time synchronization of the instrument clock, intrinsic delay correction, CSV and trajectory exports (unchanged from v1).
+- **Internal delay calibration** (`rtsapi/calibration.py`, `POST /jobs/{id}/internal-delay[?apply=true]`): estimates the delay between the angle and the distance measurement of an instrument from a tracking job with a prism moving on a circle (e.g. a rotating arm). A Gauss-Helmert sphere fit with the delay as additional parameter (as in v1; the height of the centre is fixed because a circle does not determine a sphere). Returns the estimate with its standard deviation, the fit before/after and plausibility warnings; with `apply=true` the estimate is stored as `internal_delay` of the RTS. In the dashboard: *Data → measurement → Instrument delay calibration*.
 
 The endpoints are documented at `/docs`.
 
@@ -56,4 +57,4 @@ uv run pytest
 ## Scripts
 
 - `scripts/import_csv.py`: uploads a worker CSV log into an existing job (recovery, idempotent).
-- `scripts/intrinsic_calibration.py`: intrinsic calibration of a total station (research script).
+- `scripts/intrinsic_calibration.py`: v1 research script of the intrinsic calibration with plots (the API endpoint above supersedes it for daily use).

@@ -140,6 +140,28 @@ export interface MeasurementSeries {
     ok: boolean[];
 }
 
+export interface InternalDelayEstimate {
+    job_id: string;
+    rts_id: string;
+    /** s */
+    internal_delay: number;
+    sigma: number;
+    current_internal_delay: number;
+    applied: boolean;
+    radius: number;
+    sigma_radius: number;
+    /** RMS distance of the points to the fitted sphere without / with the delay (m) */
+    rms_before: number;
+    rms_after: number;
+    variance_factor: number;
+    points_used: number;
+    points_total: number;
+    iterations: number;
+    converged: boolean;
+    warnings: string[];
+    residuals: { t: number[]; before: number[]; after: number[] };
+}
+
 export interface Problem {
     severity: 'error' | 'warning';
     subject: string;

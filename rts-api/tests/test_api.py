@@ -266,3 +266,49 @@ def test_auto_import_runs_once_and_resumes(tmp_path):
     core = Core(settings)
     assert core.legacy_import["ok"] and repo.get_job(core.db, job.id).count == 50
     core.db.close()
+
+
+def circle_rows(delay: float, n: int = 1500, rate: float = 20.0, noise: float = 0.0):
+    """A prism on a rotating arm (radius 1 m, 12 m away), angles measured `delay` s before the distance."""
+    import numpy as np
+
+    rng = np.random.default_rng(1)
+
+    def polar(t):
+        phase = 2 * np.pi * 0.25 * t
+        x, y, z = 12.0 + np.cos(phase), 3.0 + np.sin(phase), 0.4 + 0.02 * np.sin(phase)
+        return np.sqrt(x**2 + y**2 + z**2), np.arctan2(y, x), np.arccos(z / np.sqrt(x**2 + y**2 + z**2))
+
+    t = np.arange(n) / rate
+    d = polar(t)[0] + rng.normal(0, noise, n)
+    _, hz, v = polar(t - delay)
+    hz, v = hz + rng.normal(0, noise / 12, n), v + rng.normal(0, noise / 12, n)
+    return [[i, 1000.0 + t[i], 5000.0 + t[i] * 1000, None, 146, 0, 0, float(d[i]), float(hz[i]), float(v[i])] for i in range(n)]
+
+
+def test_internal_delay_from_sphere_fit(client, setup):
+    rts_id = setup["rts"]["id"]
+    job_id = start_tracking(client, rts_id)
+    client.post("/worker/measurements", json={"job_id": job_id, "rows": circle_rows(delay=0.005, noise=0.0003)})
+
+    r = client.post(f"/jobs/{job_id}/internal-delay")
+    assert r.status_code == 200, r.text
+    estimate = r.json()
+    assert abs(estimate["internal_delay"] - 0.005) < 0.0003
+    assert estimate["sigma"] < 0.0003 and estimate["converged"] and not estimate["warnings"]
+    assert abs(estimate["radius"] - 1.0) < 0.01
+    assert estimate["rms_after"] < estimate["rms_before"] / 2
+    assert len(estimate["residuals"]["t"]) == len(estimate["residuals"]["after"]) <= 2000
+    assert not estimate["applied"] and client.get(f"/rts/{rts_id}").json()["internal_delay"] == 0.0
+
+    applied = client.post(f"/jobs/{job_id}/internal-delay?apply=true").json()
+    assert applied["applied"]
+    assert client.get(f"/rts/{rts_id}").json()["internal_delay"] == applied["internal_delay"]
+
+
+def test_internal_delay_needs_a_circle(client, setup):
+    job_id = start_tracking(client, setup["rts"]["id"])
+    client.post("/worker/measurements", json={"job_id": job_id, "rows": rows(0, 200)})  # static prism
+    r = client.post(f"/jobs/{job_id}/internal-delay")
+    assert r.status_code == 400 and "circle" in r.json()["message"]
+

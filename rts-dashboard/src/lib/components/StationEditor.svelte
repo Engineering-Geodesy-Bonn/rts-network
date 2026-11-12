@@ -176,7 +176,7 @@
                         {#each Object.keys(INTERNAL_DELAYS) as m (m)}<option value={m}>{m}</option>{/each}
                     </select>
                 </Field>
-                <Field label="Instrument delay" unit="ms"><input type="number" step="any" bind:value={form.internal_delay} /></Field>
+                <Field label="Instrument delay" unit="ms" hint="Can be estimated on the page of a measurement with a prism on a circle."><input type="number" step="any" bind:value={form.internal_delay} /></Field>
                 <Field label="External delay" unit="ms"><input type="number" step="any" bind:value={form.external_delay} /></Field>
             </div>
         </section>

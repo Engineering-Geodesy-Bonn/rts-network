@@ -12,6 +12,7 @@ import type {
     ServerInfo,
     Session,
     Health,
+    InternalDelayEstimate,
     SynchronizerState,
     TrackingSettings,
 } from './types';
@@ -146,6 +147,8 @@ export const api = {
     deleteJob: (id: string) => request<void>(`/jobs/${id}`, { method: 'DELETE' }),
     measurements: (id: string, params: { from_seq?: number; to_seq?: number; max_points?: number } = {}) =>
         request<MeasurementSeries>(`/jobs/${id}/measurements${query(params)}`, { timeout: 60000 }),
+    internalDelay: (id: string, apply = false) =>
+        request<InternalDelayEstimate>(`/jobs/${id}/internal-delay${query({ apply: apply || undefined })}`, { method: 'POST', timeout: 120000 }),
 
     health: (sessionId: string) => request<Health>(`/health${query({ session_id: sessionId })}`),
 

@@ -6,8 +6,10 @@ from fastapi.responses import PlainTextResponse
 
 from rtsapi import models as m
 from rtsapi import repo
+from rtsapi.calibration import estimate_internal_delay
 from rtsapi.core import Core
 from rtsapi.exports import job_csv, job_trajectory
+from rtsapi.processing import observations
 from rtsapi.routers import get_core
 
 router = APIRouter(tags=["Jobs"])
@@ -119,3 +121,24 @@ def download_trajectory(job_id: str, core: Core = Depends(get_core)) -> PlainTex
     job = repo.get_job(core.db, job_id)
     filename, content = job_trajectory(core.db, job, repo.get_rts(core.db, job.rts_id))
     return _download(filename, content, "text/plain")
+
+
+@router.post(
+    "/jobs/{job_id}/internal-delay",
+    response_model=m.InternalDelayEstimate,
+    summary="Estimate the internal delay of the RTS from a job with a prism moving on a circle (extended sphere fit).",
+)
+def internal_delay(
+    job_id: str,
+    apply: bool = Query(default=False, description="Store the estimate as internal delay of the RTS"),
+    core: Core = Depends(get_core),
+) -> m.InternalDelayEstimate:
+    row = repo.get_job_row(core.db, job_id)
+    rts = repo.get_rts(core.db, row["rts_id"])
+    obs = observations(repo.read_measurements(core.db, row["no"]), rts, corrected=False, job_id=job_id)
+    estimate = estimate_internal_delay(obs, rts, job_id)
+    if apply:
+        repo.update_rts(core.db, rts.id, m.RTSUpdate(internal_delay=estimate.internal_delay))
+        core.rts_changed(rts.id, rts.session_id)
+        estimate.applied = True
+    return estimate
