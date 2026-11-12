@@ -14,6 +14,7 @@ from rtsapi.hub import Hub
 from rtsapi.ingest import Ingest
 from rtsapi.jobs import JobManager
 from rtsapi.live import LiveStore, Station
+from rtsapi.sensors import SensorLive
 from rtsapi.health import HealthInput, evaluate, prune_stale_workers
 from rtsapi.sync import SyncService
 
@@ -34,6 +35,7 @@ class Core:
         self.live = LiveStore(settings.live_buffer_seconds)
         self.ingest = Ingest(self.db)
         self.sync = SyncService(self.db)
+        self.sensors = SensorLive()
         self.jobs = JobManager(self.db, self.hub, settings, on_change=self._job_changed_threadsafe)
         self.workers: dict[str, m.WorkerRecord] = {}
         self._stations: dict[str, Station] = {}
@@ -216,14 +218,20 @@ class Core:
             cached = (sensor_id, active, now)
             self._external[ip] = cached
         sensor_id, active, _ = cached
+        # The live view and the synchronizer get every position, logging only decides about storing
+        self.sensors.add(sensor_id, measurement, now)
+        self.sync.feed_external(sensor_id, measurement)
         if not active:
             return
-        self.sync.feed_external(sensor_id, measurement)
         self.db.submit(lambda conn: conn.execute(
             "INSERT INTO external_measurements (sensor_id, t, x, y, z, vx, vy, vz, epsg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (sensor_id, measurement.t, measurement.x, measurement.y, measurement.z,
              measurement.vx, measurement.vy, measurement.vz, measurement.epsg),
         ))
+
+    def external_sensors(self) -> list[m.ExternalSensor]:
+        now = time.time()
+        return [s.model_copy(update=self.sensors.status(s.id, now)) for s in repo.list_external_sensors(self.db)]
 
     def external_sensor_changed(self, sensor_id: str) -> None:
         self._external = {ip: v for ip, v in self._external.items() if v[0] != sensor_id}

@@ -2,7 +2,9 @@ import asyncio
 import logging
 import re
 
-from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
+import time
+
+from fastapi import APIRouter, Depends, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 from pydantic import ValidationError
 
@@ -17,9 +19,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["External Sensors"])
 
 
-@router.get("/external-sensors", response_model=list[m.ExternalSensor])
+@router.get("/external-sensors", response_model=list[m.ExternalSensor], summary="External sensors with their live state.")
 def list_external_sensors(core: Core = Depends(get_core)) -> list[m.ExternalSensor]:
-    return repo.list_external_sensors(core.db)
+    return core.external_sensors()
+
+
+@router.get("/external-sensors/live", response_model=list[m.SensorTrack], summary="Recent positions of all external sensors.")
+def sensor_tracks(
+    seconds: float = Query(default=120.0, gt=0, le=900),
+    max_points: int = Query(default=1500, ge=10, le=20000),
+    core: Core = Depends(get_core),
+) -> list[m.SensorTrack]:
+    return core.sensors.tracks(time.time(), seconds, max_points)
 
 
 @router.get("/external-sensors/{sensor_id}", response_model=m.ExternalSensor)
@@ -37,6 +48,14 @@ def update_external_sensor(sensor_id: str, data: m.ExternalSensorUpdate, core: C
 @router.delete("/external-sensors/{sensor_id}", status_code=204)
 def delete_external_sensor(sensor_id: str, core: Core = Depends(get_core)) -> None:
     repo.delete_external_sensor(core.db, sensor_id)
+    core.sensors.forget(sensor_id)
+    if core.sync.wants(sensor_id):
+        roles = core.sync.roles()
+        core.sync.set_roles(m.SensorRoles(
+            primary_sensor_id=None if roles.primary_sensor_id == sensor_id else roles.primary_sensor_id,
+            secondary_sensor_id=None if roles.secondary_sensor_id == sensor_id else roles.secondary_sensor_id,
+        ))
+        core.hub.changed("synchronizer")
     core.external_sensor_changed(sensor_id)
 
 

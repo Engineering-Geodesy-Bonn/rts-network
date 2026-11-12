@@ -516,7 +516,31 @@ class ExternalSensor(BaseModel):
     logging_active: bool
     created_at: float
     last_seen: float | None
-    count: int = 0
+    count: int = 0  # stored positions (only while logging)
+    # live state (since the API started)
+    online: bool = False
+    rate_hz: float | None = None
+    last_rx: float | None = None  # server time of the last position
+    last_t: float | None = None  # time stamp of the last position
+    position: list[float] | None = None  # x, y, z of the last position
+    geodetic: list[float] | None = None  # lat, lon [deg], h [m] for ECEF positions
+    epsg: int | None = None
+    speed: float | None = None  # m/s
+
+
+class SensorTrack(BaseModel):
+    """Recent positions of an external sensor. ECEF positions (EPSG:4978) are converted to
+    east/north/up around the first received position (origin: lat, lon, h)."""
+
+    sensor_id: str
+    epsg: int
+    local: bool
+    origin: list[float] | None
+    t: list[float]
+    e: list[float]
+    n: list[float]
+    u: list[float]
+    speed: list[float]
 
 
 class ExternalSensorUpdate(BaseModel):
@@ -541,12 +565,22 @@ class SensorRoles(BaseModel):
 
 
 class SynchronizerState(BaseModel):
-    delta_t: float
-    bias: float
+    delta_t: float  # s, time offset of the second sensor relative to the first
+    bias: float  # m, path length bias
     sigma_delta_t: float
     sigma_bias: float
     primary_sensor_id: str | None
     secondary_sensor_id: str | None
+    phase: Literal["off", "waiting", "calibrating", "matching", "estimating"] = "off"
+    calibration_samples: int = 0  # positions per sensor needed for the rough offset
+    primary_samples: int = 0
+    secondary_samples: int = 0
+    primary_rate_hz: float = 0.0
+    secondary_rate_hz: float = 0.0
+    updates: int = 0  # filter updates (matched positions)
+    converged: bool = False
+    started_at: float | None = None
+    history: list[list[float]] = []  # [server time, delta_t, sigma_delta_t, bias]
 
 
 class TargetPosition(BaseModel):

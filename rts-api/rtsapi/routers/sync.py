@@ -27,3 +27,4 @@ def get_state(core: Core = Depends(get_core)) -> m.SynchronizerState:
 @router.post("/reset", status_code=204)
 def reset(core: Core = Depends(get_core)) -> None:
     core.sync.reset()
+    core.hub.changed("synchronizer")

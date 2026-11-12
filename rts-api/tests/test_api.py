@@ -367,3 +367,36 @@ def test_job_pages_with_equal_created_at(client, setup):
             break
         before, before_no = page["next_before"], page["next_before_no"]
     assert len(seen) == 5 and set(seen) == ids
+
+
+def test_external_sensor_live_without_logging(client):
+    from rtsapi.sensors import geodetic_to_ecef
+
+    x, y, z = geodetic_to_ecef(50.7255, 7.0874, 100.0)
+    for i in range(20):  # moving 1 m/s north
+        r = client.post("/external_sensors/measurement", json={"t": 1000 + i * 0.1, "x": x, "y": y, "z": z + i * 0.1, "epsg": 4978})
+        assert r.status_code == 204
+    (sensor,) = client.get("/external-sensors").json()
+    assert sensor["online"] and not sensor["logging_active"] and sensor["count"] == 0
+    assert abs(sensor["geodetic"][0] - 50.7255) < 1e-3 and abs(sensor["geodetic"][2] - 100.0) < 2.0
+    (track,) = client.get("/external-sensors/live").json()
+    assert track["sensor_id"] == sensor["id"] and track["local"] and len(track["t"]) == 20
+    assert abs(track["e"][0]) < 1e-6 and track["n"][-1] > 1.0 and abs(track["speed"][-1] - 1.0) < 0.05
+
+
+def test_synchronizer_roles_and_state(client, setup):
+    client.post("/external_sensors/measurement", json={"t": 1.0, "x": 0, "y": 0, "z": 0})
+    sensor_id = client.get("/external-sensors").json()[0]["id"]
+    rts_id = setup["rts"]["id"]
+    assert client.put("/synchronizer/roles", json={"primary_sensor_id": rts_id, "secondary_sensor_id": rts_id}).status_code == 400
+    assert client.put("/synchronizer/roles", json={"primary_sensor_id": rts_id, "secondary_sensor_id": "nope"}).status_code == 400
+    assert client.get("/synchronizer/state").json()["phase"] == "off"
+    r = client.put("/synchronizer/roles", json={"primary_sensor_id": rts_id, "secondary_sensor_id": sensor_id})
+    assert r.status_code == 200
+    state = client.get("/synchronizer/state").json()
+    assert state["phase"] == "waiting" and state["calibration_samples"] == 20 and state["history"] == []
+    client.post("/external_sensors/measurement", json={"t": 2.0, "x": 1, "y": 0, "z": 0})
+    assert client.get("/synchronizer/state").json()["secondary_samples"] == 1
+    # deleting a sensor removes it from the synchronizer
+    assert client.delete(f"/external-sensors/{sensor_id}").status_code == 204
+    assert client.get("/synchronizer/roles").json() == {"primary_sensor_id": rts_id, "secondary_sensor_id": None}
