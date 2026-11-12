@@ -94,7 +94,12 @@
     }
 
     async function archive() {
-        store.session = await api.updateSession(store.session!.id, { archived: !store.session!.archived });
+        try {
+            store.session = await api.updateSession(store.session!.id, { archived: !store.session!.archived });
+            toast.ok(store.session.archived ? 'Session archived' : 'Session restored');
+        } catch (e) {
+            toast.error((e as Error).message);
+        }
     }
 
     async function deleteSession() {
@@ -313,7 +318,7 @@
             </div>
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 <Button variant="primary" onclick={() => api.setSyncRoles(roles).then((r) => ((roles = r), toast.ok('Applied'))).catch((e) => toast.error(e.message))}>Apply</Button>
-                <Button onclick={() => api.resetSync().then(() => toast.ok('Reset'))}>Reset</Button>
+                <Button onclick={() => api.resetSync().then(() => toast.ok('Reset')).catch((e) => toast.error(e.message))}>Reset</Button>
                 {#if sync}
                     <span class="num ml-auto">Δt {fmtTime(sync.delta_t)} ± {fmtTime(sync.sigma_delta_t)} · bias {sync.bias.toFixed(4)} ± {sync.sigma_bias.toFixed(4)}</span>
                 {/if}
