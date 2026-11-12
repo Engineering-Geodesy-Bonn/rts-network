@@ -50,6 +50,13 @@ All workers must be updated together with the API: the worker protocol changed.
 
 ## Testing without hardware
 
+`tools/demo.py` runs the whole system on one computer: the API, the dashboard and three workers with simulated total stations that track the same moving prism, plus two simulated external sensors (a GNSS rover with time stamps that are 35 ms late, and an odometry sensor in its own coordinate frame). The time synchronization between the first station and the GNSS rover is started as well. Requires uv and npm.
+
+```bash
+python tools/demo.py                   # then open http://localhost:5173
+python tools/demo.py --api-port 8100   # if port 8000 is taken
+```
+
 A total station with the port `sim://<name>` is simulated by the worker (25 Hz, prism moving on a circle). `tools/e2e.py` starts an API and several workers with simulated instruments, injects faults (API killed for 10 s, a worker killed with SIGKILL) and verifies that every measurement in the workers' logs arrived exactly once:
 
 ```bash
