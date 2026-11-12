@@ -62,8 +62,13 @@ class SimulatedTarget:
     same target."""
 
     radius: float = 10.0  # m
-    period: float = 40.0  # s per revolution
+    period: float = 40.0  # s per revolution (mean)
     center: tuple[float, float, float] | None = None
+
+    def angle(self, t: float) -> float:
+        """The speed varies between about 0.2 and 2.9 m/s (a constant speed would make time
+        offsets indistinguishable from path length biases for the synchronizer)."""
+        return 2 * math.pi * t / self.period + 0.5 * math.sin(2 * math.pi * t / 23.0)
 
     @classmethod
     def from_env(cls) -> "SimulatedTarget":
@@ -97,7 +102,7 @@ class SimulatedGeoCom:
         time.sleep(max(0.0, self._next - time.time()))
         self.last_request_time = time.time()
         t = time.time() - 0.004  # measurement epoch a few ms before the answer
-        angle = 2 * math.pi * (t - self.started) / self.target.period
+        angle = self.target.angle(t - self.started)
         if self.target.center is None:
             cx, cy, cz = self.rts.station_x, self.rts.station_y + 30.0, self.rts.station_z - 1.5
         else:
