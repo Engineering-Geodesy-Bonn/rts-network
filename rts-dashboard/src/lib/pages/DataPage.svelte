@@ -5,6 +5,7 @@
     import Tag from '../components/ui/Tag.svelte';
     import { events } from '../events.svelte';
     import { fmtCount, JOB_STATUS_LABEL, JOB_TYPE_LABEL, rtsColor } from '../format';
+    import { savePref } from '../plotdata';
     import { href, navigate } from '../router.svelte';
     import { store } from '../store.svelte';
     import { toast } from '../toast.svelte';
@@ -19,6 +20,20 @@
     let loading = $state(false);
     let error = $state('');
     let exporting = $state(false);
+
+    // jobs chosen for a combined plot
+    const MAX_PLOT = 12;
+    let picked = $state<string[]>([]);
+    function pick(id: string) {
+        if (picked.includes(id)) picked = picked.filter((p) => p !== id);
+        else if (picked.length < MAX_PLOT) picked = [...picked, id];
+        else toast.error(`At most ${MAX_PLOT} measurements can be plotted together`);
+    }
+    function plotPicked() {
+        savePref(`rts-plot-jobs-${store.session!.id}`, picked);
+        savePref('rts-plot-jobs-mode', true);
+        navigate(href(store.session!.id, 'plot', picked.join(',')));
+    }
 
     async function load(more = false) {
         if (!store.session) return;
@@ -106,6 +121,11 @@
     </select>
     <label class="flex items-center gap-1.5 text-[13px] text-muted"><input type="checkbox" bind:checked={showAll} /> Include other jobs</label>
     <span class="ml-auto"></span>
+    {#if picked.length}
+        <span class="text-xs text-muted">{picked.length} selected</span>
+        <button class="text-xs text-muted hover:text-fg" onclick={() => (picked = [])}>Clear</button>
+        <Button variant="primary" icon="layers" onclick={plotPicked}>Plot selected</Button>
+    {/if}
     <Button icon="download" busy={exporting} onclick={exportAll}>Export session (ZIP)</Button>
 </div>
 
@@ -115,6 +135,7 @@
     <table class="data-table">
         <thead>
             <tr>
+                <th class="w-8" title="Select to plot together"></th>
                 <th>Date</th>
                 <th>Start</th>
                 <th>End</th>
@@ -132,7 +153,12 @@
                 {@const index = store.rtsIndex(job.rts_id)}
                 {@const measured = MEASURING_TYPES.includes(job.type)}
                 {@const duration = job.first_t != null && job.last_t != null ? job.last_t - job.first_t : null}
-                <tr class="link" onclick={() => navigate(href(store.session!.id, 'data', job.id))}>
+                <tr class="link {picked.includes(job.id) ? 'bg-surface-2' : ''}" onclick={() => navigate(href(store.session!.id, 'data', job.id))}>
+                    <td onclick={(e) => e.stopPropagation()}>
+                        {#if measured && job.count > 0}
+                            <input type="checkbox" checked={picked.includes(job.id)} aria-label="Select for plotting" onchange={() => pick(job.id)} />
+                        {/if}
+                    </td>
                     <td class="num">{date(job.started_at ?? job.created_at)}</td>
                     <td class="num">{time(job.first_t ?? job.started_at ?? job.created_at)}</td>
                     <td class="num">{time(job.last_t ?? job.finished_at)}</td>
@@ -150,7 +176,7 @@
                     <td class="max-w-64 truncate text-muted" title={job.error ?? job.note}>{job.error && job.status !== 'finished' ? job.error : job.note}</td>
                 </tr>
             {:else}
-                {#if !loading}<tr><td colspan={10} class="py-10 text-center text-muted">No measurements yet.</td></tr>{/if}
+                {#if !loading}<tr><td colspan={11} class="py-10 text-center text-muted">No measurements yet.</td></tr>{/if}
             {/each}
         </tbody>
     </table>

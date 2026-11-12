@@ -4,6 +4,7 @@
         label: string;
         color: string;
         station: { x: number; y: number } | null;
+        stationLabel?: string;
         live: boolean;
         data: Plotted | null;
     }
@@ -30,6 +31,8 @@
         plotHeight = 128,
         onzoom,
         controls,
+        relative = false,
+        empty = 'No measurements to show.',
     }: {
         traces: Trace[];
         version: number;
@@ -40,6 +43,9 @@
         plotHeight?: number;
         onzoom?: (range: [number, number] | null) => void;
         controls?: Snippet;
+        /** time axis in seconds since the start of each trace */
+        relative?: boolean;
+        empty?: string;
     } = $props();
 
     const syncKey = `plots-${nextSync++}`;
@@ -64,6 +70,7 @@
             x: tr.data?.x ?? [],
             y: tr.data?.y ?? [],
             station: tr.station,
+            stationLabel: tr.stationLabel,
             current: tr.live,
             stale: !tr.live && traces.some((o) => o.live),
         })),
@@ -89,7 +96,7 @@
 <Panel {title} flush>
     {#snippet actions()}{@render controls?.()}{/snippet}
     {#if withData.length === 0}
-        <p class="py-16 text-center text-muted">No measurements to show.</p>
+        <p class="py-16 text-center text-muted">{empty}</p>
     {:else}
         <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] [&>*]:min-w-0">
             <div class="border-b border-line p-2 lg:border-r lg:border-b-0">
@@ -98,7 +105,7 @@
             </div>
             <div class="p-2">
                 {#each plots as p, i (p.key)}
-                    <TimePlot series={p.series} {version} yLabel={p.label} height={i === plots.length - 1 ? plotHeight + 40 : plotHeight} showX={i === plots.length - 1} {syncKey} {follow} now={() => clock.server} {onzoom} />
+                    <TimePlot series={p.series} {version} yLabel={p.label} height={i === plots.length - 1 ? plotHeight + 40 : plotHeight} showX={i === plots.length - 1} {syncKey} {follow} now={() => clock.server} {onzoom} {relative} />
                 {/each}
             </div>
         </div>

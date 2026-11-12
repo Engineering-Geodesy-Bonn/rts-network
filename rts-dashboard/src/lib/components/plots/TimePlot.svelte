@@ -28,6 +28,7 @@
         onzoom,
         syncKey = '',
         showX = true,
+        relative = false,
     }: {
         series: TimeSeries[];
         version?: number;
@@ -38,6 +39,8 @@
         onzoom?: (range: [number, number] | null) => void;
         syncKey?: string;
         showX?: boolean;
+        /** x values are seconds since a start (elapsed time) instead of Unix time */
+        relative?: boolean;
     } = $props();
 
     let container: HTMLDivElement;
@@ -64,9 +67,9 @@
             pxAlign: 0,
             legend: { show: false },
             cursor: { drag: { x: true, y: false, setScale: true }, points: { size: 5 }, ...(syncKey ? { sync: { key: syncKey } } : {}) },
-            scales: { x: { time: true }, y: { auto: true } },
+            scales: { x: { time: !relative }, y: { auto: true } },
             axes: [
-                showX ? { ...axisStyle, space: 80, values: timeLabels } : { ...axisStyle, size: 4, values: (_u: uPlot, splits: number[]) => splits.map(() => '') },
+                showX ? { ...axisStyle, space: 80, values: relative ? elapsedLabels : timeLabels } : { ...axisStyle, size: 4, values: (_u: uPlot, splits: number[]) => splits.map(() => '') },
                 {
                     ...axisStyle,
                     label: yLabel,
@@ -119,6 +122,19 @@
             if (increment < 1) text += `.${Math.floor(d.getMilliseconds() / 100)}`;
             if (i === 0 && increment >= 3600) text = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${text}`;
             return text;
+        });
+    }
+
+    /** Elapsed time: 0:45 · 12:30 · 1:02:03, tenths when zoomed in */
+    function elapsedLabels(_u: uPlot, splits: number[], _axis: number, _space: number, increment: number): string[] {
+        const pad = (v: number) => String(v).padStart(2, '0');
+        return splits.map((v) => {
+            const sign = v < 0 ? '−' : '';
+            const a = Math.abs(v);
+            const s = Math.floor(a);
+            let text = a >= 3600 ? `${Math.floor(s / 3600)}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}` : `${Math.floor(s / 60)}:${pad(s % 60)}`;
+            if (increment < 1) text += `.${Math.floor((a - s) * 10)}`;
+            return sign + text;
         });
     }
 
@@ -205,6 +221,7 @@
         void theme.version;
         void height;
         void yLabel;
+        void relative;
         if (plot) build();
     });
 </script>

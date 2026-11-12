@@ -138,6 +138,7 @@
                     <Button variant="primary" icon="download" busy={busy === 'corrected'} disabled={busy !== ''} onclick={() => get('corrected')}>Corrected CSV</Button>
                     <Button icon="download" busy={busy === 'trajectory'} disabled={busy !== ''} onclick={() => get('trajectory')}>Trajectory (.traj)</Button>
                     <Button icon="download" busy={busy === 'raw'} disabled={busy !== ''} onclick={() => get('raw')}>Raw CSV</Button>
+                    <Button icon="layers" href={href(store.session?.id ?? null, 'plot', job.id)} title="Plot this measurement together with others">Compare</Button>
                 {/if}
             </span>
         </div>

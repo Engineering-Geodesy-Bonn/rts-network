@@ -9,7 +9,7 @@ This repository contains the code for the Robotic Total Station Network (RTSN). 
 | Component | Runs on | Purpose |
 |---|---|---|
 | [rts-api](rts-api) | laptop / server / Raspberry Pi | Stores configuration, jobs and measurements (SQLite), detects problems, pushes live data to the dashboards |
-| [rts-dashboard](rts-dashboard) | served by nginx next to the API | Web app with the tabs **Measure** (problems, stations with live values, sensor overview), **Plot** (live map and plots), **Data** (all measurements, downloads, instrument delay calibration from a circle measurement), **Sensors** (external sensors with live tracks and recording, time synchronization) and **Setup** (stations, Raspberry Pis, session). Works on phones; Android wrapper in [rts-android](rts-android) |
+| [rts-dashboard](rts-dashboard) | served by nginx next to the API | Web app with the tabs **Measure** (problems, stations with live values, sensor overview), **Plot** (live map and plots of the stations, or several chosen measurements overlaid on clock time or aligned at their start), **Data** (all measurements, downloads, instrument delay calibration from a circle measurement), **Sensors** (external sensors with live tracks and recording, time synchronization) and **Setup** (stations, Raspberry Pis, session). Works on phones; Android wrapper in [rts-android](rts-android) |
 | [rts-worker](rts-worker) | Raspberry Pi at the total station | Controls one total station via GeoCOM, timestamps the measurements (GNSS/PPS disciplined clock) and uploads them |
 | [external-sensors](external-sensors) | any device | Optional sensors (e.g. GNSS receivers) that stream positions to the API |
 

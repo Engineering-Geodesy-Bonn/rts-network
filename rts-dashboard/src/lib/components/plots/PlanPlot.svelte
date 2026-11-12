@@ -9,6 +9,8 @@
         x: number[];
         y: number[];
         station: { x: number; y: number } | null;
+        /** label of the station marker (default: label) */
+        stationLabel?: string;
         /** Highlight the last point (live) */
         current: boolean;
         stale: boolean;
@@ -125,7 +127,7 @@
             ctx.closePath();
             ctx.fill();
             ctx.fillStyle = axis;
-            ctx.fillText(t.label, px + 9, py + 4);
+            ctx.fillText(t.stationLabel ?? t.label, px + 9, py + 4);
         }
 
         // tracks
