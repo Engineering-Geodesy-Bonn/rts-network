@@ -1,6 +1,7 @@
 <!-- Measure: problems and the station table with live values and actions. Plots are on the Plot tab. -->
 <script lang="ts">
     import Problems from '../components/Problems.svelte';
+    import SensorStrip from '../components/SensorStrip.svelte';
     import StationTable, { type StationEntry } from '../components/StationTable.svelte';
     import Button from '../components/ui/Button.svelte';
     import Segmented from '../components/ui/Segmented.svelte';
@@ -50,6 +51,7 @@
 {:else}
     <div class="space-y-3">
         <Problems />
+        <SensorStrip />
 
         <div class="flex flex-wrap items-center gap-2 pt-1">
             <h1 class="label mr-auto !text-[12px] !text-fg">Stations</h1>

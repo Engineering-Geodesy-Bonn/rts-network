@@ -9,6 +9,7 @@ import type {
     RTS,
     RTSConfig,
     SensorRoles,
+    SensorTrack,
     ServerInfo,
     Session,
     Health,
@@ -155,6 +156,7 @@ export const api = {
     health: (sessionId: string) => request<Health>(`/health${query({ session_id: sessionId })}`),
 
     externalSensors: () => request<ExternalSensor[]>('/external-sensors'),
+    sensorTracks: (seconds = 120) => request<SensorTrack[]>(`/external-sensors/live${query({ seconds })}`),
     updateExternalSensor: (id: string, data: { name?: string; logging_active?: boolean }) =>
         request<ExternalSensor>(`/external-sensors/${id}`, json('PATCH', data)),
     deleteExternalSensor: (id: string) => request<void>(`/external-sensors/${id}`, { method: 'DELETE', timeout: 120000 }),

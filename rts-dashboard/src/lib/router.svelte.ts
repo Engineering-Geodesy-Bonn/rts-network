@@ -1,6 +1,6 @@
 /** Minimal hash router: #/  ·  #/s/<session>/<page>[/<id>]  ·  #/settings */
 
-export type Page = 'measure' | 'plot' | 'data' | 'setup';
+export type Page = 'measure' | 'plot' | 'data' | 'sensors' | 'setup';
 
 export interface Route {
     name: 'sessions' | 'session' | 'settings';
@@ -9,7 +9,7 @@ export interface Route {
     id: string | null;
 }
 
-const PAGES: Page[] = ['measure', 'plot', 'data', 'setup'];
+const PAGES: Page[] = ['measure', 'plot', 'data', 'sensors', 'setup'];
 
 function parse(hash: string): Route {
     const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);

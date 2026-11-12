@@ -213,7 +213,30 @@ export interface ExternalSensor {
     logging_active: boolean;
     created_at: number;
     last_seen: number | null;
+    /** stored positions (only while logging) */
     count: number;
+    online: boolean;
+    rate_hz: number | null;
+    last_rx: number | null;
+    last_t: number | null;
+    position: [number, number, number] | null;
+    /** lat, lon [deg], h [m] of ECEF positions */
+    geodetic: [number, number, number] | null;
+    epsg: number | null;
+    speed: number | null;
+}
+
+export interface SensorTrack {
+    sensor_id: string;
+    epsg: number;
+    /** e/n/u are local east/north/up around `origin` (lat, lon, h) */
+    local: boolean;
+    origin: [number, number, number] | null;
+    t: number[];
+    e: number[];
+    n: number[];
+    u: number[];
+    speed: number[];
 }
 
 export interface SensorRoles {
@@ -222,10 +245,23 @@ export interface SensorRoles {
 }
 
 export interface SynchronizerState extends SensorRoles {
+    /** s, add to the time stamps of the second sensor to get the time of the first */
     delta_t: number;
+    /** m, path length bias */
     bias: number;
     sigma_delta_t: number;
     sigma_bias: number;
+    phase: 'off' | 'waiting' | 'calibrating' | 'matching' | 'estimating';
+    calibration_samples: number;
+    primary_samples: number;
+    secondary_samples: number;
+    primary_rate_hz: number;
+    secondary_rate_hz: number;
+    updates: number;
+    converged: boolean;
+    started_at: number | null;
+    /** [server time, delta_t, sigma_delta_t, bias] */
+    history: [number, number, number, number][];
 }
 
 export interface ServerInfo {

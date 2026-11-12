@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { api, download } from '../api';
     import StationEditor from '../components/StationEditor.svelte';
     import Button from '../components/ui/Button.svelte';
@@ -8,12 +7,11 @@
     import Panel from '../components/ui/Panel.svelte';
     import Tag from '../components/ui/Tag.svelte';
     import { confirm } from '../confirm.svelte';
-    import { events } from '../events.svelte';
     import { EDM_MEASUREMENT_MODES, fmtBytes, fmtCount, fmtDuration, fmtTime, PRISM_TYPES, rtsColor, units } from '../format';
-    import { navigate } from '../router.svelte';
+    import { href, navigate } from '../router.svelte';
     import { store } from '../store.svelte';
     import { toast } from '../toast.svelte';
-    import type { DeviceHealth, ExternalSensor, RTS, SensorRoles, SynchronizerState } from '../types';
+    import type { DeviceHealth, RTS } from '../types';
 
     let editorOpen = $state(false);
     let editing = $state<RTS | null>(null);
@@ -118,44 +116,6 @@
             toast.error((e as Error).message);
         }
     }
-
-    // ── external sensors & synchronizer ────────────────────────────────
-    let sensors = $state<ExternalSensor[]>([]);
-    let roles = $state<SensorRoles>({ primary_sensor_id: null, secondary_sensor_id: null });
-    let sync = $state<SynchronizerState | null>(null);
-
-    async function loadSensors() {
-        try {
-            [sensors, roles] = await Promise.all([api.externalSensors(), api.syncRoles()]);
-        } catch {
-            /* shown empty */
-        }
-    }
-
-    onMount(() => {
-        void loadSensors();
-        const off = events.on((e) => {
-            if (e.type === 'changed' && (e.entity === 'external_sensor' || e.entity === 'synchronizer')) void loadSensors();
-        });
-        const timer = setInterval(async () => {
-            if (roles.primary_sensor_id && roles.secondary_sensor_id) sync = await api.syncState().catch(() => null);
-        }, 2000);
-        return () => {
-            off();
-            clearInterval(timer);
-        };
-    });
-
-    async function updateSensor(id: string, data: { name?: string; logging_active?: boolean }) {
-        try {
-            await api.updateExternalSensor(id, data);
-            await loadSensors();
-        } catch (e) {
-            toast.error((e as Error).message);
-        }
-    }
-
-    let syncOptions = $derived([...store.rts.map((r) => ({ id: r.id, label: r.name })), ...sensors.map((s) => ({ id: s.id, label: s.name }))]);
 </script>
 
 <div class="space-y-4">
@@ -285,47 +245,7 @@
         </div>
     </Panel>
 
-    <div class="grid gap-4 xl:grid-cols-2">
-        <Panel title="External sensors" flush>
-            {#if sensors.length === 0}
-                <p class="px-3 py-4 text-[13px] text-muted">None connected. Sensors (e.g. GNSS receivers) appear when they stream positions to the server.</p>
-            {:else}
-                <table class="data-table">
-                    <thead><tr><th>Name</th><th>IP</th><th class="r">Positions</th><th>Logging</th><th></th></tr></thead>
-                    <tbody>
-                        {#each sensors as s (s.id)}
-                            <tr>
-                                <td><input class="!w-40 !py-1" value={s.name} onchange={(e) => updateSensor(s.id, { name: (e.currentTarget as HTMLInputElement).value })} /></td>
-                                <td class="num">{s.ip}</td>
-                                <td class="r num">{fmtCount(s.count)}</td>
-                                <td><input type="checkbox" checked={s.logging_active} aria-label="Logging" onchange={(e) => updateSensor(s.id, { logging_active: (e.currentTarget as HTMLInputElement).checked })} /></td>
-                                <td class="r"><Button size="sm" disabled={s.count === 0} onclick={() => download(`/external-sensors/${s.id}/trajectory`, 'sensor.traj').catch((e) => toast.error(e.message))}>.traj</Button></td>
-                            </tr>
-                        {/each}
-                    </tbody>
-                </table>
-            {/if}
-        </Panel>
-
-        <Panel title="Time synchronization between two sensors">
-            <div class="grid gap-3 sm:grid-cols-2">
-                <Field label="First sensor">
-                    <select bind:value={roles.primary_sensor_id}><option value={null}>–</option>{#each syncOptions as o (o.id)}<option value={o.id}>{o.label}</option>{/each}</select>
-                </Field>
-                <Field label="Second sensor">
-                    <select bind:value={roles.secondary_sensor_id}><option value={null}>–</option>{#each syncOptions as o (o.id)}<option value={o.id}>{o.label}</option>{/each}</select>
-                </Field>
-            </div>
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-                <Button variant="primary" onclick={() => api.setSyncRoles(roles).then((r) => ((roles = r), toast.ok('Applied'))).catch((e) => toast.error(e.message))}>Apply</Button>
-                <Button onclick={() => api.resetSync().then(() => toast.ok('Reset')).catch((e) => toast.error(e.message))}>Reset</Button>
-                {#if sync}
-                    <span class="num ml-auto">Δt {fmtTime(sync.delta_t)} ± {fmtTime(sync.sigma_delta_t)} · bias {sync.bias.toFixed(4)} ± {sync.sigma_bias.toFixed(4)}</span>
-                {/if}
-            </div>
-        </Panel>
-    </div>
-
+    <p class="text-center text-xs text-muted">External sensors and the time synchronization are on the <a class="text-accent" href={href(store.session?.id ?? null, 'sensors')}>Sensors</a> tab.</p>
     <p class="text-center text-xs"><a class="text-muted hover:text-fg" href="#/settings">App settings: appearance, server address, version</a></p>
 </div>
 

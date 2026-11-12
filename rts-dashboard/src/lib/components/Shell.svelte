@@ -12,6 +12,7 @@
         { id: 'measure', label: 'Measure', icon: 'activity' },
         { id: 'plot', label: 'Plot', icon: 'layers' },
         { id: 'data', label: 'Data', icon: 'list' },
+        { id: 'sensors', label: 'Sensors', icon: 'satellite' },
         { id: 'setup', label: 'Setup', icon: 'settings' },
     ];
 
@@ -84,7 +85,7 @@
         {/if}
     </main>
 
-    <nav class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 bg-bar pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 bg-bar pb-[env(safe-area-inset-bottom)] md:hidden">
         {#each NAV as item (item.id)}
             <a href={href(sessionId, item.id)} class="flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold tracking-wider uppercase {page === item.id ? 'text-bar-fg' : 'text-bar-muted'}">
                 <Icon name={item.icon} size={19} />
