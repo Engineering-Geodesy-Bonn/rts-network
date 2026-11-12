@@ -29,6 +29,7 @@ class Uploader:
         self.client = client
         self.outbox = outbox
         self._ws: ClientConnection | None = None
+        self._url: str | None = None
         self._thread = threading.Thread(target=self._run, name="uploader", daemon=True)
         self._last_backlog = 0.0
 
@@ -36,8 +37,12 @@ class Uploader:
         self._thread.start()
 
     def _connect(self) -> ClientConnection:
+        if self._ws is not None and self._url != self.client.stream_url:
+            logger.info("API address changed, reconnecting the measurement upload")
+            self._disconnect()
         if self._ws is None:
-            self._ws = connect(self.client.stream_url, open_timeout=5, close_timeout=2, ping_interval=10, ping_timeout=20, max_size=2**24)
+            self._url = self.client.stream_url
+            self._ws = connect(self._url, open_timeout=5, close_timeout=2, ping_interval=10, ping_timeout=20, max_size=2**24)
             STATE.uploader_connected = True
             logger.info("Measurement upload connected to %s", self.client.stream_url)
         return self._ws
@@ -63,6 +68,8 @@ class Uploader:
             try:
                 self.outbox.touch_owner()
                 self._update_backlog()
+                if self._ws is not None and self._url != self.client.stream_url:
+                    self._connect()  # reconnects to the new address even while idle
                 batch = self.outbox.next_batch(config.UPLOAD_BATCH)
                 if batch is None:
                     self.outbox.wait(timeout=0.5)

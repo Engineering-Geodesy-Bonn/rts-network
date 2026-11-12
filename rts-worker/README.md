@@ -41,11 +41,21 @@ docker-compose up -d --scale worker=3
 
 | Environment variable | Default | Meaning |
 |---|---|---|
-| `API_HOST` / `API_PORT` | 192.168.0.101 / 8000 | API server; if unreachable, the local /24 network is scanned |
+| `API_HOST` / `API_PORT` | 192.168.0.101 / 8000 | API server; if unreachable, the local /24 network is scanned. Can be changed on the settings page |
+| `WEB_PORT` | 8080 | Settings page of the device, `0` disables it |
 | `MEASUREMENT_LOG_DIR` | `measurements` | CSV logs and the outbox (shared by all workers of a device) |
 | `WORKER_ID` | random | Identity of the worker (shown in the dashboard) |
 | `HEARTBEAT_INTERVAL` | 2 | s between health reports |
 | `SIM_TARGET` | – | `E,N,H` center of the simulated prism path (shared by simulated stations) |
+
+## Settings page
+
+Every Raspberry Pi serves a small page at `http://<pi>:8080/` to change the address of the API server during operation, e.g. when the router hands out a new address. It also shows whether the API answers, the upload backlog, the current job and the last error.
+
+- The address is saved in `measurements/api.json` and overrides `API_HOST`/`API_PORT` until *Reset to configuration*. It survives restarts.
+- All workers of the device switch within a second, also during a measurement; the measurement upload reconnects to the new address.
+- During a measurement, only enter a new address of the same API server. Another server does not know the running job and rejects its measurements.
+- With several workers on one device, the first one that gets the port serves the page for all of them. The page has no login: it is meant for the closed field network.
 
 ## Reliability
 

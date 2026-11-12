@@ -7,7 +7,7 @@ from typing import Callable
 
 import requests
 
-from rtsworker import config
+from rtsworker import config, web
 from rtsworker.client import ApiClient, JobGone
 from rtsworker.dtos import Claim, JobStatus, JobType
 from rtsworker.health import HeartbeatSender
@@ -15,6 +15,7 @@ from rtsworker.outbox import Outbox
 from rtsworker.state import STATE
 from rtsworker.tasks import TASKS, JobContext
 from rtsworker.uploader import Uploader
+from rtsworker.web import ApiSettings
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,8 @@ class Lease:
 class Worker:
     def __init__(self, tasks: dict[JobType, Callable[[JobContext], None]] | None = None):
         self.tasks = tasks or TASKS
-        self.client = ApiClient()
+        self.api_settings = ApiSettings()
+        self.client = ApiClient(*self.api_settings.current())
         self.outbox = Outbox(config.OUTBOX_PATH, STATE.worker_id)
         self.uploader = Uploader(self.client, self.outbox)
         self.heartbeat = HeartbeatSender(self.client, config.MEASUREMENT_LOG_DIR)
@@ -89,6 +91,8 @@ class Worker:
         backlog, _ = self.outbox.backlog()
         if backlog:
             logger.info("%d measurements from a previous run are waiting in the outbox", backlog)
+        web.serve(self.api_settings, self.client)
+        threading.Thread(target=self.api_settings.watch, args=(self.client, self.shutdown), name="api-settings", daemon=True).start()
         self.client.resolve()
         self.uploader.start()
         self.heartbeat.start()

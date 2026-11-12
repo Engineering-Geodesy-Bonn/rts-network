@@ -29,6 +29,10 @@ class ApiClient:
         self.timeout = timeout
         self._local = threading.local()
 
+    def set_target(self, host: str, port: int) -> None:
+        """Switches to another API address (requests and the upload follow at once)."""
+        self.host, self.port = host, port
+
     @property
     def base_url(self) -> str:
         return f"http://{self.host}:{self.port}"
