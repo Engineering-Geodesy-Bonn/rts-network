@@ -60,15 +60,15 @@ async def events(websocket: WebSocket) -> None:
             elif kind == "ping":
                 core.hub.send(client, {"type": "pong", "server_time": time.time()})
 
-    tasks = [asyncio.create_task(sender()), asyncio.create_task(receiver())]
+    # The receiver ends when the client disconnects or the sender closes the socket
+    send_task = asyncio.create_task(sender())
     try:
-        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            exc = task.exception()
-            if exc is not None and not isinstance(exc, (WebSocketDisconnect, RuntimeError, ConnectionError)):
-                logger.warning("Event stream closed: %r", exc)
+        await receiver()
+    except (WebSocketDisconnect, RuntimeError, ConnectionError):
+        pass
+    except Exception as exc:
+        logger.warning("Event stream closed: %r", exc)
     finally:
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        send_task.cancel()
+        await asyncio.gather(send_task, return_exceptions=True)
         core.hub.disconnect(client)
