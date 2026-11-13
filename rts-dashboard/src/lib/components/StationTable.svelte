@@ -17,15 +17,28 @@
 <script lang="ts">
     import { clock } from '../clock.svelte';
     import { confirm } from '../confirm.svelte';
-    import { fmtClock, fmtCount, fmtDateTime, JOB_TYPE_LABEL, units } from '../format';
+    import { fmtClock, fmtCount, fmtDateTime, JOB_TYPE_LABEL, PRISM_TYPES, units } from '../format';
     import { href } from '../router.svelte';
     import { store } from '../store.svelte';
     import { TRACKING_TYPES } from '../types';
+    import TrackingSettingsDialog from './TrackingSettingsDialog.svelte';
     import Button from './ui/Button.svelte';
     import Menu from './ui/Menu.svelte';
     import Tag from './ui/Tag.svelte';
 
     let { entries, mode, tick }: { entries: StationEntry[]; mode: 'position' | 'polar'; tick: number } = $props();
+
+    let settingsOpen = $state(false);
+    let settingsRtsId = $state<string | null>(null);
+    // From the store, so that the dialog shows the saved values after a change
+    let settingsRts = $derived(store.rtsById(settingsRtsId) ?? null);
+
+    function openSettings(e: StationEntry) {
+        settingsRtsId = e.rts.id;
+        settingsOpen = true;
+    }
+
+    const prism = (rts: RTS) => PRISM_TYPES[rts.tracking.prism_type] ?? `Prism ${rts.tracking.prism_type}`;
 
     const COLS = {
         position: [
@@ -108,6 +121,7 @@
 
     function menu(e: StationEntry, busy: boolean) {
         return [
+            { label: 'Tracking settings…', onclick: () => openSettings(e) },
             { label: 'Static measurement', disabled: busy, onclick: () => start(e, 'add_static_measurement') },
             { label: 'Instrument check (battery, connection)', disabled: busy, onclick: () => start(e, 'health_check') },
             { label: 'Change face', disabled: busy, onclick: () => start(e, 'change_face') },
@@ -116,6 +130,10 @@
         ];
     }
 </script>
+
+{#snippet prismLink(e: StationEntry)}
+    <button type="button" class="underline decoration-line-strong underline-offset-2 hover:text-fg" title="Tracking settings of {e.rts.name}" onclick={() => openSettings(e)}>{prism(e.rts)}</button>
+{/snippet}
 
 {#snippet actions(e: StationEntry, v: ReturnType<typeof view>)}
     <div class="flex items-center justify-end gap-1.5">
@@ -126,7 +144,7 @@
         {:else}
             <Button variant="start" icon="play" onclick={() => start(e, 'track_prism')}>Start</Button>
         {/if}
-        <Menu items={menu(e, !!v.running || !!v.pending)} label="More actions for {e.rts.name}" note={v.running || v.pending ? 'Available when the station is idle.' : ''} />
+        <Menu items={menu(e, !!v.running || !!v.pending)} label="More actions for {e.rts.name}" note={v.running || v.pending ? 'Measuring actions are available when the station is idle.' : ''} />
     </div>
 {/snippet}
 
@@ -156,7 +174,7 @@
                             <span class="h-7 w-1 rounded-sm" style="background: {e.color}"></span>
                             <div>
                                 <div class="font-semibold">{e.rts.name}</div>
-                                <div class="text-xs text-muted">{store.deviceLabel(e.rts.device_id)} · {e.rts.port}</div>
+                                <div class="text-xs text-muted">{store.deviceLabel(e.rts.device_id)} · {e.rts.port} · {@render prismLink(e)}</div>
                             </div>
                         </div>
                     </td>
@@ -192,7 +210,7 @@
                 <span class="h-8 w-1 rounded-sm" style="background: {e.color}"></span>
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2"><span class="truncate font-semibold">{e.rts.name}</span><Tag tone={v.state.tone} text={v.state.text} /></div>
-                    <div class="truncate text-xs text-muted">{store.deviceLabel(e.rts.device_id)} · {e.rts.port}</div>
+                    <div class="truncate text-xs text-muted">{store.deviceLabel(e.rts.device_id)} · {e.rts.port} · {@render prismLink(e)}</div>
                 </div>
                 {@render actions(e, v)}
             </div>
@@ -212,3 +230,5 @@
         </div>
     {/each}
 </div>
+
+<TrackingSettingsDialog bind:open={settingsOpen} rts={settingsRts} />

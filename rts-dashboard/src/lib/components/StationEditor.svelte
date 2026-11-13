@@ -2,48 +2,22 @@
 <script lang="ts">
     import { api } from '../api';
     import { confirm } from '../confirm.svelte';
-    import { EDM_MEASUREMENT_MODES, FINE_ADJUST_POSITION_MODES, INTERNAL_DELAYS, PRISM_TYPES, TMC_INCLINATION_MODES, TMC_MEASUREMENT_MODES, units } from '../format';
+    import { INTERNAL_DELAYS, units } from '../format';
     import { store } from '../store.svelte';
     import { toast } from '../toast.svelte';
-    import type { BluetoothInstrument, RTS, TrackingSettings } from '../types';
+    import { trackingFromForm, trackingToForm } from '../tracking';
+    import type { BluetoothInstrument, RTS } from '../types';
     import BluetoothPicker from './BluetoothPicker.svelte';
+    import TrackingFields from './TrackingFields.svelte';
     import Button from './ui/Button.svelte';
     import Field from './ui/Field.svelte';
     import Modal from './ui/Modal.svelte';
 
     let { open = $bindable(false), rts = null }: { open?: boolean; rts?: RTS | null } = $props();
 
-    const DEFAULT_TRACKING: TrackingSettings = {
-        tmc_measurement_mode: 1,
-        tmc_inclination_mode: 1,
-        edm_measurement_mode: 9,
-        prism_type: 3,
-        fine_adjust_position_mode: 1,
-        fine_adjust_horizontal_search_range: 0.0872,
-        fine_adjust_vertical_search_range: 0.0872,
-        power_search_area_dcenterhz: 0,
-        power_search_area_dcenterv: 1.5708,
-        power_search_area_drangehz: 6.283,
-        power_search_area_drangev: 0.6,
-        power_search_area_enabled: 1,
-        power_search_min_range: 1,
-        power_search_max_range: 50,
-        power_search: true,
-    };
-    const ANGLES = [
-        'fine_adjust_horizontal_search_range',
-        'fine_adjust_vertical_search_range',
-        'power_search_area_dcenterhz',
-        'power_search_area_dcenterv',
-        'power_search_area_drangehz',
-        'power_search_area_drangev',
-    ] as const;
-
     const r4 = (v: number) => Number(v.toFixed(4));
 
     function initial(r: RTS | null) {
-        const tracking: Record<string, number | boolean> = { ...(r?.tracking ?? DEFAULT_TRACKING) };
-        for (const key of ANGLES) tracking[key] = r4(units.radToGon(tracking[key] as number));
         return {
             name: r?.name ?? `Station ${store.rts.length + 1}`,
             device_id: r?.device_id ?? (store.devices.length === 1 ? store.devices[0].id : ''),
@@ -62,7 +36,7 @@
             distance_std: r4(units.mToMm(r?.distance_std_dev ?? 0.001)),
             distance_ppm: r?.distance_ppm ?? 1,
             angle_std: r4(units.radToMgon(r?.angle_std_dev ?? units.mgonToRad(0.3))),
-            tracking,
+            tracking: trackingToForm(r?.tracking),
         };
     }
 
@@ -95,11 +69,6 @@
 
     async function save() {
         busy = true;
-        const tracking = { ...form.tracking } as Record<string, number | boolean>;
-        for (const key of ANGLES) tracking[key] = units.gonToRad(Number(tracking[key]));
-        for (const [key, value] of Object.entries(DEFAULT_TRACKING)) {
-            if (typeof value === 'number') tracking[key] = Number(tracking[key]);
-        }
         const data = {
             name: form.name.trim(),
             device_id: form.device_id || null,
@@ -118,7 +87,7 @@
             distance_std_dev: units.mmToM(Number(form.distance_std)),
             distance_ppm: Number(form.distance_ppm),
             angle_std_dev: units.mgonToRad(Number(form.angle_std)),
-            tracking: tracking as unknown as TrackingSettings,
+            tracking: trackingFromForm(form.tracking),
         };
         try {
             if (rts) await api.updateRts(rts.id, data);
@@ -211,29 +180,7 @@
 
         <details class="group">
             <summary class="label cursor-pointer border-b border-line pb-1 group-open:!text-fg">Tracking settings</summary>
-            <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                <Field label="Prism"><select bind:value={form.tracking.prism_type}>{#each Object.entries(PRISM_TYPES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
-                <Field label="Distance mode"><select bind:value={form.tracking.edm_measurement_mode}>{#each Object.entries(EDM_MEASUREMENT_MODES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
-                <Field label="Measurement mode"><select bind:value={form.tracking.tmc_measurement_mode}>{#each Object.entries(TMC_MEASUREMENT_MODES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
-                <Field label="Inclination"><select bind:value={form.tracking.tmc_inclination_mode}>{#each Object.entries(TMC_INCLINATION_MODES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
-                <Field label="Fine adjust mode"><select bind:value={form.tracking.fine_adjust_position_mode}>{#each Object.entries(FINE_ADJUST_POSITION_MODES) as [v, l] (v)}<option value={Number(v)}>{l}</option>{/each}</select></Field>
-                <div class="grid grid-cols-2 gap-3">
-                    <Field label="Search Hz" unit="gon"><input type="number" step="any" bind:value={form.tracking.fine_adjust_horizontal_search_range} /></Field>
-                    <Field label="Search V" unit="gon"><input type="number" step="any" bind:value={form.tracking.fine_adjust_vertical_search_range} /></Field>
-                </div>
-                <label class="flex items-center gap-2 sm:col-span-2"><input type="checkbox" bind:checked={form.tracking.power_search as boolean} /> Power search when the prism is lost</label>
-                {#if form.tracking.power_search}
-                    <div class="grid grid-cols-2 gap-3 sm:col-span-2 sm:grid-cols-4">
-                        <Field label="Min range" unit="m"><input type="number" bind:value={form.tracking.power_search_min_range} /></Field>
-                        <Field label="Max range" unit="m"><input type="number" bind:value={form.tracking.power_search_max_range} /></Field>
-                        <Field label="Area center Hz" unit="gon"><input type="number" step="any" bind:value={form.tracking.power_search_area_dcenterhz} /></Field>
-                        <Field label="Area center V" unit="gon"><input type="number" step="any" bind:value={form.tracking.power_search_area_dcenterv} /></Field>
-                        <Field label="Area width Hz" unit="gon"><input type="number" step="any" bind:value={form.tracking.power_search_area_drangehz} /></Field>
-                        <Field label="Area height V" unit="gon"><input type="number" step="any" bind:value={form.tracking.power_search_area_drangev} /></Field>
-                        <Field label="Restrict area"><select bind:value={form.tracking.power_search_area_enabled}><option value={1}>Yes</option><option value={0}>No</option></select></Field>
-                    </div>
-                {/if}
-            </div>
+            <div class="mt-3"><TrackingFields bind:tracking={form.tracking} /></div>
         </details>
 
         <details class="group">
