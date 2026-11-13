@@ -449,6 +449,68 @@ class WorkerHeartbeat(BaseModel):
 class HeartbeatAck(BaseModel):
     server_receive_time: float
     server_send_time: float
+    bluetooth_requests: list["BluetoothRequest"] = []  # for the Pi of this worker
+
+
+# ── Bluetooth ───────────────────────────────────────────────────────────
+# Requests for a Raspberry Pi (not a station): the API queues them in memory and hands them to
+# one worker of that Pi with the reply to its heartbeat; the worker reports progress and result.
+
+BLUETOOTH_ADDRESS = r"^[0-9A-F]{2}(:[0-9A-F]{2}){5}$"
+
+
+class BluetoothSeen(BaseModel):
+    """A device found by a scan."""
+
+    address: str
+    name: str | None = None
+    rssi: int | None = None  # dBm, higher is closer
+    paired: bool = False
+
+
+class BluetoothInstrument(BaseModel):
+    """An instrument that answered GeoCOM over Bluetooth (remembered for later connections)."""
+
+    address: str
+    name: str | None = None  # Bluetooth name, Leica: "TS" + serial number
+    instrument_name: str | None = None  # GeoCOM, e.g. 'MS60 1" R2000'
+    serial_number: int | None = None
+    channel: int  # RFCOMM channel of GeoCOM
+    last_device_id: str | None = None
+    last_seen: float | None = None
+
+    @property
+    def port(self) -> str:
+        return f"bt://{self.address}/{self.channel}"
+
+
+class BluetoothIdentifyRequest(BaseModel):
+    address: str = Field(pattern=BLUETOOTH_ADDRESS)
+
+
+class BluetoothRequest(BaseModel):
+    id: str
+    device_id: str
+    kind: Literal["scan", "identify"]
+    address: str | None = None  # identify: the instrument
+    channel: int | None = None  # identify: channel to try first (remembered)
+    duration: float = 10.0  # scan: s
+    status: Literal["pending", "running", "done", "failed"] = "pending"
+    worker_id: str | None = None
+    created_at: float
+    updated_at: float
+    error: str | None = None
+    found: list[BluetoothSeen] = []  # scan
+    instrument: BluetoothInstrument | None = None  # identify
+
+
+class BluetoothUpdate(BaseModel):
+    """Progress or result reported by the worker."""
+
+    status: Literal["running", "done", "failed"]
+    error: str | None = None
+    found: list[BluetoothSeen] | None = None
+    instrument: BluetoothInstrument | None = None
 
 
 class WorkerRecord(BaseModel):

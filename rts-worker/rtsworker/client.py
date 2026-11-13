@@ -122,6 +122,10 @@ class ApiClient:
         response.raise_for_status()
         return TargetPosition.model_validate(response.json())
 
+    def bluetooth_update(self, request_id: str, worker_id: str, data: dict) -> None:
+        response = self.request("POST", f"/worker/bluetooth/{request_id}", params={"worker_id": worker_id}, json=data)
+        response.raise_for_status()
+
     def heartbeat(self, body: str) -> dict:
         response = self.request(
             "POST", "/worker/heartbeat", data=body, headers={"Content-Type": "application/json"}

@@ -2,6 +2,7 @@
     // 24×24 stroke icons (Lucide style)
     const PATHS: Record<string, string> = {
         activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
+        bluetooth: 'M7 7l10 10-5 5V2l5 5L7 17',
         play: 'M6 4l14 8-14 8z',
         stop: 'M6 6h12v12H6z',
         target: 'M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20M12 6a6 6 0 1 0 0 12 6 6 0 1 0 0-12M12 10a2 2 0 1 0 0 4 2 2 0 1 0 0-4',

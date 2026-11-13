@@ -12,6 +12,7 @@ description = "Worker of the RTS Network: controls a Leica total station and upl
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "jeepney>=0.9.0",
     "pydantic>=2.10.5",
     "pyserial>=3.5",
     "requests>=2.32.3",

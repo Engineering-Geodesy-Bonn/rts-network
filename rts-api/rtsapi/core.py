@@ -9,6 +9,7 @@ import time
 from rtsapi import __version__, legacy, repo
 from rtsapi import models as m
 from rtsapi.config import Settings
+from rtsapi.bluetooth import BluetoothService
 from rtsapi.db import Database
 from rtsapi.hub import Hub
 from rtsapi.ingest import Ingest
@@ -38,6 +39,7 @@ class Core:
         self.sensors = SensorLive()
         self.jobs = JobManager(self.db, self.hub, settings, on_change=self._job_changed_threadsafe)
         self.workers: dict[str, m.WorkerRecord] = {}
+        self.bluetooth = BluetoothService(self.db)
         self._stations: dict[str, Station] = {}
         self._device_touch: dict[tuple[str, str | None], tuple[str, float]] = {}
         self._external: dict[str, tuple[str, bool, float]] = {}  # ip -> id, logging_active, last touch
@@ -188,11 +190,13 @@ class Core:
         self._device_touch[key] = (device_id, now)
         return device_id
 
-    def heartbeat(self, ip: str, received_at: float, heartbeat: m.WorkerHeartbeat) -> None:
+    def heartbeat(self, ip: str, received_at: float, heartbeat: m.WorkerHeartbeat) -> list[m.BluetoothRequest]:
+        """Stores the heartbeat; returns the Bluetooth requests this worker should run."""
         device_id = self.device_for(ip, heartbeat.system.hostname)
         self.workers[heartbeat.worker_id] = m.WorkerRecord(
             ip=ip, device_id=device_id, received_at=received_at, heartbeat=heartbeat
         )
+        return self.bluetooth.take(device_id, heartbeat.worker_id)
 
     # ── external sensors ───────────────────────────────────────────────
 

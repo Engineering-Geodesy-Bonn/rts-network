@@ -23,7 +23,7 @@ import subprocess
 import threading
 import time
 
-from rtsworker import config
+from rtsworker import btrequests, config
 from rtsworker.state import STATE
 
 logger = logging.getLogger(__name__)
@@ -291,6 +291,8 @@ class HeartbeatSender:
             "measured_at": t3,
         }
         self._samples = (self._samples + [sample])[-CLOCK_SAMPLE_WINDOW:]
+        if ack.get("bluetooth_requests"):
+            btrequests.start(self.client, ack["bluetooth_requests"])
 
     def _run(self) -> None:
         while True:

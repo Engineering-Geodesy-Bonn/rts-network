@@ -26,8 +26,8 @@ router = APIRouter(prefix="/worker", tags=["Worker"])
 @router.post("/heartbeat", response_model=m.HeartbeatAck, summary="Report worker health (doubles as clock comparison).")
 async def heartbeat(request: Request, data: m.WorkerHeartbeat, core: Core = Depends(get_core)) -> m.HeartbeatAck:
     received_at = request.scope.get("state", {}).get("received_at") or time.time()
-    await asyncio.to_thread(core.heartbeat, client_ip(request), received_at, data)
-    return m.HeartbeatAck(server_receive_time=received_at, server_send_time=time.time())
+    requests = await asyncio.to_thread(core.heartbeat, client_ip(request), received_at, data)
+    return m.HeartbeatAck(server_receive_time=received_at, server_send_time=time.time(), bluetooth_requests=requests)
 
 
 @router.get("/workers", response_model=list[m.WorkerRecord], summary="Latest heartbeat of every worker.")
@@ -65,6 +65,11 @@ def instrument_report(rts_id: str, data: m.InstrumentReport, core: Core = Depend
     record = m.InstrumentReportRecord(**data.model_dump(), received_at=time.time())
     repo.set_instrument_report(core.db, rts_id, record)
     core.hub.changed("rts", rts_id)
+
+
+@router.post("/bluetooth/{request_id}", status_code=204, summary="Report progress or result of a Bluetooth request.")
+def bluetooth_update(request_id: str, worker_id: str, data: m.BluetoothUpdate, core: Core = Depends(get_core)) -> None:
+    core.bluetooth.update(request_id, worker_id, data)
 
 
 @router.websocket("/stream")

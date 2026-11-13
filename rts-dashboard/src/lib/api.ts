@@ -1,4 +1,6 @@
 import type {
+    BluetoothInstrument,
+    BluetoothRequest,
     Device,
     ExternalSensor,
     Job,
@@ -112,6 +114,13 @@ export const api = {
     devices: () => request<Device[]>('/devices'),
     updateDevice: (id: string, name: string | null) => request<Device>(`/devices/${id}`, json('PATCH', { name })),
     deleteDevice: (id: string) => request<void>(`/devices/${id}`, { method: 'DELETE' }),
+
+    bluetoothScan: (deviceId: string) => request<BluetoothRequest>(`/devices/${deviceId}/bluetooth/scan`, json('POST')),
+    bluetoothIdentify: (deviceId: string, address: string) =>
+        request<BluetoothRequest>(`/devices/${deviceId}/bluetooth/identify`, json('POST', { address })),
+    bluetoothRequest: (id: string) => request<BluetoothRequest>(`/bluetooth/requests/${id}`),
+    bluetoothInstruments: () => request<BluetoothInstrument[]>('/bluetooth/instruments'),
+    forgetBluetoothInstrument: (address: string) => request<void>(`/bluetooth/instruments/${address}`, { method: 'DELETE' }),
 
     rtsList: (sessionId: string) => request<RTS[]>(`/rts${query({ session_id: sessionId })}`),
     createRts: (data: RTSConfig & { session_id: string; device_id: string | null; tracking?: TrackingSettings }) =>

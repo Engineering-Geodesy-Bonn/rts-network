@@ -20,8 +20,6 @@ import socket
 import sys
 import time
 
-from rtsworker.pygeocom import decode_string
-
 logger = logging.getLogger(__name__)
 
 PREFIX = "bt://"
@@ -136,37 +134,45 @@ def connect(address: str, channel: int, timeout: float, attempts: int = CONNECT_
     raise ConnectionError(_describe(last, address, channel)) from last
 
 
-def probe(address: str, channels=range(1, 31)) -> list[tuple[int, str]]:
-    """Channels answering a GeoCOM request, with the instrument name they reported."""
-    found = []
-    for channel in channels:
+LEICA_CHANNEL = 11  # "TS Bluetooth 1" of Captivate instruments
+_UNREACHABLE = (errno.EHOSTDOWN, errno.EHOSTUNREACH, errno.EACCES)
+
+
+def channel_order(first: int | None = None) -> list[int]:
+    """The remembered channel, then Leica's, then all others."""
+    order = [c for c in (first, LEICA_CHANNEL) if c]
+    return order + [c for c in range(1, 31) if c not in order]
+
+
+def identify(address: str, first_channel: int | None = None, log=print) -> dict | None:
+    """Finds the RFCOMM channel that answers GeoCOM. Returns the instrument (channel, GeoCOM
+    name, serial number) or None. Raises ConnectionError if the instrument is not reachable."""
+    from rtsworker.pygeocom import PyGeoCom  # the channel helper also runs without the worker dependencies
+
+    for channel in channel_order(first_channel):
         try:
             stream = connect(address, channel, timeout=3.0, attempts=1)
         except ConnectionError as e:
             cause = e.__cause__
-            print(f"channel {channel:2d}: {cause.strerror if isinstance(cause, OSError) and cause.strerror else e}")
-            if isinstance(cause, TimeoutError) or getattr(cause, "errno", None) in (errno.EHOSTDOWN, errno.EHOSTUNREACH, errno.EACCES):
-                print(str(e))  # the instrument itself is not reachable: no use trying the other channels
-                break
+            if isinstance(cause, TimeoutError) or getattr(cause, "errno", None) in _UNREACHABLE:
+                raise  # the instrument itself is not reachable: no use trying the other channels
+            log(f"channel {channel:2d}: {cause.strerror if isinstance(cause, OSError) and cause.strerror else e}")
             continue
         try:
             stream.reset_input_buffer()
-            stream.write(b"\n%R1Q,5004:\r\n")  # CSV_GetInstrumentName
-            answer = b""
-            deadline = time.time() + 3.0
-            while b"\n" not in answer and time.time() < deadline:
-                answer += stream.read(1)
-            if answer.startswith(b"%R1P"):
-                name = decode_string(answer.strip().split(b",", 3)[-1])
-                print(f"channel {channel:2d}: GeoCOM, instrument {name}")
-                found.append((channel, name))
-            else:
-                print(f"channel {channel:2d}: connected, but no GeoCOM answer ({answer[:40]!r})")
-        except OSError as e:
-            print(f"channel {channel:2d}: {e!r}")
+            geocom = PyGeoCom(stream)
+            name = geocom.get_instrument_name()
+            try:
+                serial = geocom.get_instrument_number()
+            except Exception:
+                serial = None
+            log(f"channel {channel:2d}: GeoCOM, instrument {name}")
+            return {"address": address, "channel": channel, "instrument_name": name, "serial_number": serial}
+        except Exception as e:  # connected, but no (valid) GeoCOM answer: another service
+            log(f"channel {channel:2d}: connected, but no GeoCOM answer ({e!r})")
         finally:
             stream.close()
-    return found
+    return None
 
 
 def main(argv: list[str]) -> int:
@@ -175,11 +181,15 @@ def main(argv: list[str]) -> int:
         return 2
     logging.basicConfig(level=logging.ERROR)
     address, _ = parse_port(PREFIX + argv[0])
-    found = probe(address)
-    if not found:
-        print("No channel answered GeoCOM. Is the instrument paired, switched on and is GeoCOM set to Bluetooth?")
+    try:
+        found = identify(address)
+    except ConnectionError as e:
+        print(e)
         return 1
-    print(f"\nUse the port bt://{address}/{found[0][0]} for this instrument.")
+    if found is None:
+        print("No channel answered GeoCOM. Is the instrument switched on and is GeoCOM set to Bluetooth?")
+        return 1
+    print(f"\nUse the port bt://{address}/{found['channel']} for this instrument.")
     return 0
 
 

@@ -35,6 +35,35 @@ export interface Device {
     last_seen: number | null;
 }
 
+export interface BluetoothSeen {
+    address: string;
+    name: string | null;
+    rssi: number | null;
+    paired: boolean;
+}
+
+/** An instrument that answered GeoCOM over Bluetooth before (remembered by the API). */
+export interface BluetoothInstrument {
+    address: string;
+    name: string | null;
+    instrument_name: string | null;
+    serial_number: number | null;
+    channel: number;
+    last_device_id: string | null;
+    last_seen: number | null;
+}
+
+export interface BluetoothRequest {
+    id: string;
+    device_id: string;
+    kind: 'scan' | 'identify';
+    address: string | null;
+    status: 'pending' | 'running' | 'done' | 'failed';
+    error: string | null;
+    found: BluetoothSeen[];
+    instrument: BluetoothInstrument | null;
+}
+
 export interface TrackingSettings {
     tmc_measurement_mode: number;
     tmc_inclination_mode: number;

@@ -5,7 +5,8 @@
     import { EDM_MEASUREMENT_MODES, FINE_ADJUST_POSITION_MODES, INTERNAL_DELAYS, PRISM_TYPES, TMC_INCLINATION_MODES, TMC_MEASUREMENT_MODES, units } from '../format';
     import { store } from '../store.svelte';
     import { toast } from '../toast.svelte';
-    import type { RTS, TrackingSettings } from '../types';
+    import type { BluetoothInstrument, RTS, TrackingSettings } from '../types';
+    import BluetoothPicker from './BluetoothPicker.svelte';
     import Button from './ui/Button.svelte';
     import Field from './ui/Field.svelte';
     import Modal from './ui/Modal.svelte';
@@ -67,10 +68,26 @@
 
     let form = $state(initial(null));
     let busy = $state(false);
+    let bluetooth = $state(false);
 
     $effect(() => {
-        if (open) form = initial(rts);
+        if (open) {
+            form = initial(rts);
+            bluetooth = false;
+        }
     });
+
+    /** Port, instrument delay and (for a new station with the default name) the name from the instrument. */
+    function pickBluetooth(instrument: BluetoothInstrument) {
+        form.port = `bt://${instrument.address}/${instrument.channel}`;
+        const model = Object.keys(INTERNAL_DELAYS).find((m) => instrument.instrument_name?.startsWith(m));
+        if (model) form.internal_delay = r4(INTERNAL_DELAYS[model] * 1000);
+        if (!rts && /^Station \d+$/.test(form.name) && model) {
+            form.name = instrument.serial_number ? `${model} ${instrument.serial_number}` : model;
+        }
+        bluetooth = false;
+        toast.ok(`${instrument.instrument_name ?? instrument.address} connected on channel ${instrument.channel}`);
+    }
 
     let model = $derived(Object.entries(INTERNAL_DELAYS).find(([, d]) => Math.abs(d * 1000 - Number(form.internal_delay)) < 1e-6)?.[0] ?? '');
 
@@ -145,13 +162,24 @@
                     {#each store.devices as d (d.id)}<option value={d.id}>{d.name || d.hostname || d.ip}</option>{/each}
                 </select>
             </Field>
-            <Field label="Port" hint="Serial port, bt://<address>/<channel> for Bluetooth SPP, or sim://name to simulate an instrument.">
-                <input bind:value={form.port} list="station-ports" />
+            <Field label="Port" hint="Serial port, bt://address/channel for Bluetooth, or sim://name to simulate an instrument.">
+                <div class="flex gap-2">
+                    <input class="min-w-0 flex-1" bind:value={form.port} list="station-ports" />
+                    <Button icon="bluetooth" disabled={!form.device_id} title={form.device_id ? 'Find a Bluetooth instrument near this Raspberry Pi' : 'Choose the Raspberry Pi first'}
+                        onclick={(e) => { e.preventDefault(); bluetooth = !bluetooth; }}>Bluetooth</Button>
+                </div>
                 <datalist id="station-ports">{#each ports as p (p)}<option value={p}></option>{/each}</datalist>
             </Field>
-            <Field label="Baud rate">
-                <select bind:value={form.baudrate}>{#each [9600, 19200, 38400, 57600, 115200] as b (b)}<option value={b}>{b}</option>{/each}</select>
-            </Field>
+            {#if !form.port.startsWith('bt://')}
+                <Field label="Baud rate">
+                    <select bind:value={form.baudrate}>{#each [9600, 19200, 38400, 57600, 115200] as b (b)}<option value={b}>{b}</option>{/each}</select>
+                </Field>
+            {/if}
+            {#if bluetooth && form.device_id}
+                {#key form.device_id}
+                    <div class="sm:col-span-2"><BluetoothPicker deviceId={form.device_id} currentPort={form.port} onpick={pickBluetooth} /></div>
+                {/key}
+            {/if}
         </section>
 
         <section>

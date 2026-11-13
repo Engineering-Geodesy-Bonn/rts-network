@@ -116,4 +116,16 @@ MIGRATIONS: list[list[str]] = [
         )""",
         "CREATE INDEX ix_external_measurements_sensor ON external_measurements (sensor_id, t)",
     ],
+    # 2: instruments that answered GeoCOM over Bluetooth
+    [
+        """CREATE TABLE bluetooth_instruments (
+            address TEXT PRIMARY KEY,
+            name TEXT,
+            instrument_name TEXT,
+            serial_number INTEGER,
+            channel INTEGER NOT NULL,
+            last_device_id TEXT REFERENCES devices(id) ON DELETE SET NULL,
+            last_seen REAL
+        )""",
+    ],
 ]

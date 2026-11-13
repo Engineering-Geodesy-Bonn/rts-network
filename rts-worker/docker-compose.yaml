@@ -8,6 +8,8 @@ services:
       - MEASUREMENT_LOG_DIR=/data/measurements
     volumes:
       - ./measurements:/data/measurements
+      # Bluetooth service of the host, to scan for instruments from the dashboard
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
     # Host networking so the API fallback scan sees the real LAN instead of the Docker bridge subnet;
     # also required for Bluetooth instruments (RFCOMM sockets only work in the host network namespace)
     network_mode: host
