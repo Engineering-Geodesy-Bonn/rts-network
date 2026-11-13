@@ -1,6 +1,6 @@
 # RTS Dashboard Android App
 
-Android app (Android 10+) to control measurements from a phone in the field. It connects to the Wi-Fi of the field router (e.g. a TP-Link travel router) that the Raspberry Pi running the RTS API and dashboard is connected to, and shows the dashboard.
+Android app (Android 10+, built for Android 17) to control measurements from a phone in the field. It connects to the Wi-Fi of the field router (e.g. a TP-Link travel router) that the Raspberry Pi running the RTS API and dashboard is connected to, and shows the dashboard.
 
 ## How it works
 
@@ -9,24 +9,35 @@ The router has no internet access. A phone that joins such a network normally ma
 - Android asks once to confirm the connection ("Device to use with RTS Dashboard"). On Android 11+ later connections are approved automatically.
 - Only the app uses the router Wi-Fi. All other apps keep using mobile data.
 - If the connection is lost, the app reconnects automatically when the router is back in range.
-- CSV downloads from the dashboard are saved to `Downloads/RTS`.
+- On Android 17+ the app asks once for access to devices on the local network ("Nearby devices"); without it Android blocks the connection to the Raspberry Pi.
+- CSV and ZIP downloads from the dashboard are saved to `Downloads/RTS`.
+- The app follows the light or dark mode of the phone, like the dashboard.
 
-Press the back button to reload the dashboard, change the settings, or exit.
+Swipe back to go back in the dashboard; on its first page this opens a menu to reload the dashboard, change the settings, or exit.
 
 ## Setup
 
 1. Connect the Raspberry Pi to the router and give it a fixed IP address (DHCP reservation in the router settings). The default dashboard URL is `http://192.168.0.101:8050`.
 2. Install the APK on the phone (allow installing from unknown sources).
-3. On first start, enter the router Wi-Fi name and password. The dashboard URL can be changed in the same dialog.
+3. On first start, enter the router Wi-Fi name and password. The dashboard URL can be changed on the same screen.
 
-If the phone is already connected to the same network as the dashboard (e.g. in the office), uncheck "Connect to router Wi-Fi" in the settings.
+If the phone is already connected to the same network as the dashboard (e.g. in the office), turn off "Connect to router Wi-Fi" in the settings.
 
 ## Building
 
-The project uses only the Android platform APIs (no AndroidX), plain Java and the Android Gradle plugin.
+Kotlin with Jetpack Compose and Material 3; the dashboard itself is shown in a WebView. The sources are in `app/src/main/kotlin`:
+
+| File | |
+|---|---|
+| `MainActivity.kt` | Entry point, edge-to-edge window |
+| `DashboardViewModel.kt` | Connection state: settings, permission, Wi-Fi, page load |
+| `RouterWifi.kt` | Requests the router as local-only Wi-Fi and binds the app to it |
+| `DownloadBridge.kt` | `window.RTSAndroid` for the downloads of the dashboard |
+| `Settings.kt` | Settings, stored in SharedPreferences |
+| `ui/` | Compose screens (status, settings, menu) and the theme with the colors of the dashboard |
 
 - **GitHub Actions:** every push that changes `rts-android/` builds the APK. Download it from the `rts-dashboard-apk` artifact of the workflow run.
-- **Android Studio:** open the `rts-android` folder and run the app, or build with `gradle assembleRelease` (Gradle 9.6+ and JDK 17).
+- **Android Studio:** open the `rts-android` folder and run the app, or build with `gradle assembleRelease` (Gradle 9.6+, JDK 17+ and the Android SDK with platform 37).
 
 ### Signing
 

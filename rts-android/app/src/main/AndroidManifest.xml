@@ -9,16 +9,18 @@
     <!-- Android 17+: needed to reach the dashboard on the router network -->
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
+    <!-- usesCleartextTraffic: the dashboard runs on a Raspberry Pi in the local network, without HTTPS -->
     <application
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
 
-        <!-- configChanges: keep the Wi-Fi connection and dashboard state on rotation -->
+        <!-- configChanges: keep the Wi-Fi connection and the dashboard on rotation and light/dark switches -->
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

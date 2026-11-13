@@ -2,27 +2,39 @@
 <resources>
     <string name="app_name">RTS Dashboard</string>
     <string name="retry">Retry</string>
+    <string name="close">Close</string>
+    <string name="open_app_settings">Open app settings</string>
+
     <string name="settings_title">Settings</string>
     <string name="settings_connect">Save &amp; connect</string>
     <string name="settings_connect_wifi">Connect to router Wi-Fi</string>
+    <string name="settings_connect_wifi_hint">Only this app uses the router Wi-Fi; the phone keeps using mobile data for everything else. Turn off if the phone is already in the network of the dashboard.</string>
     <string name="settings_ssid">Router Wi-Fi name (SSID)</string>
     <string name="settings_passphrase">Wi-Fi password</string>
     <string name="settings_url">Dashboard URL</string>
-    <string name="settings_hint">The router Wi-Fi is used only by this app, so the phone keeps using mobile data for everything else. Uncheck \"Connect to router Wi-Fi\" if the phone is already in the same network as the dashboard.</string>
-    <string name="status_not_configured">Enter the Wi-Fi of the field router in the settings.</string>
-    <string name="status_connecting">Connecting to Wi-Fi \"%1$s\"…\n\nConfirm the connection if Android asks.</string>
-    <string name="status_loading">Loading dashboard from %1$s…</string>
-    <string name="status_lost">Connection to \"%1$s\" lost.\nReconnecting as soon as the router is back in range…</string>
-    <string name="status_unavailable">Could not connect to \"%1$s\".\n\nCheck that the router is on, in range, and that Wi-Fi name and password are correct.</string>
-    <string name="status_dashboard_unreachable">Dashboard not reachable at %1$s\n(%2$s)\n\nCheck that the Raspberry Pi is running and the URL is correct.</string>
-    <string name="status_local_network_denied">The app needs access to devices on the local network to reach the dashboard.
+    <string name="settings_url_hint">Address of the Raspberry Pi with the dashboard, e.g. %1$s</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
 
-Allow \"Nearby devices\" for RTS Dashboard in the Android app settings.</string>
+    <string name="status_not_configured_title">Set up the connection</string>
+    <string name="status_not_configured">Enter the Wi-Fi of the field router in the settings.</string>
+    <string name="status_permission_title">Access to the local network</string>
+    <string name="status_permission">Allow access to devices on the local network, so that the app can reach the dashboard.</string>
+    <string name="status_permission_denied_title">No access to the local network</string>
+    <string name="status_permission_denied">The app needs access to devices on the local network to reach the dashboard. Allow \"Nearby devices\" in the app settings.</string>
+    <string name="status_connecting_title">Connecting to \"%1$s\"</string>
+    <string name="status_connecting">Confirm the connection if Android asks.</string>
+    <string name="status_lost_title">Connection to \"%1$s\" lost</string>
+    <string name="status_lost">Reconnecting as soon as the router is back in range…</string>
+    <string name="status_unavailable_title">Could not connect to \"%1$s\"</string>
+    <string name="status_unavailable">Check that the router is on and in range, and that Wi-Fi name and password are correct.</string>
+    <string name="status_loading_title">Loading dashboard</string>
+    <string name="status_unreachable_title">Dashboard not reachable</string>
+    <string name="status_unreachable">%1$s\n(%2$s)\n\nCheck that the Raspberry Pi is running and the URL is correct.</string>
+
+    <string name="menu_reload">Reload dashboard</string>
+    <string name="menu_exit">Exit</string>
+
     <string name="download_saved">Saved to Downloads/RTS/%1$s</string>
     <string name="download_failed">Could not save %1$s</string>
-    <string-array name="menu_items">
-        <item>Reload dashboard</item>
-        <item>Settings</item>
-        <item>Exit</item>
-    </string-array>
 </resources>

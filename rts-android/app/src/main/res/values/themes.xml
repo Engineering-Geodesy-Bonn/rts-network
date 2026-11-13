@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
-        <item name="android:colorPrimary">@color/header</item>
-        <item name="android:colorAccent">@color/accent</item>
-        <!-- Only used up to Android 14; from Android 15 the app draws behind the system bars -->
-        <item name="android:statusBarColor">@color/header</item>
-        <item name="android:navigationBarColor">@color/header</item>
-        <item name="android:windowBackground">@color/background</item>
+    <!--
+        Only the window itself; everything else is drawn by Compose (ui/Theme.kt).
+        DayNight, so that the WebView reports the light or dark mode of the system to the dashboard.
+    -->
+    <style name="AppTheme" parent="android:Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/bar</item>
     </style>
 </resources>
