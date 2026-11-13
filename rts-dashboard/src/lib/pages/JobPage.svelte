@@ -15,7 +15,7 @@
     import { href, navigate } from '../router.svelte';
     import { store } from '../store.svelte';
     import { toast } from '../toast.svelte';
-    import type { Job } from '../types';
+    import type { Job, RTS } from '../types';
     import { ACTIVE_STATUSES, MEASURING_TYPES, TRACKING_TYPES } from '../types';
 
     let { jobId }: { jobId: string } = $props();
@@ -43,7 +43,15 @@
     let isLive = $derived(!!job && active && TRACKING_TYPES.includes(job.type));
     let measured = $derived(!!job && MEASURING_TYPES.includes(job.type));
     let series = $derived(job && measured && (job.count > 0 || isLive) ? live.get(job, isLive) : undefined);
-    let rts = $derived(store.rtsById(job?.rts_id));
+    // A removed station is not in the store, but its jobs still have their measurements
+    let removedRts = $state<RTS | null>(null);
+    $effect(() => {
+        const id = job?.rts_id;
+        if (!id || store.rtsById(id) || removedRts?.id === id) return;
+        api.rts(id).then((r) => (removedRts = r)).catch(() => {});
+    });
+    let rts = $derived(store.rtsById(job?.rts_id) ?? (removedRts && removedRts.id === job?.rts_id ? removedRts : undefined));
+    let removed = $derived(!!rts && !store.rtsById(rts.id));
     // What the job ran with; the current station settings only for jobs without a record
     let used = $derived(job?.settings ?? rts ?? null);
     let color = $derived(rtsColor(Math.max(0, store.rtsIndex(job?.rts_id))));
@@ -132,7 +140,7 @@
     <div class="space-y-3">
         <div class="flex flex-wrap items-center gap-3">
             <span class="h-6 w-1 rounded-sm" style="background: {color}"></span>
-            <h1 class="text-[17px] font-semibold">{rts?.name ?? 'Removed station'} · {JOB_TYPE_LABEL[job.type]}</h1>
+            <h1 class="text-[17px] font-semibold">{rts ? `${rts.name}${removed ? ' (removed)' : ''}` : 'Removed station'} · {JOB_TYPE_LABEL[job.type]}</h1>
             <Tag tone={job.status === 'running' ? 'good' : job.status === 'failed' || job.status === 'lost' ? 'bad' : job.status === 'interrupted' ? 'warn' : 'neutral'} text={JOB_STATUS_LABEL[job.status]} />
             <span class="ml-auto flex flex-wrap gap-2">
                 {#if active}<Button variant="stop" icon="stop" onclick={() => store.stopJob(job!)}>Stop</Button>{/if}
@@ -185,7 +193,7 @@
             </PlotPanel>
         {/if}
 
-        {#if !active && TRACKING_TYPES.includes(job.type) && job.count >= 30}
+        {#if !active && !removed && TRACKING_TYPES.includes(job.type) && job.count >= 30}
             <DelayCalibration {job} {rts} />
         {/if}
 

@@ -123,6 +123,8 @@ export const api = {
     forgetBluetoothInstrument: (address: string) => request<void>(`/bluetooth/instruments/${address}`, { method: 'DELETE' }),
 
     rtsList: (sessionId: string) => request<RTS[]>(`/rts${query({ session_id: sessionId })}`),
+    /** Also a removed station (its jobs keep their data). */
+    rts: (id: string) => request<RTS>(`/rts/${id}`),
     createRts: (data: RTSConfig & { session_id: string; device_id: string | null; tracking?: TrackingSettings }) =>
         request<RTS>('/rts', json('POST', data)),
     updateRts: (id: string, data: Partial<RTSConfig> & { device_id?: string | null; tracking?: TrackingSettings }) =>
