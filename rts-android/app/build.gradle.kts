@@ -14,17 +14,29 @@ android {
         versionName = "1.1"
     }
 
+    // Release key from the environment (GitHub secrets in CI). It must never be committed:
+    // anyone who has it can publish APKs that install as updates of this app.
+    val releaseKeystore = System.getenv("RTS_KEYSTORE_FILE")
+
     signingConfigs {
-        // Shared debug key so APKs from CI and local builds can update each other.
+        // Debug key for local test builds only (it is public, as the repository is)
         getByName("debug") {
             storeFile = file("debug.keystore")
+        }
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("RTS_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RTS_KEY_ALIAS")
+                keyPassword = System.getenv("RTS_KEY_PASSWORD") ?: System.getenv("RTS_KEYSTORE_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
         }
     }
 

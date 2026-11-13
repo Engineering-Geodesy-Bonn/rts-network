@@ -4,3 +4,8 @@ app/build/
 local.properties
 .idea/
 *.iml
+
+# Release signing keys never belong in the repository
+*.p12
+*.jks
+!app/debug.keystore

@@ -22,8 +22,21 @@ jobs:
         with:
           gradle-version: "9.9.1"
 
+      # Signed with the private release key from the repository secrets. Without them (e.g. in
+      # forks) the APK is signed with the public debug key and cannot update the released app.
       - name: Build APK
-        run: gradle -p rts-android assembleRelease
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RTS_KEYSTORE_BASE64 }}
+          RTS_KEYSTORE_PASSWORD: ${{ secrets.RTS_KEYSTORE_PASSWORD }}
+          RTS_KEY_ALIAS: ${{ secrets.RTS_KEY_ALIAS }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.p12"
+            export RTS_KEYSTORE_FILE="$RUNNER_TEMP/release.p12"
+          else
+            echo "::warning::No release key in the secrets: the APK is signed with the public debug key."
+          fi
+          gradle -p rts-android assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:

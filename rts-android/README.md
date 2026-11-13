@@ -28,4 +28,12 @@ The project uses only the Android platform APIs (no AndroidX), plain Java and th
 - **GitHub Actions:** every push that changes `rts-android/` builds the APK. Download it from the `rts-dashboard-apk` artifact of the workflow run.
 - **Android Studio:** open the `rts-android` folder and run the app, or build with `gradle assembleRelease` (Gradle 9.6+ and JDK 17).
 
-Both builds are signed with the committed `app/debug.keystore`, so APKs from different machines can be installed over each other. It is a debug key and not meant for publishing the app in an app store.
+### Signing
+
+APKs from GitHub Actions are signed with the private release key of the app, which is stored only in the repository secrets `RTS_KEYSTORE_BASE64` (the PKCS12 file, base64 encoded), `RTS_KEYSTORE_PASSWORD` and `RTS_KEY_ALIAS`. Android only installs updates signed with the same key, so keep a copy of the key outside GitHub: if it is lost, the app has to be uninstalled before a new build can be installed.
+
+Local builds without these environment variables (`RTS_KEYSTORE_FILE`, `RTS_KEYSTORE_PASSWORD`, `RTS_KEY_ALIAS`) are signed with `app/debug.keystore`. That key is public like the repository, so such APKs are for testing only. They cannot update an installed release APK, and Google Play Protect may warn about them.
+
+### Google Play Protect
+
+Play Protect may warn about an app installed from outside the Play Store that it does not know yet. If it does, choose *More details > Install anyway* and send the app for scanning when asked. A newly released version can also be submitted to Google for review via the Play Protect appeals form.
