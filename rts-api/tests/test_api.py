@@ -427,3 +427,40 @@ def test_job_records_the_settings_it_ran_with(client, setup):
     exported = json.loads(archive.read(name))
     assert exported["settings_used"]["tracking"]["prism_type"] == 7
     assert exported["current_station_settings"]["tracking"]["prism_type"] == 3
+
+
+def test_target_position_is_kept_after_tracking_and_restart(settings, client, setup):
+    from fastapi.testclient import TestClient
+
+    from rtsapi.app import create_app
+
+    assert client.get("/target").status_code == 404
+    job_id = start_tracking(client, setup["rts"]["id"])
+    client.post("/worker/measurements", json={"job_id": job_id, "rows": rows(0, 10)})
+    target = client.get("/target").json()
+    assert target["rts_id"] == setup["rts"]["id"] and target["timestamp"] == rows(9, 1)[0][1]
+    client.post("/worker/measurements", json={"job_id": job_id, "rows": rows(10, 2, t0=0.0)})  # older times
+    assert client.get("/target").json() == target
+
+    client.post(f"/worker/jobs/{job_id}/complete", params={"worker_id": "w1"}, json={"status": "finished"})
+    assert client.get("/target").json() == target  # tracking ended
+    client.__exit__(None, None, None)  # stops the API, which saves the position
+    with TestClient(create_app(settings)) as restarted:
+        assert restarted.get("/target").json() == target
+
+
+def test_target_position_from_database_on_first_start(settings, client, setup):
+    from fastapi.testclient import TestClient
+
+    import sqlite3
+
+    from rtsapi.app import create_app
+
+    job_id = start_tracking(client, setup["rts"]["id"])
+    client.post("/worker/measurements", json={"job_id": job_id, "rows": rows(0, 10)})
+    target = client.get("/target").json()
+    client.__exit__(None, None, None)
+    with sqlite3.connect(settings.db_path) as db:  # as after an update from a version without it
+        assert db.execute("DELETE FROM meta WHERE key = 'last_target'").rowcount == 1
+    with TestClient(create_app(settings)) as restarted:
+        assert restarted.get("/target").json() == target

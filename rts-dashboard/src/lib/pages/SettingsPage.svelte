@@ -6,6 +6,7 @@
     import Icon from '../components/ui/Icon.svelte';
     import Segmented from '../components/ui/Segmented.svelte';
     import { events } from '../events.svelte';
+    import { backFromSettings } from '../router.svelte';
     import { fmtBytes, fmtCount, fmtDateTime } from '../format';
     import { theme, type Theme } from '../theme.svelte';
     import { toast } from '../toast.svelte';
@@ -40,7 +41,7 @@
 </script>
 
 <main class="mx-auto max-w-2xl px-4 pt-[max(2rem,env(safe-area-inset-top))] pb-16">
-    <button class="mb-6 inline-flex items-center gap-1 text-muted hover:text-fg" onclick={() => history.back()}><Icon name="chevronLeft" size={18} /> Back</button>
+    <a class="mb-6 inline-flex items-center gap-1 text-muted hover:text-fg" href={backFromSettings()}><Icon name="chevronLeft" size={18} /> Back</a>
     <h1 class="mb-5 text-[17px] font-semibold">Settings</h1>
 
     <div class="panel space-y-6 p-4">

@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import math
 import os
 import time
 
@@ -14,7 +15,7 @@ from rtsapi.db import Database
 from rtsapi.hub import Hub
 from rtsapi.ingest import Ingest
 from rtsapi.jobs import JobManager
-from rtsapi.live import LiveStore, Station
+from rtsapi.live import LiveStore, Station, polar_to_xyz
 from rtsapi.sensors import SensorLive
 from rtsapi.health import HealthInput, evaluate, prune_stale_workers
 from rtsapi.sync import SyncService
@@ -24,6 +25,8 @@ logger = logging.getLogger(__name__)
 DEVICE_TOUCH_INTERVAL = 5.0  # s between last_seen updates of a device
 EXTERNAL_TOUCH_INTERVAL = 2.0
 HEALTH_CACHE_AGE = 1.5  # s a computed result is reused for REST requests
+LAST_TARGET_KEY = "last_target"
+LAST_TARGET_SAVE_INTERVAL = 1.0  # s between writes of the last target position
 
 
 class Core:
@@ -47,6 +50,10 @@ class Core:
         self._tasks: list[asyncio.Task] = []
         self.loop: asyncio.AbstractEventLoop | None = None
         self.legacy_import: dict | None = None
+        # Last measured target position of any job, kept across jobs and restarts ("turn to target")
+        stored_target = repo.get_meta(self.db, LAST_TARGET_KEY)
+        self._last_target = m.TargetPosition.model_validate_json(stored_target) if stored_target else self._target_from_database()
+        self._last_target_saved = 0.0
         # Import the v1 database once. Without a stored report the import did not complete
         # (e.g. the server was stopped during it): it is idempotent, so it simply runs again.
         if repo.get_meta(self.db, "legacy_import") is None:
@@ -86,6 +93,8 @@ class Core:
         for task in self._tasks:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
+        if self._last_target is not None:
+            await asyncio.to_thread(repo.set_meta, self.db, LAST_TARGET_KEY, self._last_target.model_dump_json())
         await asyncio.to_thread(self.db.close)
 
     async def _every(self, interval: float, fn) -> None:
@@ -167,14 +176,53 @@ class Core:
             station = self._stations.get(info.rts_id) or await asyncio.to_thread(self.station, info.rts_id)
             points = self.live.add(info.id, info.rts_id, info.session_id, station, new_rows, total)
             self.sync.feed_rts(info.rts_id, points)
+            self._remember_target(info.rts_id, points)
         return result
 
-    def target_position(self) -> m.TargetPosition | None:
-        latest = self.live.latest()
-        if latest is None:
+    def _remember_target(self, rts_id: str, points) -> None:
+        """Keeps the newest measured position (a late backlog upload does not replace a newer one)."""
+        valid = [p for p in points if p.d > 0 and math.isfinite(p.x) and math.isfinite(p.y) and math.isfinite(p.z)]
+        if not valid:
+            return
+        point = max(valid, key=lambda p: p.t)
+        if self._last_target is not None and point.t <= self._last_target.timestamp:
+            return
+        target = m.TargetPosition(x=point.x, y=point.y, z=point.z, timestamp=point.t, rts_id=rts_id)
+        self._last_target = target
+        now = time.monotonic()
+        if now - self._last_target_saved >= LAST_TARGET_SAVE_INTERVAL:
+            self._last_target_saved = now
+            self._save_target(target)
+
+    def _target_from_database(self) -> m.TargetPosition | None:
+        """Last measured point of the most recent job with a distance (first start, nothing remembered)."""
+        try:
+            row = self.db.query_one(
+                """SELECT j.rts_id, ms.t, ms.d, ms.hz, ms.v FROM jobs j
+                   JOIN measurements ms ON ms.job_no = j.no
+                   WHERE j.deleted = 0 AND j.no = (
+                       SELECT no FROM jobs WHERE deleted = 0 AND count > 0 AND last_t IS NOT NULL ORDER BY last_t DESC LIMIT 1)
+                     AND ms.d > 0
+                   ORDER BY ms.seq DESC LIMIT 1"""
+            )
+            if row is None:
+                return None
+            x, y, z = polar_to_xyz(self.station(row["rts_id"]), row["d"], row["hz"], row["v"])
+            return m.TargetPosition(x=x, y=y, z=z, timestamp=row["t"], rts_id=row["rts_id"])
+        except Exception:
+            logger.exception("Last target position could not be read from the database")
             return None
-        job, point = latest
-        return m.TargetPosition(x=point.x, y=point.y, z=point.z, timestamp=point.t, rts_id=job.rts_id)
+
+    def _save_target(self, target: m.TargetPosition) -> None:
+        value = target.model_dump_json()
+        self.db.submit(lambda conn: conn.execute(
+            "INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (LAST_TARGET_KEY, value),
+        ))
+
+    def target_position(self) -> m.TargetPosition | None:
+        """Last measured target position, also when no station is tracking any more."""
+        return self._last_target
 
     # ── workers & devices ──────────────────────────────────────────────
 

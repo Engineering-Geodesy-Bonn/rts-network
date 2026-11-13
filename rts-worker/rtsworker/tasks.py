@@ -186,8 +186,9 @@ def angles_from_position(rts: RTSConfig, target: TargetPosition) -> tuple[float,
 def turn_to_target(ctx: JobContext) -> None:
     target = ctx.client.target()
     if target is None:
-        raise ValueError("No target position available (no RTS is tracking)")
+        raise ValueError("No target position known yet: no station has measured the prism")
     h_angle, v_angle = angles_from_position(ctx.rts, target)
+    logger.info("Turning to the target position measured %.0f s ago", time.time() - target.timestamp)
     with open_instrument(ctx.rts) as instrument:
         instrument.position(horizontal=h_angle, vertical=v_angle)
 

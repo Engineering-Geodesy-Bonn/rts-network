@@ -18,9 +18,10 @@ def info(core: Core = Depends(get_core)) -> m.ServerInfo:
     return core.info()
 
 
-@router.get("/target", response_model=m.TargetPosition, summary="Latest measured target position.")
+@router.get("/target", response_model=m.TargetPosition,
+            summary="Last measured target position (of any station, also after tracking ended).")
 async def target(core: Core = Depends(get_core)) -> m.TargetPosition:
     position = core.target_position()
     if position is None:
-        raise NotFound("No live measurements available to determine the target position")
+        raise NotFound("No target position known yet: no station has measured the prism")
     return position

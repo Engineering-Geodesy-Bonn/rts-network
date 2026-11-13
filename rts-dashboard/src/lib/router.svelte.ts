@@ -23,9 +23,20 @@ function parse(hash: string): Route {
 
 export const router = $state({ route: parse(location.hash) });
 
+// The page before the settings, for their Back link (history.back() does nothing when the
+// settings were opened directly, e.g. after a reload or from a bookmark)
+let current = location.hash;
+let beforeSettings = '#/';
+
 window.addEventListener('hashchange', () => {
+    if (parse(current).name !== 'settings') beforeSettings = current || '#/';
+    current = location.hash;
     router.route = parse(location.hash);
 });
+
+export function backFromSettings(): string {
+    return beforeSettings;
+}
 
 export function href(sessionId: string | null, page?: Page, id?: string | null): string {
     if (!sessionId) return '#/';
