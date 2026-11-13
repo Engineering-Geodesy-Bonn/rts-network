@@ -26,6 +26,6 @@ If the phone is already connected to the same network as the dashboard (e.g. in 
 The project uses only the Android platform APIs (no AndroidX), plain Java and the Android Gradle plugin.
 
 - **GitHub Actions:** every push that changes `rts-android/` builds the APK. Download it from the `rts-dashboard-apk` artifact of the workflow run.
-- **Android Studio:** open the `rts-android` folder and run the app, or build with `gradle assembleRelease` (Gradle 8.9+ and JDK 17).
+- **Android Studio:** open the `rts-android` folder and run the app, or build with `gradle assembleRelease` (Gradle 9.6+ and JDK 17).
 
 Both builds are signed with the committed `app/debug.keystore`, so APKs from different machines can be installed over each other. It is a debug key and not meant for publishing the app in an app store.

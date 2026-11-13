@@ -15,6 +15,9 @@
     <string name="status_lost">Connection to \"%1$s\" lost.\nReconnecting as soon as the router is back in range…</string>
     <string name="status_unavailable">Could not connect to \"%1$s\".\n\nCheck that the router is on, in range, and that Wi-Fi name and password are correct.</string>
     <string name="status_dashboard_unreachable">Dashboard not reachable at %1$s\n(%2$s)\n\nCheck that the Raspberry Pi is running and the URL is correct.</string>
+    <string name="status_local_network_denied">The app needs access to devices on the local network to reach the dashboard.
+
+Allow \"Nearby devices\" for RTS Dashboard in the Android app settings.</string>
     <string name="download_saved">Saved to Downloads/RTS/%1$s</string>
     <string name="download_failed">Could not save %1$s</string>
     <string-array name="menu_items">

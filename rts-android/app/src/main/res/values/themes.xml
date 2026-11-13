@@ -3,8 +3,9 @@
     <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
         <item name="android:colorPrimary">@color/header</item>
         <item name="android:colorAccent">@color/accent</item>
+        <!-- Only used up to Android 14; from Android 15 the app draws behind the system bars -->
         <item name="android:statusBarColor">@color/header</item>
-        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/header</item>
         <item name="android:windowBackground">@color/background</item>
     </style>
 </resources>

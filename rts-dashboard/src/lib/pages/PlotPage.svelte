@@ -189,9 +189,9 @@
             onchange={setSource}
         />
         {#if source === 'stations'}
-            <div class="-mx-3 flex gap-2 overflow-x-auto px-3 [scrollbar-width:none] md:mx-0 md:flex-wrap md:gap-x-4 md:gap-y-2 md:overflow-visible md:px-0">
+            <div class="flex flex-wrap gap-2 md:gap-x-4 md:gap-y-2">
                 {#each rows as r (r.rts.id)}
-                    <label class="flex shrink-0 items-center gap-1.5 rounded-[5px] border border-line-strong px-2.5 py-1.5 text-[13px] md:border-0 md:p-0">
+                    <label class="flex min-w-0 items-center gap-1.5 rounded-[5px] border border-line-strong px-2.5 py-1.5 text-[13px] md:border-0 md:p-0">
                         <input type="checkbox" checked={!hidden.includes(r.rts.id)} onchange={() => toggle(r.rts.id)} />
                         <span class="h-3 w-1 rounded-sm" style="background: {r.color}"></span>
                         <span class="font-semibold">{r.rts.name}</span>

@@ -52,6 +52,12 @@
     let lastDraw = 0;
     let signature = '';
 
+    /**
+     * Tick steps of the time axis [s]. uPlot's own steps jump from 1 to 5 min, which leaves a
+     * narrow plot (phones) with a single label for a few minutes of data.
+     */
+    const TIME_INCRS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400, 172800, 604800];
+
     function build(): void {
         plot?.destroy();
         const axis = cssVar('--plot-axis');
@@ -70,7 +76,7 @@
             cursor: { drag: { x: true, y: false, setScale: true }, points: { size: 5 }, ...(syncKey ? { sync: { key: syncKey } } : {}) },
             scales: { x: { time: !relative }, y: { auto: true } },
             axes: [
-                showX ? { ...axisStyle, space: 80, values: relative ? elapsedLabels : timeLabels } : { ...axisStyle, size: 4, values: (_u: uPlot, splits: number[]) => splits.map(() => '') },
+                showX ? { ...axisStyle, space: media.phone ? 64 : 80, incrs: TIME_INCRS, values: relative ? elapsedLabels : timeLabels } : { ...axisStyle, size: 4, values: (_u: uPlot, splits: number[]) => splits.map(() => '') },
                 {
                     ...axisStyle,
                     label: yLabel,

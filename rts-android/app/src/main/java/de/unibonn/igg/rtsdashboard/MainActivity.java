@@ -5,16 +5,21 @@ import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Insets;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.Uri;
 import android.net.wifi.WifiNetworkSpecifier;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
+import android.view.WindowInsets;
+import android.window.OnBackInvokedDispatcher;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -48,6 +53,10 @@ public class MainActivity extends Activity {
     private static final String KEY_CONNECT_WIFI = "connect_wifi";
     private static final String DEFAULT_URL = "http://192.168.0.101:8050";
     private static final int WIFI_TIMEOUT_MS = 60_000;
+    /** Android 17 blocks traffic to local network addresses without this runtime permission. */
+    private static final String PERMISSION_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK";
+    private static final int API_ANDROID_17 = 37;
+    private static final int REQUEST_LOCAL_NETWORK = 1;
 
     private SharedPreferences prefs;
     private ConnectivityManager connectivityManager;
@@ -63,6 +72,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setUpEdgeToEdge();
+        setUpBackHandling();
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         connectivityManager = getSystemService(ConnectivityManager.class);
@@ -92,9 +103,38 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
+    /**
+     * From Android 15 the window always extends behind the status and navigation bars, and the
+     * keyboard no longer resizes it. Pad the content so nothing is hidden behind them.
+     */
+    private void setUpEdgeToEdge() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return; // Android 10: the system fits the window to the bars and the keyboard
+        }
+        getWindow().setDecorFitsSystemWindows(false);
+        findViewById(R.id.root).setOnApplyWindowInsetsListener((view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsets.Type.systemBars()
+                    | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return WindowInsets.CONSUMED;
+        });
+    }
+
+    /** From Android 16 (predictive back) onBackPressed is no longer called. */
+    private void setUpBackHandling() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
+        }
+    }
+
     @Override
-    @SuppressWarnings("deprecation") // still delivered for targetSdk 34 without OnBackInvokedCallback
+    @SuppressWarnings("deprecation") // only called up to Android 12, see setUpBackHandling
     public void onBackPressed() {
+        handleBack();
+    }
+
+    private void handleBack() {
         if (webView.canGoBack()) {
             webView.goBack();
             return;
@@ -137,8 +177,26 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new DownloadBridge(), "RTSAndroid");
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode != REQUEST_LOCAL_NETWORK) {
+            return;
+        }
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            connect();
+        } else {
+            showStatus(getString(R.string.status_local_network_denied), false);
+        }
+    }
+
     private void connect() {
         releaseNetwork();
+
+        if (Build.VERSION.SDK_INT >= API_ANDROID_17
+                && checkSelfPermission(PERMISSION_LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{PERMISSION_LOCAL_NETWORK}, REQUEST_LOCAL_NETWORK);
+            return;
+        }
 
         if (!prefs.getBoolean(KEY_CONNECT_WIFI, true)) {
             loadDashboard();

@@ -212,8 +212,11 @@
             <span class="absolute inset-y-3 left-0 w-1 rounded-r-sm" style="background: {e.color}"></span>
             <div class="flex items-start gap-2">
                 <div class="min-w-0 flex-1">
-                    <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span class="text-[15px] leading-snug font-semibold break-words">{e.rts.name}</span><Tag tone={v.state.tone} text={v.state.text} /></div>
-                    <div class="truncate text-xs text-muted">{@render prismLink(e)} · {store.deviceLabel(e.rts.device_id)} · {e.rts.port}</div>
+                    <div class="text-[15px] leading-snug font-semibold break-words">{e.rts.name}</div>
+                    <div class="mt-0.5 flex min-w-0 items-center gap-2">
+                        <Tag tone={v.state.tone} text={v.state.text} />
+                        <span class="truncate text-xs text-muted">{@render prismLink(e)} · {store.deviceLabel(e.rts.device_id)} · {e.rts.port}</span>
+                    </div>
                 </div>
                 {@render actions(e, v)}
             </div>
@@ -223,7 +226,8 @@
                         <div class="min-w-0"><dt class="label">{c.label}</dt><dd class="num truncate text-[17px] leading-tight font-semibold">{v.values[i]}</dd></div>
                     {/each}
                 </dl>
-                <p class="num mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+                <!-- in the columns of E/N/H, so the values do not jump when their width changes -->
+                <p class="num mt-2 grid grid-cols-3 gap-x-3 gap-y-0.5 text-xs whitespace-nowrap text-muted">
                     <span><span class="text-fg">{v.rate}</span> Hz</span>
                     <span class={v.age !== null && v.age > 10 ? 'text-bad' : v.age !== null && v.age > 2 ? 'text-warn' : ''}><span class={v.age !== null && v.age > 2 ? '' : 'text-fg'}>{v.age !== null ? v.age.toFixed(1) : '–'}</span> s ago</span>
                     <span><span class="text-fg">{v.points}</span> pts</span>

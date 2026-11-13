@@ -128,7 +128,12 @@
             ctx.closePath();
             ctx.fill();
             ctx.fillStyle = axis;
-            ctx.fillText(t.stationLabel ?? t.label, px + 9, py + 4);
+            // to the left of the marker where the label would be cut off at the right edge
+            const label = t.stationLabel ?? t.label;
+            const right = px + 9 + ctx.measureText(label).width > width - 4;
+            ctx.textAlign = right ? 'right' : 'left';
+            ctx.fillText(label, right ? px - 9 : px + 9, py + 4);
+            ctx.textAlign = 'left';
         }
 
         // tracks
