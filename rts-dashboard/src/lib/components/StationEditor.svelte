@@ -5,10 +5,8 @@
     import { INTERNAL_DELAYS, units } from '../format';
     import { store } from '../store.svelte';
     import { toast } from '../toast.svelte';
-    import { trackingFromForm, trackingToForm } from '../tracking';
     import type { BluetoothInstrument, RTS } from '../types';
     import BluetoothPicker from './BluetoothPicker.svelte';
-    import TrackingFields from './TrackingFields.svelte';
     import Button from './ui/Button.svelte';
     import Field from './ui/Field.svelte';
     import Modal from './ui/Modal.svelte';
@@ -36,7 +34,6 @@
             distance_std: r4(units.mToMm(r?.distance_std_dev ?? 0.001)),
             distance_ppm: r?.distance_ppm ?? 1,
             angle_std: r4(units.radToMgon(r?.angle_std_dev ?? units.mgonToRad(0.3))),
-            tracking: trackingToForm(r?.tracking),
         };
     }
 
@@ -87,7 +84,6 @@
             distance_std_dev: units.mmToM(Number(form.distance_std)),
             distance_ppm: Number(form.distance_ppm),
             angle_std_dev: units.mgonToRad(Number(form.angle_std)),
-            tracking: trackingFromForm(form.tracking),
         };
         try {
             if (rts) await api.updateRts(rts.id, data);
@@ -177,11 +173,6 @@
                 <Field label="External delay" unit="ms"><input type="number" step="any" bind:value={form.external_delay} /></Field>
             </div>
         </section>
-
-        <details class="group">
-            <summary class="label cursor-pointer border-b border-line pb-1 group-open:!text-fg">Tracking settings</summary>
-            <div class="mt-3"><TrackingFields bind:tracking={form.tracking} /></div>
-        </details>
 
         <details class="group">
             <summary class="label cursor-pointer border-b border-line pb-1 group-open:!text-fg">Accuracy and serial details</summary>

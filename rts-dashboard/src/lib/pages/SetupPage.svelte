@@ -7,7 +7,7 @@
     import Panel from '../components/ui/Panel.svelte';
     import Tag from '../components/ui/Tag.svelte';
     import { confirm } from '../confirm.svelte';
-    import { EDM_MEASUREMENT_MODES, fmtBytes, fmtCount, fmtDuration, fmtTime, PRISM_TYPES, rtsColor, units } from '../format';
+    import { fmtBytes, fmtCount, fmtDuration, fmtTime, rtsColor, units } from '../format';
     import { href, navigate } from '../router.svelte';
     import { store } from '../store.svelte';
     import { toast } from '../toast.svelte';
@@ -137,7 +137,6 @@
                             <th class="r">H [m]</th>
                             <th class="r">Orient. [gon]</th>
                             <th class="r">Delay int/ext [ms]</th>
-                            <th>Prism · EDM</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -153,7 +152,6 @@
                                 <td class="r num">{rts.station_z.toFixed(4)}</td>
                                 <td class="r num">{units.radToGon(rts.orientation).toFixed(5)}</td>
                                 <td class="r num">{(rts.internal_delay * 1000).toFixed(2)} / {(rts.external_delay * 1000).toFixed(2)}</td>
-                                <td class="text-muted">{PRISM_TYPES[rts.tracking.prism_type] ?? '?'} · {EDM_MEASUREMENT_MODES[rts.tracking.edm_measurement_mode] ?? '?'}</td>
                                 <td class="r"><span class="text-xs font-medium text-accent">Edit</span></td>
                             </tr>
                         {/each}
