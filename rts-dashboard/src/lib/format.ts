@@ -1,4 +1,4 @@
-import type { JobStatus, JobType } from './types';
+import type { Job, JobSettings, JobStatus, JobType } from './types';
 
 // ── Jobs ────────────────────────────────────────────────────────────────
 
@@ -140,6 +140,44 @@ export const EDM_MEASUREMENT_MODES: Record<number, string> = {
     9: 'Continuous fast',
 };
 export const FINE_ADJUST_POSITION_MODES: Record<number, string> = { 0: 'Normal', 1: 'Point' };
+
+const label = (labels: Record<number, string>, value: number) => labels[value] ?? `${value}`;
+
+/** Prism the job was measured with ('–' if its settings were not recorded). */
+export function jobPrism(job: Job): string {
+    return job.settings ? label(PRISM_TYPES, job.settings.tracking.prism_type) : '–';
+}
+
+/** All settings of a job as label/value pairs, in field units. */
+export function settingsRows(s: JobSettings): [string, string][] {
+    const t = s.tracking;
+    const gon = (rad: number) => `${units.radToGon(rad).toFixed(4)} gon`;
+    const rows: [string, string][] = [
+        ['Prism', label(PRISM_TYPES, t.prism_type)],
+        ['Distance mode', label(EDM_MEASUREMENT_MODES, t.edm_measurement_mode)],
+        ['Measurement mode', label(TMC_MEASUREMENT_MODES, t.tmc_measurement_mode)],
+        ['Inclination', label(TMC_INCLINATION_MODES, t.tmc_inclination_mode)],
+        ['Fine adjust mode', label(FINE_ADJUST_POSITION_MODES, t.fine_adjust_position_mode)],
+        ['Search Hz / V', `${gon(t.fine_adjust_horizontal_search_range)} / ${gon(t.fine_adjust_vertical_search_range)}`],
+        ['Power search', t.power_search ? `on, ${t.power_search_min_range}–${t.power_search_max_range} m` : 'off'],
+    ];
+    if (t.power_search) {
+        rows.push(
+            ['Search area center Hz / V', `${gon(t.power_search_area_dcenterhz)} / ${gon(t.power_search_area_dcenterv)}`],
+            ['Search area size Hz / V', `${gon(t.power_search_area_drangehz)} / ${gon(t.power_search_area_drangev)}${t.power_search_area_enabled ? '' : ' (not restricted)'}`],
+        );
+    }
+    rows.push(
+        ['Station E / N / H', `${s.station_x.toFixed(3)} / ${s.station_y.toFixed(3)} / ${s.station_z.toFixed(3)} m`],
+        ['Orientation', gon(s.orientation)],
+        ['Delays internal / external', `${units.sToMs(s.internal_delay).toFixed(2)} / ${units.sToMs(s.external_delay).toFixed(2)} ms`],
+        ['Distance σ', `${units.mToMm(s.distance_std_dev).toFixed(2)} mm + ${s.distance_ppm} ppm`],
+        ['Angle σ', `${units.radToMgon(s.angle_std_dev).toFixed(2)} mgon`],
+        ['Port', s.port.startsWith('bt://') || s.port.startsWith('sim://') ? s.port : `${s.port} · ${s.baudrate} baud, ${s.bytesize}${s.parity}${s.stopbits}`],
+        ['Timeout', `${s.timeout} s`],
+    );
+    return rows;
+}
 
 /** Intrinsic delays of the instrument models (s), from the intrinsic calibration */
 export const INTERNAL_DELAYS: Record<string, number> = {

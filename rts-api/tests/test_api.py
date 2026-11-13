@@ -1,4 +1,7 @@
+import io
+import json
 import time
+import zipfile
 
 from conftest import rows
 
@@ -400,3 +403,27 @@ def test_synchronizer_roles_and_state(client, setup):
     # deleting a sensor removes it from the synchronizer
     assert client.delete(f"/external-sensors/{sensor_id}").status_code == 204
     assert client.get("/synchronizer/roles").json() == {"primary_sensor_id": rts_id, "secondary_sensor_id": None}
+
+
+def test_job_records_the_settings_it_ran_with(client, setup):
+    rts_id = setup["rts"]["id"]
+    client.patch(f"/rts/{rts_id}", json={"tracking": {"prism_type": 7}})
+    job = client.post("/jobs", json={"rts_id": rts_id, "type": "track_prism"}).json()
+    assert job["settings"] is None  # recorded when a worker takes the job
+    claim = client.post("/worker/claim", json={"worker_id": "w1", "hostname": "pi-1"}).json()
+    assert claim["rts"]["tracking"]["prism_type"] == 7
+
+    # Editing the station later changes neither the job nor a retried claim
+    client.patch(f"/rts/{rts_id}", json={"tracking": {"prism_type": 3}, "station_x": 99.0})
+    retried = client.post("/worker/claim", json={"worker_id": "w1", "hostname": "pi-1"}).json()
+    assert retried["job"]["id"] == job["id"]
+    assert retried["rts"]["tracking"]["prism_type"] == 7 and retried["rts"]["station_x"] == 10.0
+    settings = client.get(f"/jobs/{job['id']}").json()["settings"]
+    assert settings["tracking"]["prism_type"] == 7 and settings["station_x"] == 10.0 and settings["recorded_at"] > 0
+
+    client.post("/worker/measurements", json={"job_id": job["id"], "rows": rows(0, 5)})
+    archive = zipfile.ZipFile(io.BytesIO(client.get(f"/sessions/{setup['session']['id']}/export").content))
+    [name] = [n for n in archive.namelist() if n.endswith("_settings.json")]
+    exported = json.loads(archive.read(name))
+    assert exported["settings_used"]["tracking"]["prism_type"] == 7
+    assert exported["current_station_settings"]["tracking"]["prism_type"] == 3

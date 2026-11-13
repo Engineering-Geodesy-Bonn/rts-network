@@ -4,7 +4,7 @@
     import Button from '../components/ui/Button.svelte';
     import Tag from '../components/ui/Tag.svelte';
     import { events } from '../events.svelte';
-    import { fmtCount, JOB_STATUS_LABEL, JOB_TYPE_LABEL, rtsColor } from '../format';
+    import { fmtCount, JOB_STATUS_LABEL, JOB_TYPE_LABEL, jobPrism, rtsColor } from '../format';
     import { savePref } from '../plotdata';
     import { href, navigate } from '../router.svelte';
     import { store } from '../store.svelte';
@@ -142,6 +142,7 @@
                 <th class="r">Duration</th>
                 <th>Station</th>
                 <th>Type</th>
+                <th>Prism</th>
                 <th class="r">Points</th>
                 <th class="r">Rate [Hz]</th>
                 <th>Status</th>
@@ -170,13 +171,14 @@
                         </span>
                     </td>
                     <td class="text-muted">{JOB_TYPE_LABEL[job.type]}</td>
+                    <td class="text-muted">{measured ? jobPrism(job) : '–'}</td>
                     <td class="r num">{measured ? fmtCount(job.count) : '–'}</td>
                     <td class="r num">{measured && duration && duration > 1 ? ((job.count - 1) / duration).toFixed(1) : '–'}</td>
                     <td><Tag tone={TONE[job.status]} text={JOB_STATUS_LABEL[job.status]} /></td>
                     <td class="max-w-64 truncate text-muted" title={job.error ?? job.note}>{job.error && job.status !== 'finished' ? job.error : job.note}</td>
                 </tr>
             {:else}
-                {#if !loading}<tr><td colspan={11} class="py-10 text-center text-muted">No measurements yet.</td></tr>{/if}
+                {#if !loading}<tr><td colspan={12} class="py-10 text-center text-muted">No measurements yet.</td></tr>{/if}
             {/each}
         </tbody>
     </table>

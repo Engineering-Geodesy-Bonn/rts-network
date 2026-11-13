@@ -116,9 +116,22 @@ class JobManager:
         job_id = self.db.write(write)
         if job_id is None:
             return None
+        rts = self._record_settings(job_id)
         job = self._changed(job_id)
         logger.info("Job %s (%s) claimed by worker %s", job.id, job.type.value, request.worker_id)
-        return m.ClaimResponse(job=job, rts=repo.get_rts(self.db, job.rts_id))
+        return m.ClaimResponse(job=job, rts=rts)
+
+    def _record_settings(self, job_id: str) -> m.RTS:
+        """Stores the station configuration in the job and returns the RTS as the worker gets it.
+        A retried claim gets the recorded settings again, even if the station was edited since."""
+        row = repo.get_job_row(self.db, job_id)
+        rts = repo.get_rts(self.db, row["rts_id"])
+        if row["settings"]:
+            recorded = m.JobSettings.model_validate_json(row["settings"])
+            return rts.model_copy(update={k: getattr(recorded, k) for k in m.JobSettings.model_fields if k != "recorded_at"})
+        settings = m.JobSettings(**rts.model_dump(include=set(m.JobSettings.model_fields) - {"recorded_at"}), recorded_at=time.time())
+        self.db.execute("UPDATE jobs SET settings = ? WHERE id = ? AND settings IS NULL", (settings.model_dump_json(), job_id))
+        return rts
 
     def renew(self, job_id: str, worker_id: str) -> m.RenewResponse:
         lease = self.settings.lease_duration

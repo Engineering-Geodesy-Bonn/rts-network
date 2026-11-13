@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from datetime import datetime
@@ -31,8 +32,21 @@ def job_trajectory(db: Database, job: m.Job, rts: m.RTS) -> tuple[str, str]:
     return f"{name}.traj", obs.to_trajectory(name).to_string()
 
 
+def job_settings(job: m.Job, rts: m.RTS) -> tuple[str, str]:
+    """The job and the settings it was run with. Coordinates in the CSV files are computed with
+    the current station settings (so that a corrected station position applies)."""
+    info = {
+        "job": job.model_dump(mode="json", exclude={"settings", "payload"}),
+        "station": rts.name,
+        "settings_used": job.settings.model_dump(mode="json") if job.settings else None,
+        "settings_note": None if job.settings else "Not recorded: the job ran before the API recorded job settings",
+        "current_station_settings": rts.model_dump(mode="json", include=set(m.JobSettings.model_fields)),
+    }
+    return f"{base_name(job, rts)}_settings.json", json.dumps(info, indent=2)
+
+
 def job_exports(db: Database, job: m.Job, rts: m.RTS) -> list[tuple[str, str]]:
-    files = []
+    files = [job_settings(job, rts)]
     for corrected in (False, True):
         try:
             files.append(job_csv(db, job, rts, corrected))

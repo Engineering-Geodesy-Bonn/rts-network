@@ -259,6 +259,7 @@ def job_from_row(row: sqlite3.Row) -> m.Job:
         first_t=row["first_t"],
         last_t=row["last_t"],
         last_rx=row["last_rx"],
+        settings=m.JobSettings.model_validate_json(row["settings"]) if row["settings"] else None,
     )
 
 

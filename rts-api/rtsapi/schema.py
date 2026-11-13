@@ -128,4 +128,8 @@ MIGRATIONS: list[list[str]] = [
             last_seen REAL
         )""",
     ],
+    # 3: the settings a job was run with (station configuration at the time it was claimed)
+    [
+        "ALTER TABLE jobs ADD COLUMN settings TEXT",
+    ],
 ]

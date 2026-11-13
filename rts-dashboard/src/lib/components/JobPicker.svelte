@@ -1,7 +1,7 @@
 <!-- Dialog to choose measurements (jobs with data) of the session for plotting. -->
 <script lang="ts">
     import { api } from '../api';
-    import { fmtCount, fmtDateTime, fmtShortDuration, JOB_TYPE_LABEL, rtsColor } from '../format';
+    import { fmtCount, fmtDateTime, fmtShortDuration, JOB_TYPE_LABEL, jobPrism, rtsColor } from '../format';
     import { store } from '../store.svelte';
     import type { Job } from '../types';
     import { MEASURING_TYPES } from '../types';
@@ -72,7 +72,7 @@
                         <td class="num">{fmtDateTime(job.first_t ?? job.created_at)}</td>
                         <td class="r num">{fmtShortDuration(duration)}</td>
                         <td class="r num">{fmtCount(job.count)}</td>
-                        <td class="text-muted">{JOB_TYPE_LABEL[job.type]}{#if job.status === 'running'} · <span class="text-good">live</span>{/if}</td>
+                        <td class="text-muted">{JOB_TYPE_LABEL[job.type]} · {jobPrism(job)}{#if job.status === 'running'} · <span class="text-good">live</span>{/if}</td>
                         <td class="max-w-48 truncate text-muted" title={job.note}>{job.note}</td>
                     </tr>
                 {:else}

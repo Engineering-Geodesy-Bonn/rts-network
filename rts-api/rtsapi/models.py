@@ -184,6 +184,15 @@ class RTS(RTSConfig):
 # ── Jobs ────────────────────────────────────────────────────────────────
 
 
+class JobSettings(RTSConfig):
+    """The station configuration a job was run with: what the worker received when it claimed
+    the job. Later changes to the station do not change it."""
+
+    device_id: str | None = None
+    tracking: TrackingSettings = TrackingSettings()
+    recorded_at: float
+
+
 class JobCreate(BaseModel):
     rts_id: str
     type: JobType
@@ -211,6 +220,7 @@ class Job(BaseModel):
     first_t: float | None
     last_t: float | None
     last_rx: float | None
+    settings: JobSettings | None = None  # None until a worker claimed the job, and for jobs before v2.1
 
     @property
     def active(self) -> bool:

@@ -145,6 +145,14 @@ export interface Job {
     first_t: number | null;
     last_t: number | null;
     last_rx: number | null;
+    /** Station configuration the job ran with (recorded when a worker took it; null before). */
+    settings: JobSettings | null;
+}
+
+export interface JobSettings extends RTSConfig {
+    device_id: string | null;
+    tracking: TrackingSettings;
+    recorded_at: number;
 }
 
 export interface JobPage {

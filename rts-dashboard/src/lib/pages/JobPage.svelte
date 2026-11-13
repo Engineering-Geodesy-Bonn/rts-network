@@ -9,7 +9,7 @@
     import Segmented from '../components/ui/Segmented.svelte';
     import Tag from '../components/ui/Tag.svelte';
     import { confirm } from '../confirm.svelte';
-    import { fmtCount, JOB_STATUS_LABEL, JOB_TYPE_LABEL, rtsColor } from '../format';
+    import { fmtCount, JOB_STATUS_LABEL, JOB_TYPE_LABEL, jobPrism, rtsColor, settingsRows } from '../format';
     import { live, type Columns } from '../live.svelte';
     import { loadPref, savePref, thin } from '../plotdata';
     import { href, navigate } from '../router.svelte';
@@ -44,6 +44,8 @@
     let measured = $derived(!!job && MEASURING_TYPES.includes(job.type));
     let series = $derived(job && measured && (job.count > 0 || isLive) ? live.get(job, isLive) : undefined);
     let rts = $derived(store.rtsById(job?.rts_id));
+    // What the job ran with; the current station settings only for jobs without a record
+    let used = $derived(job?.settings ?? rts ?? null);
     let color = $derived(rtsColor(Math.max(0, store.rtsIndex(job?.rts_id))));
     let duration = $derived(job?.first_t != null && job.last_t != null ? job.last_t - job.first_t : null);
 
@@ -155,12 +157,23 @@
                 <div><dt class="label">Points</dt><dd class="num">{fmtCount(job.count)}</dd></div>
                 <div><dt class="label">Mean rate [Hz]</dt><dd class="num">{duration && duration > 1 ? ((job.count - 1) / duration).toFixed(2) : '–'}</dd></div>
                 <div><dt class="label">Created</dt><dd class="num">{stamp(job.created_at)}</dd></div>
-                <div><dt class="label">Station E / N / H [m]</dt><dd class="num">{rts ? `${rts.station_x.toFixed(3)} / ${rts.station_y.toFixed(3)} / ${rts.station_z.toFixed(3)}` : '–'}</dd></div>
-                <div><dt class="label">Port · baud</dt><dd class="num">{rts ? `${rts.port} · ${rts.baudrate}` : '–'}</dd></div>
-                <div><dt class="label">Delays int / ext [ms]</dt><dd class="num">{rts ? `${(rts.internal_delay * 1000).toFixed(2)} / ${(rts.external_delay * 1000).toFixed(2)}` : '–'}</dd></div>
+                <div><dt class="label">Prism</dt><dd>{jobPrism(job)}</dd></div>
+                <div><dt class="label">Station E / N / H [m]</dt><dd class="num">{used ? `${used.station_x.toFixed(3)} / ${used.station_y.toFixed(3)} / ${used.station_z.toFixed(3)}` : '–'}</dd></div>
+                <div><dt class="label">Port</dt><dd class="num truncate">{used?.port ?? '–'}</dd></div>
+                <div><dt class="label">Delays int / ext [ms]</dt><dd class="num">{used ? `${(used.internal_delay * 1000).toFixed(2)} / ${(used.external_delay * 1000).toFixed(2)}` : '–'}</dd></div>
                 <div><dt class="label">Worker</dt><dd class="num truncate">{job.worker_id ?? '–'}</dd></div>
                 <div class="col-span-2"><dt class="label">Job ID</dt><dd class="num truncate">{job.id}</dd></div>
             </dl>
+            {#if job.settings}
+                <details class="group border-t border-line">
+                    <summary class="label cursor-pointer px-3 py-2 group-open:!text-fg">All settings used (recorded {stamp(job.settings.recorded_at)})</summary>
+                    <dl class="grid grid-cols-1 gap-px bg-line sm:grid-cols-2 lg:grid-cols-3 [&>div]:bg-surface [&>div]:px-3 [&>div]:py-2">
+                        {#each settingsRows(job.settings) as [name, value] (name)}<div><dt class="label">{name}</dt><dd class="num">{value}</dd></div>{/each}
+                    </dl>
+                </details>
+            {:else if job.status !== 'pending'}
+                <p class="border-t border-line px-3 py-2 text-xs text-muted">The settings of this job were not recorded (it ran before this feature); the values above are the current station settings.</p>
+            {/if}
         </Panel>
 
         {#if measured}
