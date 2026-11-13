@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import { api, apiBase, setApiBase } from '../api';
     import Button from '../components/ui/Button.svelte';
     import Field from '../components/ui/Field.svelte';
@@ -16,7 +16,12 @@
     let testing = $state(false);
     let info = $state<ServerInfo | null>(null);
     let themeValue = $state<Theme>(theme.theme);
-    $effect(() => theme.set(themeValue));
+    $effect(() => {
+        const value = themeValue;
+        // untrack: theme.set reads and writes theme state; tracked, this effect would re-run itself
+        // without end, and Svelte then stops updating the page (navigation away did not render)
+        untrack(() => theme.set(value));
+    });
 
     onMount(() => {
         api.info().then((i) => (info = i)).catch(() => {});
