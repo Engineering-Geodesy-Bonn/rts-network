@@ -1,4 +1,5 @@
-"""Connection to the total station: GeoCOM over a serial port, or a simulated instrument.
+"""Connection to the total station: GeoCOM over a serial port, over Bluetooth SPP
+(`bt://<address>[/<channel>]`, see rtsworker.bluetooth), or a simulated instrument.
 
 A port of the form `sim://<name>` selects the simulator: it behaves like a tracking total
 station (25 Hz, a prism moving on a circle, a slowly drifting instrument clock) and allows
@@ -14,6 +15,7 @@ from dataclasses import dataclass
 
 import serial
 
+from rtsworker import bluetooth
 from rtsworker.dtos import RTSConfig, TrackingSettings
 from rtsworker.pygeocom import FullMeasurementResponse, PowerPath, PyGeoCom, Station
 
@@ -53,6 +55,27 @@ class SerialInstrument:
             pass
         self.ser.close()
         logger.info("Serial port %s closed", self.rts.port)
+
+
+class BluetoothInstrument:
+    """GeoCOM over Bluetooth SPP, port `bt://<address>[/<channel>]` (see rtsworker.bluetooth).
+    Exclusive like the serial port: the kernel refuses a second connection to the same channel."""
+
+    def __init__(self, rts: RTSConfig):
+        self.rts = rts
+        self.stream: bluetooth.RfcommStream | None = None
+
+    def __enter__(self) -> PyGeoCom:
+        address, channel = bluetooth.parse_port(self.rts.port)
+        self.stream = bluetooth.connect(address, channel, timeout=self.rts.timeout)
+        self.stream.reset_input_buffer()
+        return PyGeoCom(self.stream, debug=False)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.stream is None:
+            return
+        self.stream.close()
+        logger.info("Bluetooth connection %s closed", self.rts.port)
 
 
 @dataclass
@@ -186,4 +209,6 @@ class SimulatedInstrument:
 def open_instrument(rts: RTSConfig):
     if rts.port.startswith("sim://"):
         return SimulatedInstrument(rts)
+    if bluetooth.is_bluetooth_port(rts.port):
+        return BluetoothInstrument(rts)
     return SerialInstrument(rts)

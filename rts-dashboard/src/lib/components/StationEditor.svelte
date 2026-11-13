@@ -145,7 +145,7 @@
                     {#each store.devices as d (d.id)}<option value={d.id}>{d.name || d.hostname || d.ip}</option>{/each}
                 </select>
             </Field>
-            <Field label="Serial port" hint="Use sim://name to simulate an instrument.">
+            <Field label="Port" hint="Serial port, bt://<address>/<channel> for Bluetooth SPP, or sim://name to simulate an instrument.">
                 <input bind:value={form.port} list="station-ports" />
                 <datalist id="station-ports">{#each ports as p (p)}<option value={p}></option>{/each}</datalist>
             </Field>

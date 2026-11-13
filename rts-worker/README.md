@@ -65,6 +65,48 @@ Every Raspberry Pi serves a small page at `http://<pi>:8080/` to change the addr
 - **Shutdown**: on SIGTERM/SIGINT (`docker stop`, Ctrl+C) the running measurement is ended cleanly and reported, so its station is free again at once.
 - **Serial port**: opened exclusively, so two jobs can never talk to the same instrument.
 
+## Bluetooth (e.g. Leica TS20)
+
+Instruments with Bluetooth are connected over **SPP** (serial port profile), not PAN: GeoCOM is a serial request/response protocol and SPP carries it directly. Set the port of the station in the dashboard to
+
+```text
+bt://<Bluetooth address>/<RFCOMM channel>      e.g. bt://F0:B5:D1:5D:FC:6F/11
+```
+
+The baud rate is ignored. The worker opens a kernel RFCOMM socket per job; no `rfcomm bind` or `/dev/rfcomm*` is needed. Works on the onboard Bluetooth of the Raspberry Pi 3, 4 and 5.
+
+1. **Instrument**: in the GeoCOM connection settings, select the port *TS Bluetooth 1*. The instrument then offers a serial port service on RFCOMM channel 11 (tested with an MS60, Captivate 10.0). Its Bluetooth name is `TS` + serial number.
+2. **Pairing** was not needed with the MS60. Only if an instrument rejects the connection (*not paired*), pair it once on the Raspberry Pi (on the host, not in the container; all workers of the Pi share the pairing):
+
+   ```bash
+   bluetoothctl
+   power on
+   agent on
+   default-agent
+   scan on              # wait until the instrument appears, note its address
+   scan off
+   pair 00:11:22:33:44:55
+   trust 00:11:22:33:44:55
+   quit
+   ```
+
+3. **Find the channel** (11 for *TS Bluetooth 1* on Captivate instruments): this tries the RFCOMM channels and asks each for the instrument name:
+
+   ```bash
+   docker compose run --rm worker python -m rtsworker.bluetooth 00:11:22:33:44:55
+   ```
+
+4. Run an *Instrument check* in the dashboard; it reports the GeoCOM latency over the link.
+
+Notes:
+
+- The container needs `network_mode: host` (already set): the kernel allows Bluetooth sockets only in the host network namespace. Outside Docker, use the system Python (`/usr/bin/python3`). Python versions installed by `uv` are built without Bluetooth support.
+- Do not use `dtoverlay=disable-bt` or `dtoverlay=miniuart-bt` in `/boot/firmware/config.txt`. The GPS setup below uses USB and a GPIO pin for PPS and does not need the onboard UART.
+- On the Raspberry Pi 3 and 4, Bluetooth and 2.4 GHz WiFi share one radio. Connect the Pi to the network by Ethernet or 5 GHz WiFi, or use a USB Bluetooth adapter.
+- Timing: measured with an MS60 tracking a static prism for 30 s, Bluetooth and cable both gave 19.3 Hz. A request took about 10 ms longer over Bluetooth (median 60 ms instead of 50 ms). The spread of the arrival time against the instrument time was 14.6 ms instead of 13.3 ms; most of it comes from the request/measurement cycle, not from Bluetooth.
+- If the link drops during tracking, the job fails with a connection error like a pulled cable. The measurements already taken are kept and uploaded.
+- Only one connection per instrument: a second job on the same instrument is rejected with *already connected*.
+
 ## Simulated Total Station
 
 A total station configured with the port `sim://<name>` is simulated (25 Hz, prism moving on a circle, drifting instrument clock). Use it to try the system or to test without hardware.

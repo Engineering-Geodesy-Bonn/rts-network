@@ -145,7 +145,7 @@ def health_check(ctx: JobContext) -> None:
         with open_instrument(ctx.rts) as instrument:
             report = collect_instrument_report(instrument)
     except Exception as e:
-        report = {"ok": False, "source": "health_check", "errors": [f"Serial connection failed: {e!r}"], "collected_at": time.time()}
+        report = {"ok": False, "source": "health_check", "errors": [f"Connection to the instrument failed: {e}"], "collected_at": time.time()}
     ctx.client.instrument_report(ctx.rts.id, report)
     if not report["ok"]:
         raise RuntimeError(f"Instrument check failed: {'; '.join(report['errors'])}")
