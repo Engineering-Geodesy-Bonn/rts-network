@@ -34,7 +34,12 @@
         quiet: 'bg-transparent text-muted border-transparent hover:bg-surface-2 hover:text-fg',
         danger: 'bg-transparent text-bad border-transparent hover:bg-bad-soft',
     };
-    const sizes = { sm: 'h-7 px-2.5 text-xs gap-1', md: 'h-8 px-3 text-[13px] gap-1.5', lg: 'h-10 px-4 text-sm gap-2' };
+    // Taller on phones (touch targets), compact from md on
+    const sizes = {
+        sm: 'h-9 px-3 text-[13px] gap-1 md:h-7 md:px-2.5 md:text-xs',
+        md: 'h-10 px-3.5 text-sm gap-1.5 md:h-8 md:px-3 md:text-[13px]',
+        lg: 'h-11 px-4 text-[15px] gap-2 md:h-10 md:text-sm',
+    };
     let classes = $derived(
         `inline-flex items-center justify-center rounded-[5px] border font-medium whitespace-nowrap transition select-none disabled:opacity-45 disabled:pointer-events-none ${variants[variant]} ${sizes[size]} ${className}`,
     );

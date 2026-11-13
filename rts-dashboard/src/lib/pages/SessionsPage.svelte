@@ -3,6 +3,7 @@
     import { api } from '../api';
     import Button from '../components/ui/Button.svelte';
     import Field from '../components/ui/Field.svelte';
+    import Icon from '../components/ui/Icon.svelte';
     import Modal from '../components/ui/Modal.svelte';
     import Panel from '../components/ui/Panel.svelte';
     import { events } from '../events.svelte';
@@ -65,7 +66,7 @@
         <span class="label !text-bar-muted">RTS Network</span>
         <span class="text-bar-muted">/</span>
         <span class="text-[13px] font-semibold">Sessions</span>
-        <a class="ml-auto text-xs font-semibold tracking-wider text-bar-muted uppercase hover:text-bar-fg" href="#/settings">Settings</a>
+        <a class="-mr-2 ml-auto flex items-center gap-1.5 px-2 py-2 text-xs font-semibold tracking-wider text-bar-muted uppercase hover:text-bar-fg" href="#/settings"><Icon name="settings" size={15} />Settings</a>
     </div>
 </header>
 
@@ -88,7 +89,23 @@
         {:else if visible.length === 0}
             <p class="px-3 py-10 text-center text-muted">No sessions yet. A session holds the total stations and measurements of one campaign.</p>
         {:else}
-            <div class="overflow-x-auto">
+            <!-- phones: one card per session -->
+            <ul class="divide-y divide-line md:hidden">
+                {#each visible as s (s.id)}
+                    <li>
+                        <a href={href(s.id, 'measure')} class="flex items-center gap-2 px-3 py-3 active:bg-surface-2">
+                            <span class="min-w-0 flex-1">
+                                <span class="block font-semibold leading-snug">{s.name}{#if s.archived}<span class="ml-2 text-xs font-normal text-muted">archived</span>{/if}</span>
+                                <span class="num mt-0.5 block text-xs text-muted">{s.rts_count} stations · {fmtCount(s.job_count)} jobs · {fmtCount(s.measurement_count)} pts</span>
+                                <span class="num block text-xs text-muted">Last activity {stamp(s.last_activity)}</span>
+                                {#if s.notes}<span class="mt-0.5 block truncate text-xs text-muted">{s.notes}</span>{/if}
+                            </span>
+                            <Icon name="chevronRight" size={16} class="text-faint" />
+                        </a>
+                    </li>
+                {/each}
+            </ul>
+            <div class="hidden overflow-x-auto md:block">
                 <table class="data-table">
                     <thead>
                         <tr>

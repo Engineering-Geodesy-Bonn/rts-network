@@ -60,7 +60,7 @@
 
 <button
     bind:this={button}
-    class="inline-flex h-8 w-8 items-center justify-center rounded-[5px] border border-line-strong text-muted hover:bg-surface-2 hover:text-fg"
+    class="inline-flex h-10 w-10 shrink-0 items-center justify-center md:h-8 md:w-8 rounded-[5px] border border-line-strong text-muted hover:bg-surface-2 hover:text-fg"
     aria-label={label}
     title={label}
     aria-haspopup="menu"
@@ -75,7 +75,7 @@
         {#each items as item (item.label)}
             <button
                 role="menuitem"
-                class="flex w-full items-center px-3 py-2 text-left text-[13px] hover:bg-surface-2 disabled:opacity-40 {item.danger ? 'text-bad' : ''}"
+                class="flex w-full items-center px-3 py-3 text-left text-sm md:py-2 md:text-[13px] hover:bg-surface-2 disabled:opacity-40 {item.danger ? 'text-bad' : ''}"
                 disabled={item.disabled}
                 onclick={() => {
                     close();

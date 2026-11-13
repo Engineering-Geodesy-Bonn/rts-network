@@ -55,7 +55,7 @@
 
         <div class="flex flex-wrap items-center gap-2 pt-1">
             <h1 class="label mr-auto !text-[12px] !text-fg">Stations</h1>
-            <Segmented label="Values" bind:value={mode} options={[{ value: 'position', label: 'Position E/N/H' }, { value: 'polar', label: 'Polar Hz/V/D' }]} />
+            <Segmented label="Values" bind:value={mode} options={[{ value: 'position', label: 'E/N/H' }, { value: 'polar', label: 'Hz/V/D' }]} />
             {#if idle.length > 1}<Button onclick={startAll}>Start all ({idle.length})</Button>{/if}
             {#if measuring.length > 1}<Button variant="stop" onclick={stopAll}>Stop all</Button>{/if}
         </div>

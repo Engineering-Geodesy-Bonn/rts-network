@@ -58,7 +58,8 @@
         const [minX, minY, maxX, maxY] = b;
         const spanX = Math.max(maxX - minX, 1);
         const spanY = Math.max(maxY - minY, 1);
-        const scale = Math.min((width - 160) / spanX, (height - 70) / spanY);
+        // margins for the station labels; narrower on small canvases (phones)
+        const scale = Math.min((width - Math.min(160, width * 0.3)) / spanX, (height - 70) / spanY);
         return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, scale };
     }
 
@@ -200,7 +201,57 @@
         view = { scale, cx: wx - (mx - width / 2) / scale, cy: wy + (my - height / 2) / scale };
     }
 
+    // Touch: one finger scrolls the page (the map is a large part of a phone screen), two fingers
+    // move and zoom the map. Mouse and pen drag as before (pointer events below).
+    let touchMid: { x: number; y: number } | null = null;
+    let touchDistance = 0;
+    let hint = $state(false);
+    let hintTimer = 0;
+
+    function touchState(e: TouchEvent): { mid: { x: number; y: number }; distance: number } {
+        const [a, b] = [e.touches[0], e.touches[1]];
+        return { mid: { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 }, distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) };
+    }
+
+    function ontouchstart(e: TouchEvent): void {
+        if (e.touches.length === 2) {
+            const s = touchState(e);
+            touchMid = s.mid;
+            touchDistance = s.distance;
+            hint = false;
+        }
+    }
+
+    function ontouchmove(e: TouchEvent): void {
+        if (e.touches.length === 1) {
+            if (!hint) {
+                hint = true;
+                clearTimeout(hintTimer);
+                hintTimer = window.setTimeout(() => (hint = false), 1500);
+            }
+            return;
+        }
+        if (e.touches.length !== 2 || !touchMid) return;
+        if (e.cancelable) e.preventDefault(); // no page scroll or page zoom
+        const s = touchState(e);
+        const v = current();
+        const rect = canvas.getBoundingClientRect();
+        // zoom about the midpoint of the fingers, then move with it
+        const mx = s.mid.x - rect.left, my = s.mid.y - rect.top;
+        const scale = touchDistance > 0 ? v.scale * (s.distance / touchDistance) : v.scale;
+        const wx = v.cx + (touchMid.x - rect.left - width / 2) / v.scale;
+        const wy = v.cy - (touchMid.y - rect.top - height / 2) / v.scale;
+        view = { scale, cx: wx - (mx - width / 2) / scale, cy: wy + (my - height / 2) / scale };
+        touchMid = s.mid;
+        touchDistance = s.distance;
+    }
+
+    function ontouchend(e: TouchEvent): void {
+        if (e.touches.length < 2) touchMid = null;
+    }
+
     function onpointerdown(e: PointerEvent): void {
+        if (e.pointerType === 'touch') return;
         canvas.setPointerCapture(e.pointerId);
         pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (pointers.size === 2) {
@@ -237,9 +288,18 @@
         });
         observer.observe(wrapper);
         canvas.addEventListener('wheel', onwheel, { passive: false });
+        canvas.addEventListener('touchstart', ontouchstart, { passive: true });
+        canvas.addEventListener('touchmove', ontouchmove, { passive: false });
+        canvas.addEventListener('touchend', ontouchend);
+        canvas.addEventListener('touchcancel', ontouchend);
         return () => {
             observer.disconnect();
+            clearTimeout(hintTimer);
             canvas.removeEventListener('wheel', onwheel);
+            canvas.removeEventListener('touchstart', ontouchstart);
+            canvas.removeEventListener('touchmove', ontouchmove);
+            canvas.removeEventListener('touchend', ontouchend);
+            canvas.removeEventListener('touchcancel', ontouchend);
             cancelAnimationFrame(frame);
         };
     });
@@ -258,7 +318,7 @@
 <div bind:this={wrapper} class="relative w-full select-none overflow-hidden" style="height: {height}px">
     <canvas
         bind:this={canvas}
-        style="width: {width}px; height: {height}px; touch-action: none"
+        style="width: {width}px; height: {height}px; touch-action: pan-x pan-y"
         class="cursor-grab active:cursor-grabbing"
         ondblclick={() => (view = null)}
         {onpointerdown}
@@ -266,9 +326,14 @@
         {onpointerup}
         onpointercancel={onpointerup}
     ></canvas>
+    {#if hint}
+        <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/35">
+            <span class="rounded-md bg-surface px-3 py-2 text-[13px] font-medium shadow-lg">Use two fingers to move the map</span>
+        </div>
+    {/if}
     {#if view}
         <button
-            class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md border border-line bg-surface px-2 py-1 text-xs text-muted shadow-sm hover:text-fg"
+            class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px] text-muted shadow-sm hover:text-fg md:px-2 md:py-1 md:text-xs"
             onclick={() => (view = null)}
         >
             <Icon name="zoomReset" size={14} /> Fit

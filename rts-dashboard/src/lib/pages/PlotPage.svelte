@@ -176,8 +176,10 @@
 </script>
 
 <div class="space-y-3">
-    <div class="panel flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2">
+    <!-- phones: one control per row, the stations as a scrolling row of chips -->
+    <div class="panel space-y-2.5 px-3 py-2.5 md:flex md:flex-wrap md:items-center md:gap-x-4 md:gap-y-2 md:space-y-0 md:py-2">
         <Segmented
+            class="w-full md:w-auto"
             label="Show"
             value={source}
             options={[
@@ -187,22 +189,27 @@
             onchange={setSource}
         />
         {#if source === 'stations'}
-            {#each rows as r (r.rts.id)}
-                <label class="flex items-center gap-1.5 text-[13px]">
-                    <input type="checkbox" checked={!hidden.includes(r.rts.id)} onchange={() => toggle(r.rts.id)} />
-                    <span class="h-3 w-1 rounded-sm" style="background: {r.color}"></span>
-                    <span class="font-semibold">{r.rts.name}</span>
-                    <span class="text-xs text-muted">{status(r)}</span>
-                </label>
-            {/each}
+            <div class="-mx-3 flex gap-2 overflow-x-auto px-3 [scrollbar-width:none] md:mx-0 md:flex-wrap md:gap-x-4 md:gap-y-2 md:overflow-visible md:px-0">
+                {#each rows as r (r.rts.id)}
+                    <label class="flex shrink-0 items-center gap-1.5 rounded-[5px] border border-line-strong px-2.5 py-1.5 text-[13px] md:border-0 md:p-0">
+                        <input type="checkbox" checked={!hidden.includes(r.rts.id)} onchange={() => toggle(r.rts.id)} />
+                        <span class="h-3 w-1 rounded-sm" style="background: {r.color}"></span>
+                        <span class="font-semibold">{r.rts.name}</span>
+                        <span class="text-xs text-muted">{status(r)}</span>
+                    </label>
+                {/each}
+            </div>
         {:else}
-            <Button size="sm" icon="plus" onclick={() => (pickerOpen = true)}>{selection.length ? 'Add or remove' : 'Choose measurements'}</Button>
-            {#if selection.length}<button class="text-xs text-muted hover:text-fg" onclick={() => select([])}>Clear</button>{/if}
+            <div class="flex items-center gap-3">
+                <Button size="sm" icon="plus" onclick={() => (pickerOpen = true)}>{selection.length ? 'Add or remove' : 'Choose measurements'}</Button>
+                {#if selection.length}<button class="px-1 py-2 text-[13px] text-muted hover:text-fg md:p-0 md:text-xs" onclick={() => select([])}>Clear</button>{/if}
+            </div>
         {/if}
-        <span class="ml-auto flex flex-wrap items-center gap-2">
-            <Segmented label="Values" bind:value={mode} options={[{ value: 'position', label: 'E/N/H' }, { value: 'polar', label: 'Hz/V/D' }]} />
+        <span class="flex flex-col gap-2.5 md:ml-auto md:flex-row md:flex-wrap md:items-center md:gap-2">
+            <Segmented class="w-full md:w-auto" label="Values" bind:value={mode} options={[{ value: 'position', label: 'E/N/H' }, { value: 'polar', label: 'Hz/V/D' }]} />
             {#if source === 'stations'}
                 <Segmented
+                    class="w-full md:w-auto"
                     label="Time span"
                     bind:value={windowSeconds}
                     options={[
@@ -214,6 +221,7 @@
                 />
             {:else}
                 <Segmented
+                    class="w-full md:w-auto"
                     label="Time axis"
                     bind:value={relative}
                     options={[

@@ -16,6 +16,7 @@
     import type { Snippet } from 'svelte';
     import { clock } from '../clock.svelte';
     import { units } from '../format';
+    import { media } from '../media.svelte';
     import type { Plotted } from '../plotdata';
     import PlanPlot, { type PlanTrack } from './plots/PlanPlot.svelte';
     import TimePlot, { type TimeSeries } from './plots/TimePlot.svelte';
@@ -49,6 +50,10 @@
     } = $props();
 
     const syncKey = `plots-${nextSync++}`;
+
+    // Phones: the map and the three time plots should fit about one and a half screens
+    let mapPx = $derived(media.phone ? Math.min(mapHeight, 330) : mapHeight);
+    let plotPx = $derived(media.phone ? Math.min(plotHeight, 115) : plotHeight);
 
     const PLOTS = {
         position: [
@@ -101,11 +106,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] [&>*]:min-w-0">
             <div class="border-b border-line p-2 lg:border-r lg:border-b-0">
                 <div class="label px-1 pb-1">Plan [E/N]</div>
-                <PlanPlot {tracks} {version} height={mapHeight} />
+                <PlanPlot {tracks} {version} height={mapPx} />
             </div>
             <div class="p-2">
                 {#each plots as p, i (p.key)}
-                    <TimePlot series={p.series} {version} yLabel={p.label} height={i === plots.length - 1 ? plotHeight + 40 : plotHeight} showX={i === plots.length - 1} {syncKey} {follow} now={() => clock.server} {onzoom} {relative} />
+                    <TimePlot series={p.series} {version} yLabel={p.label} height={i === plots.length - 1 ? plotPx + 40 : plotPx} showX={i === plots.length - 1} {syncKey} {follow} now={() => clock.server} {onzoom} {relative} />
                 {/each}
             </div>
         </div>

@@ -181,6 +181,24 @@ input[type='checkbox'] {
     accent-color: var(--accent);
 }
 
+/*
+ * Phones: 16 px text in fields (iOS zooms into smaller ones on focus), taller fields
+ * and checkboxes as touch targets.
+ */
+@media (max-width: 767px) {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+        font-size: 16px;
+        padding: 0.5rem 0.65rem;
+    }
+
+    input[type='checkbox'] {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+}
+
 /* Panel: bordered surface with an optional header strip */
 .panel {
     background: var(--surface);

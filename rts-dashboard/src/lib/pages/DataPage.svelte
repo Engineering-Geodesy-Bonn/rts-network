@@ -2,6 +2,7 @@
 <script lang="ts">
     import { api, download } from '../api';
     import Button from '../components/ui/Button.svelte';
+    import Icon from '../components/ui/Icon.svelte';
     import Tag from '../components/ui/Tag.svelte';
     import { events } from '../events.svelte';
     import { fmtCount, JOB_STATUS_LABEL, JOB_TYPE_LABEL, jobPrism, rtsColor } from '../format';
@@ -113,25 +114,69 @@
     };
 </script>
 
-<div class="mb-3 flex flex-wrap items-center gap-3">
+<div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
     <h1 class="label !text-[12px] !text-fg">Measurements</h1>
-    <select class="!w-auto !py-1" bind:value={station} aria-label="Station">
+    <select class="!w-auto flex-1 md:flex-none md:!py-1" bind:value={station} aria-label="Station">
         <option value="">All stations</option>
         {#each store.rts as r (r.id)}<option value={r.id}>{r.name}</option>{/each}
     </select>
     <label class="flex items-center gap-1.5 text-[13px] text-muted"><input type="checkbox" bind:checked={showAll} /> Include other jobs</label>
     <span class="ml-auto"></span>
     {#if picked.length}
-        <span class="text-xs text-muted">{picked.length} selected</span>
-        <button class="text-xs text-muted hover:text-fg" onclick={() => (picked = [])}>Clear</button>
-        <Button variant="primary" icon="layers" onclick={plotPicked}>Plot selected</Button>
+        <span class="hidden items-center gap-3 md:flex">
+            <span class="text-xs text-muted">{picked.length} selected</span>
+            <button class="text-xs text-muted hover:text-fg" onclick={() => (picked = [])}>Clear</button>
+            <Button variant="primary" icon="layers" onclick={plotPicked}>Plot selected</Button>
+        </span>
     {/if}
-    <Button icon="download" busy={exporting} onclick={exportAll}>Export session (ZIP)</Button>
+    <Button icon="download" busy={exporting} onclick={exportAll}>Export<span class="hidden sm:inline">&nbsp;session (ZIP)</span></Button>
 </div>
 
 {#if error}<p class="mb-3 rounded-[5px] bg-bad-soft px-3 py-2 text-bad">{error}</p>{/if}
 
-<div class="panel overflow-x-auto">
+<!-- phones: one card per measurement; the checkbox picks it for a combined plot -->
+<ul class="panel divide-y divide-line md:hidden">
+    {#each jobs as job (job.id)}
+        {@const index = store.rtsIndex(job.rts_id)}
+        {@const measured = MEASURING_TYPES.includes(job.type)}
+        {@const duration = job.first_t != null && job.last_t != null ? job.last_t - job.first_t : null}
+        {@const note = job.error && job.status !== 'finished' ? job.error : job.note}
+        <li class="flex items-stretch {picked.includes(job.id) ? 'bg-surface-2' : ''}">
+            <label class="flex w-12 shrink-0 items-center justify-center" aria-label="Select for plotting">
+                {#if measured && job.count > 0}<input type="checkbox" checked={picked.includes(job.id)} onchange={() => pick(job.id)} />{/if}
+            </label>
+            <a href={href(store.session!.id, 'data', job.id)} class="flex min-w-0 flex-1 items-center gap-2 py-2.5 pr-3">
+                <span class="min-w-0 flex-1">
+                    <span class="flex items-center gap-2">
+                        <span class="h-3.5 w-1 shrink-0 rounded-sm" style="background: {index >= 0 ? rtsColor(index) : 'var(--faint)'}"></span>
+                        <span class="truncate font-semibold">{store.rtsById(job.rts_id)?.name ?? 'Removed station'}</span>
+                        {#if job.status !== 'finished'}<Tag tone={TONE[job.status]} text={JOB_STATUS_LABEL[job.status]} />{/if}
+                    </span>
+                    <span class="num mt-0.5 block text-[13px] text-muted">
+                        <span class="text-fg">{time(job.first_t ?? job.started_at ?? job.created_at)}</span>{#if measured}&nbsp;· {hms(duration)} · {fmtCount(job.count)} pts{/if}
+                    </span>
+                    <span class="mt-0.5 block truncate text-xs text-muted">
+                        <span class="num">{date(job.started_at ?? job.created_at)}</span> · {measured ? jobPrism(job) : JOB_TYPE_LABEL[job.type]}{#if note}&nbsp;· <span class={job.error && job.status !== 'finished' ? 'text-bad' : ''}>{note}</span>{/if}
+                    </span>
+                </span>
+                <Icon name="chevronRight" size={16} class="text-faint" />
+            </a>
+        </li>
+    {:else}
+        {#if !loading}<li class="py-10 text-center text-muted">No measurements yet.</li>{/if}
+    {/each}
+</ul>
+
+<!-- phones: actions for the picked measurements, above the tab bar -->
+{#if picked.length}
+    <div class="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-3 border-t border-line-strong bg-surface px-3 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.15)] md:hidden">
+        <span class="text-[13px]"><span class="num font-semibold">{picked.length}</span> selected</span>
+        <button class="px-1 py-2 text-[13px] text-muted" onclick={() => (picked = [])}>Clear</button>
+        <Button variant="primary" icon="layers" class="ml-auto" onclick={plotPicked}>Plot together</Button>
+    </div>
+{/if}
+
+<div class="panel hidden overflow-x-auto md:block">
     <table class="data-table">
         <thead>
             <tr>
@@ -187,3 +232,6 @@
 {#if nextBefore}
     <div class="mt-3 text-center"><Button busy={loading} onclick={() => load(true)}>Load older</Button></div>
 {/if}
+
+<!-- room for the selection bar on phones -->
+{#if picked.length}<div class="h-14 md:hidden"></div>{/if}

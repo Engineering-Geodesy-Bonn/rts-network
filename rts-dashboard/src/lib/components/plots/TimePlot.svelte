@@ -16,6 +16,7 @@
     import uPlot from 'uplot';
     import 'uplot/dist/uPlot.min.css';
     import { onDestroy, onMount } from 'svelte';
+    import { media } from '../../media.svelte';
     import { cssVar, theme } from '../../theme.svelte';
 
     let {
@@ -75,7 +76,7 @@
                     label: yLabel,
                     labelFont: '600 10px system-ui, sans-serif',
                     labelSize: 16,
-                    size: 92,
+                    size: media.phone ? 66 : 92, // phones: room for the data
                     values: (_u: uPlot, splits: number[], _axis: number, _space: number, increment: number) => {
                         const decimals = Math.max(0, Math.min(6, -Math.floor(Math.log10(increment || 1) + 1e-9)));
                         return splits.map((v) => v.toFixed(decimals));
@@ -222,6 +223,7 @@
         void height;
         void yLabel;
         void relative;
+        void media.phone;
         if (plot) build();
     });
 </script>
@@ -230,7 +232,7 @@
     <div bind:this={container} class="w-full" ondblclick={resetZoom} role="img" aria-label={yLabel}></div>
     {#if zoomed}
         <button
-            class="absolute right-2 top-1 rounded-md border border-line bg-surface px-2 py-0.5 text-xs text-muted shadow-sm hover:text-fg"
+            class="absolute right-2 top-1 rounded-md border border-line bg-surface px-2.5 py-1 text-[13px] text-muted shadow-sm hover:text-fg md:px-2 md:py-0.5 md:text-xs"
             onclick={resetZoom}>{follow ? 'Back to live' : 'Reset zoom'}</button
         >
     {/if}

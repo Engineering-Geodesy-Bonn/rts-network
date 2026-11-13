@@ -16,7 +16,19 @@
     {:else if problems.length === 0}
         <p class="flex items-center gap-2 px-3 py-2.5 text-[13px] text-muted"><Tag tone="good" text="OK" /> No problems detected.</p>
     {:else}
-        <table class="data-table">
+        <!-- phones: severity and subject above the message -->
+        <ul class="divide-y divide-line md:hidden">
+            {#each problems as p, i (i)}
+                <li class="px-3 py-2.5">
+                    <div class="flex items-center gap-2">
+                        <Tag tone={p.severity === 'error' ? 'bad' : 'warn'} text={p.severity === 'error' ? 'Error' : 'Warning'} />
+                        <span class="truncate font-semibold">{p.subject}</span>
+                    </div>
+                    <p class="mt-1 text-[13px] leading-snug">{p.message}</p>
+                </li>
+            {/each}
+        </ul>
+        <table class="data-table hidden md:table">
             <tbody>
                 {#each problems as p, i (i)}
                     <tr>

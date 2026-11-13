@@ -132,21 +132,24 @@
     }
 </script>
 
-<a href={href(store.session?.id ?? null, 'data')} class="mb-3 inline-flex items-center gap-1 text-[13px] text-muted hover:text-fg"><Icon name="chevronLeft" size={15} /> Measurements</a>
+<a href={href(store.session?.id ?? null, 'data')} class="-mt-1.5 mb-1.5 inline-flex items-center gap-1 py-1.5 text-[13px] text-muted hover:text-fg"><Icon name="chevronLeft" size={15} /> Measurements</a>
 
 {#if error}
     <p class="rounded-[5px] bg-bad-soft px-3 py-2 text-bad">{error}</p>
 {:else if job}
     <div class="space-y-3">
-        <div class="flex flex-wrap items-center gap-3">
-            <span class="h-6 w-1 rounded-sm" style="background: {color}"></span>
-            <h1 class="text-[17px] font-semibold">{rts ? `${rts.name}${removed ? ' (removed)' : ''}` : 'Removed station'} · {JOB_TYPE_LABEL[job.type]}</h1>
-            <Tag tone={job.status === 'running' ? 'good' : job.status === 'failed' || job.status === 'lost' ? 'bad' : job.status === 'interrupted' ? 'warn' : 'neutral'} text={JOB_STATUS_LABEL[job.status]} />
-            <span class="ml-auto flex flex-wrap gap-2">
-                {#if active}<Button variant="stop" icon="stop" onclick={() => store.stopJob(job!)}>Stop</Button>{/if}
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span class="flex min-w-0 items-center gap-3">
+                <span class="h-6 w-1 shrink-0 rounded-sm" style="background: {color}"></span>
+                <h1 class="text-[17px] leading-snug font-semibold">{rts ? `${rts.name}${removed ? ' (removed)' : ''}` : 'Removed station'} · {JOB_TYPE_LABEL[job.type]}</h1>
+                <Tag tone={job.status === 'running' ? 'good' : job.status === 'failed' || job.status === 'lost' ? 'bad' : job.status === 'interrupted' ? 'warn' : 'neutral'} text={JOB_STATUS_LABEL[job.status]} />
+            </span>
+            <!-- phones: a 2-column grid of equal buttons instead of a ragged row -->
+            <span class="grid w-full grid-cols-2 gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap [&>*:only-child]:col-span-2">
+                {#if active}<Button variant="stop" icon="stop" class={measured && job.count > 0 ? 'col-span-2' : ''} onclick={() => store.stopJob(job!)}>Stop</Button>{/if}
                 {#if measured && job.count > 0}
                     <Button variant="primary" icon="download" busy={busy === 'corrected'} disabled={busy !== ''} onclick={() => get('corrected')}>Corrected CSV</Button>
-                    <Button icon="download" busy={busy === 'trajectory'} disabled={busy !== ''} onclick={() => get('trajectory')}>Trajectory (.traj)</Button>
+                    <Button icon="download" busy={busy === 'trajectory'} disabled={busy !== ''} onclick={() => get('trajectory')}>Trajectory<span class="hidden sm:inline">&nbsp;(.traj)</span></Button>
                     <Button icon="download" busy={busy === 'raw'} disabled={busy !== ''} onclick={() => get('raw')}>Raw CSV</Button>
                     <Button icon="layers" href={href(store.session?.id ?? null, 'plot', job.id)} title="Plot this measurement together with others">Compare</Button>
                 {/if}
@@ -187,7 +190,7 @@
         {#if measured}
             <PlotPanel {traces} {version} {mode} onzoom={zoom} title={isLive ? 'Measurements (live)' : 'Measurements'}>
                 {#snippet controls()}
-                    {#if !isLive}<span class="text-xs text-muted">Drag in a time plot to zoom to full resolution</span>{/if}
+                    {#if !isLive}<span class="hidden text-xs text-muted md:inline">Drag in a time plot to zoom to full resolution</span>{/if}
                     <Segmented label="Values" bind:value={mode} options={[{ value: 'position', label: 'E/N/H' }, { value: 'polar', label: 'Hz/V/D' }]} />
                 {/snippet}
             </PlotPanel>

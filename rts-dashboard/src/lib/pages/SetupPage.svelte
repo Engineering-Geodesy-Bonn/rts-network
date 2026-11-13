@@ -3,6 +3,7 @@
     import StationEditor from '../components/StationEditor.svelte';
     import Button from '../components/ui/Button.svelte';
     import Field from '../components/ui/Field.svelte';
+    import Icon from '../components/ui/Icon.svelte';
     import Modal from '../components/ui/Modal.svelte';
     import Panel from '../components/ui/Panel.svelte';
     import Tag from '../components/ui/Tag.svelte';
@@ -124,7 +125,23 @@
         {#if store.rts.length === 0}
             <p class="px-3 py-8 text-center text-muted">No total stations yet. Add one for every instrument you set up.</p>
         {:else}
-            <div class="overflow-x-auto">
+            <!-- phones: tap a station to edit it -->
+            <ul class="divide-y divide-line md:hidden">
+                {#each store.rts as rts, index (rts.id)}
+                    <li>
+                        <button class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left active:bg-surface-2" onclick={() => edit(rts)}>
+                            <span class="h-9 w-1 shrink-0 rounded-sm" style="background: {rtsColor(index)}"></span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate font-semibold">{rts.name}</span>
+                                <span class="block truncate text-xs text-muted"><span class={rts.device_id ? '' : 'text-bad'}>{rts.device_id ? store.deviceLabel(rts.device_id) : 'No Raspberry Pi'}</span> · <span class="num">{rts.port}</span></span>
+                                <span class="num block truncate text-xs text-muted">E {rts.station_x.toFixed(3)} · N {rts.station_y.toFixed(3)} · H {rts.station_z.toFixed(3)}</span>
+                            </span>
+                            <Icon name="chevronRight" size={16} class="text-faint" />
+                        </button>
+                    </li>
+                {/each}
+            </ul>
+            <div class="hidden overflow-x-auto md:block">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -162,11 +179,39 @@
     </Panel>
 
     <Panel title="Raspberry Pis" flush>
-        {#snippet actions()}<span class="text-xs text-muted">Appear automatically when their worker starts</span>{/snippet}
+        {#snippet actions()}<span class="hidden text-xs text-muted sm:inline">Appear automatically when their worker starts</span>{/snippet}
         {#if relevantDevices.length === 0}
             <p class="px-3 py-8 text-center text-muted">No Raspberry Pi is connected.</p>
         {:else}
-            <div class="overflow-x-auto">
+            <!-- phones: state and the values that matter in the field on top, the rest below -->
+            <ul class="divide-y divide-line md:hidden">
+                {#each relevantDevices as d (d.id)}
+                    {@const h = deviceHealth.get(d.id)}
+                    {@const state = deviceState(h)}
+                    {@const online = !!h?.online}
+                    <li class="px-3 py-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="min-w-0 flex-1 truncate font-semibold">{d.name || d.hostname || d.ip}{#if d.name && d.hostname}<span class="font-normal text-muted"> ({d.hostname})</span>{/if}</span>
+                            <Button variant="quiet" size="sm" onclick={() => ((renaming = { id: d.id, name: d.name ?? '' }), (renameOpen = true))}>Rename</Button>
+                        </div>
+                        <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                            <Tag tone={state.tone} text={state.text} />
+                            {#if online}<Tag tone={SYNC[h!.time_sync].tone} text={SYNC[h!.time_sync].text} />{/if}
+                            {#if h?.unsent}<Tag tone="warn" text="{fmtCount(h.unsent)} unsent" />{/if}
+                        </div>
+                        <dl class="num mt-2 grid grid-cols-3 gap-x-3 gap-y-1.5 text-[13px]">
+                            <div><dt class="label">IP</dt><dd class="truncate">{d.ip}</dd></div>
+                            <div><dt class="label">Clock err.</dt><dd>{online && h!.time_error != null ? `±${fmtTime(h!.time_error)}` : '–'}</dd></div>
+                            <div><dt class="label">Dev. − srv.</dt><dd>{online && h!.clock_offset != null ? fmtTime(-h!.clock_offset) : '–'}</dd></div>
+                            <div><dt class="label">Workers</dt><dd>{online ? h!.workers : '–'}</dd></div>
+                            <div><dt class="label">CPU [°C]</dt><dd>{online && h!.cpu_temperature != null ? h!.cpu_temperature.toFixed(1) : '–'}</dd></div>
+                            <div><dt class="label">Disk free</dt><dd>{online && h!.disk_free != null ? fmtBytes(h!.disk_free) : '–'}</dd></div>
+                        </dl>
+                        {#if online && h!.version}<p class="num mt-1.5 truncate text-xs text-muted">Version {h!.version}</p>{/if}
+                    </li>
+                {/each}
+            </ul>
+            <div class="hidden overflow-x-auto md:block">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -210,7 +255,7 @@
         {/if}
         {#if otherDevices.length}
             <div class="border-t border-line px-3 py-2">
-                <button class="text-xs text-muted hover:text-fg" onclick={() => (showOther = !showOther)}>
+                <button class="py-1.5 text-left text-[13px] text-muted hover:text-fg md:py-0 md:text-xs" onclick={() => (showOther = !showOther)}>
                     {showOther ? 'Hide' : 'Show'} {otherDevices.length} other device{otherDevices.length === 1 ? '' : 's'} (offline, not used in this session)
                 </button>
                 {#if showOther}
@@ -238,8 +283,8 @@
         <div class="mt-3 flex flex-wrap items-center gap-2">
             <Button icon="download" busy={exporting} onclick={exportAll}>Export session (ZIP)</Button>
             <Button onclick={archive}>{store.session?.archived ? 'Unarchive' : 'Archive'}</Button>
-            <span class="num ml-2 text-xs text-muted">{fmtCount(store.session?.job_count)} jobs · {fmtCount(store.session?.measurement_count)} points</span>
-            <Button variant="danger" class="ml-auto" onclick={deleteSession}>Delete session</Button>
+            <span class="num w-full text-xs text-muted md:ml-2 md:w-auto">{fmtCount(store.session?.job_count)} jobs · {fmtCount(store.session?.measurement_count)} points</span>
+            <Button variant="danger" class="md:ml-auto" onclick={deleteSession}>Delete session</Button>
         </div>
     </Panel>
 

@@ -201,31 +201,43 @@
     </table>
 </div>
 
-<!-- phones and tablets: one block per station -->
+<!--
+    phones and tablets: one card per station. The coordinates are what is watched in the field,
+    so they are large; rate, age, points, duration, jitter and battery share one status line.
+-->
 <div class="panel divide-y divide-line lg:hidden">
     {#each entries as e (e.rts.id)}
         {@const v = view(e)}
-        <div class="p-3">
-            <div class="flex items-center gap-2.5">
-                <span class="h-8 w-1 rounded-sm" style="background: {e.color}"></span>
+        <div class="relative py-3 pr-3 pl-4">
+            <span class="absolute inset-y-3 left-0 w-1 rounded-r-sm" style="background: {e.color}"></span>
+            <div class="flex items-start gap-2">
                 <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2"><span class="truncate font-semibold">{e.rts.name}</span><Tag tone={v.state.tone} text={v.state.text} /></div>
-                    <div class="truncate text-xs text-muted">{store.deviceLabel(e.rts.device_id)} · {e.rts.port} · {@render prismLink(e)}</div>
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span class="text-[15px] leading-snug font-semibold break-words">{e.rts.name}</span><Tag tone={v.state.tone} text={v.state.text} /></div>
+                    <div class="truncate text-xs text-muted">{@render prismLink(e)} · {store.deviceLabel(e.rts.device_id)} · {e.rts.port}</div>
                 </div>
                 {@render actions(e, v)}
             </div>
             {#if v.tracking}
-                <dl class="mt-2.5 grid grid-cols-3 gap-x-3 gap-y-1.5 sm:grid-cols-6">
-                    <div><dt class="label">Rate [Hz]</dt><dd class="num">{v.rate}</dd></div>
-                    <div><dt class="label">Age [s]</dt><dd class="num">{v.age !== null ? v.age.toFixed(1) : '–'}</dd></div>
-                    <div><dt class="label">Points</dt><dd class="num">{v.points}</dd></div>
-                    {#each COLS[mode] as c, i (c.key)}<div><dt class="label">{c.label}</dt><dd class="num">{v.values[i]}</dd></div>{/each}
-                    <div><dt class="label">Duration</dt><dd class="num">{hms(v.duration)}</dd></div>
-                    <div><dt class="label">Jitter [ms]</dt><dd class="num">{v.jitter}</dd></div>
-                    <div><dt class="label">Batt. [%]</dt><dd class="num">{v.battery}</dd></div>
+                <dl class="mt-2 grid grid-cols-3 gap-x-3">
+                    {#each COLS[mode] as c, i (c.key)}
+                        <div class="min-w-0"><dt class="label">{c.label}</dt><dd class="num truncate text-[17px] leading-tight font-semibold">{v.values[i]}</dd></div>
+                    {/each}
                 </dl>
+                <p class="num mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+                    <span><span class="text-fg">{v.rate}</span> Hz</span>
+                    <span class={v.age !== null && v.age > 10 ? 'text-bad' : v.age !== null && v.age > 2 ? 'text-warn' : ''}><span class={v.age !== null && v.age > 2 ? '' : 'text-fg'}>{v.age !== null ? v.age.toFixed(1) : '–'}</span> s ago</span>
+                    <span><span class="text-fg">{v.points}</span> pts</span>
+                    <span class="text-fg">{hms(v.duration)}</span>
+                    <span>jitter <span class="text-fg">{v.jitter}</span> ms</span>
+                    {#if v.battery !== '–'}<span>batt. <span class="text-fg">{v.battery}</span> %</span>{/if}
+                </p>
             {:else}
-                <p class="mt-2 text-[13px] text-muted">{lastLabel(e.lastJob)}</p>
+                <p class="mt-2 text-[13px] text-muted">
+                    {#if e.lastJob && e.lastJob.count > 0}
+                        <a class="underline decoration-line-strong underline-offset-2" href={href(e.rts.session_id, 'data', e.lastJob.id)}>{lastLabel(e.lastJob)}</a>
+                    {:else}{lastLabel(e.lastJob)}{/if}
+                    {#if v.battery !== '–'}<span class="num"> · batt. {v.battery} %</span>{/if}
+                </p>
             {/if}
         </div>
     {/each}
